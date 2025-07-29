@@ -4,6 +4,7 @@
 """
 
 from .base import BaseDocumentProcessor, DocumentProcessorManager
+from .chinese_text_processor import ChineseTextProcessor
 from .docx_processor import DocxProcessor
 from .exceptions import (
     ContentExtractionError,
@@ -25,6 +26,7 @@ __all__ = [
     "MarkdownProcessor",
     "PDFProcessor",
     "DocxProcessor",
+    "ChineseTextProcessor",
     # 例外類別
     "DocumentProcessingError",
     "UnsupportedFileFormatError",
