@@ -33,14 +33,14 @@
     - _需求: 5.4, 6.1_
 
 - [ ] 4. 實作多模型 Embedding 服務
-  - [ ] 4.1 建立 Embedding 服務架構
+  - [x] 4.1 建立 Embedding 服務架構
     - 實作 EmbeddingService 抽象基類和管理器
     - 建立多種 embedding 模型適配器（BGE-M3、OpenAI、本地模型）
     - 實作模型載入和切換機制
     - 建立 embedding 模型效能評估
     - _需求: 3.1, 3.2, 3.3_
 
-  - [ ] 4.2 實作中文優化 Embedding 模型
+  - [x] 4.2 實作中文優化 Embedding 模型
     - 整合 BGE-M3 作為預設中文模型
     - 支援其他中文 embedding 模型（如 text2vec、m3e）
     - 實作中文文本預處理和後處理

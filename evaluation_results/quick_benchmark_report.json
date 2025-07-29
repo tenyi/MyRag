@@ -1,0 +1,193 @@
+{
+  "evaluation_summary": {
+    "total_tests": 12,
+    "models_tested": 2,
+    "evaluation_time": "2025-07-29T19:26:11.325952"
+  },
+  "model_performance": {
+    "BAAI/bge-m3": {
+      "summary": {
+        "model_name": "BAAI/bge-m3",
+        "test_count": 6,
+        "average_processing_time": 1.712,
+        "average_throughput": 11.22,
+        "average_memory_increase_mb": 48.68,
+        "success_rate": 1.0,
+        "embedding_dimension": 1024,
+        "device": "cpu"
+      },
+      "detailed_results": [
+        {
+          "test_name": "quick_benchmark_batch_size_batch_1",
+          "processing_time": 0.1982,
+          "throughput": 5.04,
+          "memory_increase_mb": 2.41,
+          "text_count": 1,
+          "batch_size": 1,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 1,
+            "text_length": 200
+          }
+        },
+        {
+          "test_name": "quick_benchmark_batch_size_batch_16",
+          "processing_time": 1.3516,
+          "throughput": 11.84,
+          "memory_increase_mb": 38.75,
+          "text_count": 16,
+          "batch_size": 16,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 16,
+            "text_length": 200
+          }
+        },
+        {
+          "test_name": "quick_benchmark_text_length_length_100",
+          "processing_time": 0.7455,
+          "throughput": 21.46,
+          "memory_increase_mb": 59.52,
+          "text_count": 16,
+          "batch_size": 16,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 16,
+            "text_length": 100
+          }
+        },
+        {
+          "test_name": "quick_benchmark_text_length_length_500",
+          "processing_time": 3.2105,
+          "throughput": 4.98,
+          "memory_increase_mb": 130.08,
+          "text_count": 16,
+          "batch_size": 16,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 16,
+            "text_length": 500
+          }
+        },
+        {
+          "test_name": "quick_benchmark_text_count_count_10",
+          "processing_time": 0.9037,
+          "throughput": 11.07,
+          "memory_increase_mb": 33.78,
+          "text_count": 10,
+          "batch_size": 10,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 10,
+            "text_count": 10
+          }
+        },
+        {
+          "test_name": "quick_benchmark_text_count_count_50",
+          "processing_time": 3.8627,
+          "throughput": 12.94,
+          "memory_increase_mb": 27.55,
+          "text_count": 50,
+          "batch_size": 32,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 32,
+            "text_count": 50
+          }
+        }
+      ]
+    },
+    "text2vec-base-chinese": {
+      "summary": {
+        "model_name": "text2vec-base-chinese",
+        "test_count": 6,
+        "average_processing_time": 0.7689,
+        "average_throughput": 26.04,
+        "average_memory_increase_mb": 31.07,
+        "success_rate": 1.0,
+        "embedding_dimension": 768,
+        "device": "cpu"
+      },
+      "detailed_results": [
+        {
+          "test_name": "quick_benchmark_batch_size_batch_1",
+          "processing_time": 0.0841,
+          "throughput": 11.89,
+          "memory_increase_mb": -2.98,
+          "text_count": 1,
+          "batch_size": 1,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 1,
+            "text_length": 200
+          }
+        },
+        {
+          "test_name": "quick_benchmark_batch_size_batch_16",
+          "processing_time": 0.5806,
+          "throughput": 27.56,
+          "memory_increase_mb": 6.09,
+          "text_count": 16,
+          "batch_size": 16,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 16,
+            "text_length": 200
+          }
+        },
+        {
+          "test_name": "quick_benchmark_text_length_length_100",
+          "processing_time": 0.3113,
+          "throughput": 51.4,
+          "memory_increase_mb": 29.61,
+          "text_count": 16,
+          "batch_size": 16,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 16,
+            "text_length": 100
+          }
+        },
+        {
+          "test_name": "quick_benchmark_text_length_length_500",
+          "processing_time": 1.5537,
+          "throughput": 10.3,
+          "memory_increase_mb": 111.83,
+          "text_count": 16,
+          "batch_size": 16,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 16,
+            "text_length": 500
+          }
+        },
+        {
+          "test_name": "quick_benchmark_text_count_count_10",
+          "processing_time": 0.3916,
+          "throughput": 25.53,
+          "memory_increase_mb": 30.45,
+          "text_count": 10,
+          "batch_size": 10,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 10,
+            "text_count": 10
+          }
+        },
+        {
+          "test_name": "quick_benchmark_text_count_count_50",
+          "processing_time": 1.6923,
+          "throughput": 29.55,
+          "memory_increase_mb": 11.44,
+          "text_count": 50,
+          "batch_size": 32,
+          "success_rate": 1.0,
+          "test_config": {
+            "batch_size": 32,
+            "text_count": 50
+          }
+        }
+      ]
+    }
+  }
+}
