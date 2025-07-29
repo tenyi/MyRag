@@ -1,0 +1,53 @@
+# 中文 GraphRAG 系統配置範例
+# 複製此檔案為 settings.yaml 並修改相關設定
+
+# LLM 模型配置
+models:
+  default_chat_model:
+    api_key: ${GRAPHRAG_API_KEY}
+    type: openai_chat
+    model: gpt-4o
+    model_supports_json: true
+  
+  default_embedding_model:
+    api_key: ${GRAPHRAG_API_KEY}
+    type: openai_embedding
+    model: text-embedding-ada-002
+  
+  # 中文優化 embedding 模型（BGE-M3）
+  chinese_embedding_model:
+    type: bge_m3
+    model: BAAI/bge-m3
+    device: auto  # auto, cpu, cuda
+
+# 向量資料庫配置
+vector_store:
+  type: lancedb
+  uri: ./data/lancedb
+  
+# 文件處理配置
+input:
+  file_type: text
+  supported_formats: [txt, pdf, docx, md]
+  encoding: utf-8
+  
+# 中文文本處理配置
+chinese_processing:
+  tokenizer: jieba
+  enable_traditional_chinese: true
+  custom_dict_path: null
+  
+# 索引配置
+indexing:
+  chunk_size: 1000
+  chunk_overlap: 200
+  enable_entity_extraction: true
+  enable_relationship_extraction: true
+  enable_community_detection: true
+  
+# 查詢配置
+query:
+  max_tokens: 2000
+  temperature: 0.0
+  enable_global_search: true
+  enable_local_search: true
