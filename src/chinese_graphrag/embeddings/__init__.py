@@ -3,6 +3,7 @@ Embedding 服務模組
 
 提供多種 embedding 模型的統一介面和管理功能
 支援 BGE-M3、OpenAI、text2vec、m3e 等模型
+包含快取、GPU 加速、記憶體優化和使用量監控功能
 """
 
 from .base import (
@@ -51,6 +52,40 @@ from .evaluation import (
     chinese_quality_benchmark
 )
 
+# 效能優化和管理
+from .cache import (
+    EmbeddingCache,
+    MemoryCache,
+    DiskCache,
+    MultiLevelCache,
+    CacheEntry,
+    CacheStrategy,
+    LRUStrategy,
+    LFUStrategy,
+    create_embedding_cache
+)
+
+from .gpu_acceleration import (
+    DeviceManager,
+    MemoryOptimizer,
+    BatchProcessor,
+    GPUInfo,
+    MemoryStats,
+    get_device_manager,
+    get_memory_optimizer,
+    create_batch_processor
+)
+
+from .monitoring import (
+    UsageMonitor,
+    UsageRecord,
+    ModelStats,
+    Alert,
+    AlertLevel,
+    get_usage_monitor,
+    record_embedding_usage
+)
+
 __all__ = [
     # 基礎類別和介面
     "EmbeddingService",
@@ -93,5 +128,35 @@ __all__ = [
     "PerformanceMetrics",
     "BenchmarkConfig",
     "quick_benchmark",
-    "chinese_quality_benchmark"
+    "chinese_quality_benchmark",
+    
+    # 快取系統
+    "EmbeddingCache",
+    "MemoryCache",
+    "DiskCache", 
+    "MultiLevelCache",
+    "CacheEntry",
+    "CacheStrategy",
+    "LRUStrategy",
+    "LFUStrategy",
+    "create_embedding_cache",
+    
+    # GPU 加速和記憶體優化
+    "DeviceManager",
+    "MemoryOptimizer",
+    "BatchProcessor",
+    "GPUInfo",
+    "MemoryStats",
+    "get_device_manager",
+    "get_memory_optimizer",
+    "create_batch_processor",
+    
+    # 使用量監控
+    "UsageMonitor",
+    "UsageRecord",
+    "ModelStats",
+    "Alert",
+    "AlertLevel",
+    "get_usage_monitor",
+    "record_embedding_usage"
 ]

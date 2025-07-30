@@ -2,6 +2,7 @@
 Embedding 服務管理器
 
 負責管理多個 embedding 模型，提供統一的介面和智慧路由功能
+整合快取、GPU 加速、記憶體優化和使用量監控功能
 """
 
 import asyncio
@@ -19,19 +20,31 @@ from .base import (
     ModelMetrics,
     EmbeddingServiceError
 )
+from .cache import MultiLevelCache, create_embedding_cache
+from .gpu_acceleration import (
+    get_device_manager, 
+    get_memory_optimizer, 
+    create_batch_processor
+)
+from .monitoring import get_usage_monitor, record_embedding_usage
 
 
 class EmbeddingManager:
     """Embedding 服務管理器
     
     管理多個 embedding 模型，提供模型選擇、負載均衡和降級處理
+    整合快取、GPU 加速、記憶體優化和使用量監控功能
     """
     
     def __init__(
         self,
         default_model: Optional[str] = None,
         enable_fallback: bool = True,
-        max_concurrent_requests: int = 10
+        max_concurrent_requests: int = 10,
+        enable_cache: bool = True,
+        cache_config: Optional[Dict[str, Any]] = None,
+        enable_gpu_acceleration: bool = True,
+        enable_monitoring: bool = True
     ):
         """初始化 Embedding 管理器
         
@@ -39,6 +52,10 @@ class EmbeddingManager:
             default_model: 預設使用的模型名稱
             enable_fallback: 是否啟用降級處理
             max_concurrent_requests: 最大並發請求數
+            enable_cache: 是否啟用快取
+            cache_config: 快取配置
+            enable_gpu_acceleration: 是否啟用 GPU 加速
+            enable_monitoring: 是否啟用使用量監控
         """
         self.services: Dict[str, EmbeddingService] = {}
         self.default_model = default_model
@@ -46,6 +63,35 @@ class EmbeddingManager:
         self.max_concurrent_requests = max_concurrent_requests
         self._semaphore = asyncio.Semaphore(max_concurrent_requests)
         self._last_health_check = {}
+        
+        # 快取系統
+        self.enable_cache = enable_cache
+        if enable_cache:
+            cache_config = cache_config or {}
+            self.cache = create_embedding_cache("multi_level", **cache_config)
+            logger.info("啟用 Embedding 快取系統")
+        else:
+            self.cache = None
+        
+        # GPU 加速和記憶體優化
+        self.enable_gpu_acceleration = enable_gpu_acceleration
+        if enable_gpu_acceleration:
+            self.device_manager = get_device_manager()
+            self.memory_optimizer = get_memory_optimizer()
+            self.batch_processor = create_batch_processor()
+            logger.info("啟用 GPU 加速和記憶體優化")
+        else:
+            self.device_manager = None
+            self.memory_optimizer = None
+            self.batch_processor = None
+        
+        # 使用量監控
+        self.enable_monitoring = enable_monitoring
+        if enable_monitoring:
+            self.usage_monitor = get_usage_monitor()
+            logger.info("啟用使用量監控")
+        else:
+            self.usage_monitor = None
         
         logger.info(f"初始化 Embedding 管理器，預設模型: {default_model}")
     
@@ -197,7 +243,9 @@ class EmbeddingManager:
         service_name: Optional[str] = None,
         normalize: bool = True,
         show_progress: bool = False,
-        fallback_on_error: bool = None
+        fallback_on_error: bool = None,
+        use_cache: bool = True,
+        use_gpu_optimization: bool = True
     ) -> EmbeddingResult:
         """批次文本向量化
         
@@ -207,6 +255,8 @@ class EmbeddingManager:
             normalize: 是否正規化向量
             show_progress: 是否顯示進度
             fallback_on_error: 是否在錯誤時降級，None 時使用管理器設定
+            use_cache: 是否使用快取
+            use_gpu_optimization: 是否使用 GPU 優化
             
         Returns:
             EmbeddingResult: 向量化結果
@@ -216,14 +266,133 @@ class EmbeddingManager:
         
         # 選擇服務
         primary_service_name = service_name or self.default_model
+        service = self.get_service(primary_service_name)
+        
+        # 檢查快取
+        cache_key = None
+        if self.enable_cache and use_cache and self.cache:
+            cache_key = self.cache._generate_cache_key(
+                texts, service.model_name, normalize
+            )
+            
+            cached_entry = await self.cache.get(cache_key)
+            if cached_entry:
+                logger.debug(f"快取命中: {len(texts)} 個文本")
+                
+                # 記錄使用量（快取命中）
+                if self.enable_monitoring:
+                    record_embedding_usage(
+                        model_name=service.model_name,
+                        operation="embed_texts_cached",
+                        input_count=len(texts),
+                        processing_time=0.001,  # 快取存取時間很短
+                        device="cache",
+                        success=True,
+                        cache_hit=True
+                    )
+                
+                return EmbeddingResult(
+                    embeddings=cached_entry.embeddings,
+                    texts=cached_entry.texts,
+                    model_name=cached_entry.model_name,
+                    dimensions=cached_entry.embeddings.shape[1],
+                    processing_time=0.001,
+                    metadata={"cache_hit": True, **cached_entry.metadata}
+                )
+        
+        # 記憶體優化
+        if self.enable_gpu_acceleration and use_gpu_optimization and self.memory_optimizer:
+            # 檢查記憶體使用情況
+            if self.memory_optimizer._should_cleanup():
+                logger.info("執行記憶體清理")
+                await self.memory_optimizer.cleanup_memory()
+        
+        # 執行向量化
+        start_time = time.time()
+        success = False
+        result = None
+        error = None
         
         async with self._semaphore:
             try:
-                service = self.get_service(primary_service_name)
-                return await service.embed_texts(texts, normalize, show_progress)
+                # GPU 優化批次處理
+                if (self.enable_gpu_acceleration and use_gpu_optimization and 
+                    self.batch_processor and len(texts) > 32):
+                    
+                    # 使用批次處理器
+                    device = self.device_manager.get_optimal_device(
+                        memory_required_mb=len(texts) * 10  # 估算記憶體需求
+                    )
+                    
+                    async def process_batch(batch_texts):
+                        return await service.embed_texts(batch_texts, normalize, False)
+                    
+                    batch_results = await self.batch_processor.process_in_batches(
+                        items=[texts],  # 包裝成批次
+                        process_func=process_batch,
+                        device=device,
+                        estimated_memory_per_item=len(texts) * 10,
+                        show_progress=show_progress
+                    )
+                    
+                    if batch_results:
+                        result = batch_results[0]
+                        success = True
+                else:
+                    # 直接處理
+                    result = await service.embed_texts(texts, normalize, show_progress)
+                    success = True
+                
+                processing_time = time.time() - start_time
+                
+                # 儲存到快取
+                if (self.enable_cache and use_cache and self.cache and 
+                    cache_key and result and success):
+                    
+                    from .cache import CacheEntry
+                    cache_entry = CacheEntry(
+                        key=cache_key,
+                        embeddings=result.embeddings,
+                        texts=result.texts,
+                        model_name=result.model_name,
+                        timestamp=time.time()
+                    )
+                    
+                    await self.cache.put(cache_key, cache_entry)
+                    logger.debug(f"結果已快取: {len(texts)} 個文本")
+                
+                # 記錄使用量
+                if self.enable_monitoring:
+                    record_embedding_usage(
+                        model_name=service.model_name,
+                        operation="embed_texts",
+                        input_count=len(texts),
+                        processing_time=processing_time,
+                        memory_used=getattr(result, 'memory_used', 0.0),
+                        device=getattr(service, 'device', 'unknown'),
+                        success=success,
+                        output_dimensions=result.dimensions if result else 0,
+                        cache_hit=False
+                    )
+                
+                return result
                 
             except Exception as e:
+                error = e
+                processing_time = time.time() - start_time
                 logger.error(f"使用服務 {primary_service_name} 向量化失敗: {e}")
+                
+                # 記錄失敗的使用量
+                if self.enable_monitoring:
+                    record_embedding_usage(
+                        model_name=service.model_name,
+                        operation="embed_texts",
+                        input_count=len(texts),
+                        processing_time=processing_time,
+                        device=getattr(service, 'device', 'unknown'),
+                        success=False,
+                        error_message=str(e)
+                    )
                 
                 if not fallback_on_error:
                     raise
@@ -233,13 +402,44 @@ class EmbeddingManager:
                     if name != primary_service_name and fallback_service.is_loaded:
                         try:
                             logger.info(f"降級使用服務: {name}")
-                            return await fallback_service.embed_texts(texts, normalize, show_progress)
+                            fallback_start = time.time()
+                            
+                            result = await fallback_service.embed_texts(texts, normalize, show_progress)
+                            fallback_time = time.time() - fallback_start
+                            
+                            # 記錄降級成功的使用量
+                            if self.enable_monitoring:
+                                record_embedding_usage(
+                                    model_name=fallback_service.model_name,
+                                    operation="embed_texts_fallback",
+                                    input_count=len(texts),
+                                    processing_time=fallback_time,
+                                    device=getattr(fallback_service, 'device', 'unknown'),
+                                    success=True,
+                                    fallback_from=service.model_name
+                                )
+                            
+                            return result
+                            
                         except Exception as fallback_error:
                             logger.error(f"降級服務 {name} 也失敗: {fallback_error}")
+                            
+                            # 記錄降級失敗的使用量
+                            if self.enable_monitoring:
+                                record_embedding_usage(
+                                    model_name=fallback_service.model_name,
+                                    operation="embed_texts_fallback",
+                                    input_count=len(texts),
+                                    processing_time=time.time() - fallback_start,
+                                    device=getattr(fallback_service, 'device', 'unknown'),
+                                    success=False,
+                                    error_message=str(fallback_error),
+                                    fallback_from=service.model_name
+                                )
                             continue
                 
                 # 所有服務都失敗
-                raise EmbeddingServiceError(f"所有 embedding 服務都失敗，最後錯誤: {e}")
+                raise EmbeddingServiceError(f"所有 embedding 服務都失敗，最後錯誤: {error}")
     
     async def embed_single_text(
         self,
@@ -417,3 +617,160 @@ class EmbeddingManager:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """異步上下文管理器出口"""
         await self.unload_all_models()
+    
+    # 新增的效能優化和管理方法
+    
+    async def get_cache_stats(self) -> Optional[Dict[str, Any]]:
+        """取得快取統計資訊"""
+        if self.cache:
+            return await self.cache.get_stats()
+        return None
+    
+    async def clear_cache(self) -> bool:
+        """清空快取"""
+        if self.cache:
+            await self.cache.clear()
+            logger.info("Embedding 快取已清空")
+            return True
+        return False
+    
+    async def preload_cache(
+        self,
+        texts: List[str],
+        service_name: Optional[str] = None,
+        batch_size: int = 32
+    ) -> Dict[str, Any]:
+        """快取預熱"""
+        if not self.cache:
+            return {"error": "快取未啟用"}
+        
+        service = self.get_service(service_name)
+        return await self.cache.preload_cache(service, texts, batch_size)
+    
+    def get_device_stats(self) -> Optional[Dict[str, Any]]:
+        """取得裝置統計資訊"""
+        if self.device_manager:
+            return self.device_manager.get_all_device_stats()
+        return None
+    
+    def get_memory_stats(self) -> Optional[Dict[str, Any]]:
+        """取得記憶體統計資訊"""
+        if self.memory_optimizer:
+            stats = self.memory_optimizer.get_memory_stats()
+            return {
+                "system_total_mb": stats.system_total,
+                "system_used_mb": stats.system_used,
+                "system_available_mb": stats.system_available,
+                "process_used_mb": stats.process_used,
+                "gpu_total_mb": stats.gpu_total,
+                "gpu_used_mb": stats.gpu_used,
+                "system_usage_ratio": stats.system_usage_ratio,
+                "gpu_usage_ratio": stats.gpu_usage_ratio
+            }
+        return None
+    
+    async def cleanup_memory(self, aggressive: bool = False) -> Optional[Dict[str, Any]]:
+        """清理記憶體"""
+        if self.memory_optimizer:
+            return await self.memory_optimizer.cleanup_memory(aggressive)
+        return None
+    
+    def get_batch_stats(self) -> Optional[Dict[str, Any]]:
+        """取得批次處理統計資訊"""
+        if self.batch_processor:
+            return self.batch_processor.get_batch_stats()
+        return None
+    
+    def get_usage_stats(
+        self,
+        time_range_hours: int = 24,
+        model_name: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """取得使用量統計資訊"""
+        if self.usage_monitor:
+            return self.usage_monitor.get_usage_summary(time_range_hours, model_name)
+        return None
+    
+    def get_usage_alerts(
+        self,
+        level: Optional[str] = None,
+        model_name: Optional[str] = None,
+        unresolved_only: bool = True,
+        limit: int = 50
+    ) -> Optional[List[Dict[str, Any]]]:
+        """取得使用量警報"""
+        if not self.usage_monitor:
+            return None
+        
+        from .monitoring import AlertLevel
+        alert_level = None
+        if level:
+            try:
+                alert_level = AlertLevel(level.lower())
+            except ValueError:
+                logger.warning(f"無效的警報等級: {level}")
+        
+        alerts = self.usage_monitor.get_alerts(
+            level=alert_level,
+            model_name=model_name,
+            unresolved_only=unresolved_only,
+            limit=limit
+        )
+        
+        # 轉換為字典格式
+        return [
+            {
+                "timestamp": alert.timestamp,
+                "level": alert.level.value,
+                "model_name": alert.model_name,
+                "message": alert.message,
+                "details": alert.details,
+                "resolved": alert.resolved,
+                "resolved_timestamp": alert.resolved_timestamp
+            }
+            for alert in alerts
+        ]
+    
+    async def export_usage_report(
+        self,
+        output_file: str,
+        time_range_hours: int = 168,  # 一週
+        format: str = "json"
+    ) -> bool:
+        """匯出使用量報告"""
+        if self.usage_monitor:
+            return self.usage_monitor.export_report(output_file, time_range_hours, format)
+        return False
+    
+    def get_comprehensive_stats(self) -> Dict[str, Any]:
+        """取得綜合統計資訊"""
+        stats = {
+            "manager_info": {
+                "total_services": len(self.services),
+                "loaded_services": sum(1 for s in self.services.values() if s.is_loaded),
+                "default_service": self.default_model,
+                "enable_fallback": self.enable_fallback,
+                "enable_cache": self.enable_cache,
+                "enable_gpu_acceleration": self.enable_gpu_acceleration,
+                "enable_monitoring": self.enable_monitoring
+            },
+            "services": self.get_metrics_summary()["services"]
+        }
+        
+        # 添加快取統計
+        if self.enable_cache:
+            cache_stats = asyncio.create_task(self.get_cache_stats())
+            stats["cache_stats"] = "pending"  # 異步獲取
+        
+        # 添加裝置統計
+        if self.enable_gpu_acceleration:
+            stats["device_stats"] = self.get_device_stats()
+            stats["memory_stats"] = self.get_memory_stats()
+            stats["batch_stats"] = self.get_batch_stats()
+        
+        # 添加使用量統計
+        if self.enable_monitoring:
+            stats["usage_stats"] = self.get_usage_stats(24)  # 最近 24 小時
+            stats["recent_alerts"] = self.get_usage_alerts(limit=10)
+        
+        return stats
