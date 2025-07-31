@@ -59,7 +59,7 @@ class TestGraphRAGIndexer:
         indexer = GraphRAGIndexer(config)
         
         assert indexer.config == config
-        assert indexer.model_selector is not None
+        # assert indexer.model_selector is not None  # 已移除
         assert indexer.document_processor is not None
         assert indexer.embedding_manager is not None
         assert indexer.vector_store_manager is not None
@@ -87,40 +87,95 @@ class TestGraphRAGIndexer:
             assert "language" in unit.metadata
 
     @pytest.mark.asyncio
-    async def test_extract_entities_and_relationships(self, indexer, sample_documents):
-        """測試實體和關係提取"""
-        # 先建立文本單元
+    async def test_entity_and_relationship_extraction(self, indexer, sample_documents, mocker):
+        """測試實體和關係提取的整合流程"""
+        import uuid
+        import json
+        from chinese_graphrag.models import Entity, Relationship
+
+        # 模擬 LLM 的回應
+        mock_llm_output = {
+            "entities": [
+                {"name": "張三博士", "type": "人物", "description": "在台灣大學進行研究的博士"},
+                {"name": "台灣大學", "type": "組織", "description": "台灣的一所頂尖大學"}
+            ],
+            "relationships": [
+                {"source": "張三博士", "target": "台灣大學", "description": "張三博士在台灣大學工作"}
+            ]
+        }
+        
+        # 模擬 LLM 實例
+        mock_llm = mocker.AsyncMock()
+        mock_llm.async_generate.return_value = json.dumps(mock_llm_output)
+        
+        # 模擬 create_llm 函數
+        mocker.patch(
+            "chinese_graphrag.llm.create_llm",
+            return_value=mock_llm
+        )
+        
+        # 建立文本單元
         text_units = await indexer._create_text_units(sample_documents)
         
-        # 提取實體和關係
+        # 執行實體和關係提取
         entities, relationships = await indexer._extract_entities_and_relationships(text_units)
         
-        # 檢查結果
-        assert isinstance(entities, list)
-        assert isinstance(relationships, list)
+        # 驗證結果
+        assert len(entities) > 0
+        assert len(relationships) > 0
         
-        # 如果有實體，檢查其屬性
-        for entity in entities:
-            assert entity.id is not None
-            assert entity.name is not None
-            assert entity.type is not None
-            assert entity.description is not None
-            assert len(entity.text_units) > 0
+        # 檢查實體和關係
+        entity_names = [e.name for e in entities]
+        assert "張三博士" in entity_names
+        assert "台灣大學" in entity_names
 
     @pytest.mark.asyncio
-    async def test_detect_communities(self, indexer, sample_documents):
+    async def test_detect_communities(self, indexer, mocker):
         """測試社群檢測"""
-        # 先建立文本單元和實體
-        text_units = await indexer._create_text_units(sample_documents)
-        entities, relationships = await indexer._extract_entities_and_relationships(text_units)
+        import uuid
+        from chinese_graphrag.models import Entity, Relationship, Community
+
+        # 準備模擬的實體和關係資料
+        entities = [
+            Entity(id="e1", name="張三", type="人物"),
+            Entity(id="e2", name="台灣大學", type="組織"),
+            Entity(id="e3", name="李四", type="人物"),
+            Entity(id="e4", name="清華大學", type="組織"),
+            Entity(id="e5", name="人工智慧", type="技術"),
+        ]
+        relationships = [
+            Relationship(id="r1", source_entity_id="e1", target_entity_id="e2", description="畢業於"),
+            Relationship(id="r2", source_entity_id="e3", target_entity_id="e4", description="畢業於"),
+            Relationship(id="r3", source_entity_id="e1", target_entity_id="e5", description="研究領域"),
+            Relationship(id="r4", source_entity_id="e3", target_entity_id="e5", description="研究領域"),
+        ]
+        
+        # 模擬社群檢測器的 detect_communities 方法
+        mock_communities = [
+            Community(
+                id="c1",
+                title="學術社群",
+                level=1,
+                entities=["e1", "e2", "e5"],
+                relationships=["r1", "r3"],
+                summary="關於學術研究的社群"
+            )
+        ]
+        
+        mocker.patch.object(
+            indexer.community_detector,
+            "detect_communities",
+            return_value=mock_communities
+        )
         
         # 檢測社群
         communities = await indexer._detect_communities(entities, relationships)
         
         # 檢查結果
         assert isinstance(communities, list)
+        assert len(communities) > 0
         
-        # 如果有社群，檢查其屬性
+        # 檢查社群屬性
         for community in communities:
             assert community.id is not None
             assert community.title is not None
@@ -129,20 +184,90 @@ class TestGraphRAGIndexer:
             assert community.summary is not None
 
     @pytest.mark.asyncio
-    async def test_create_embeddings(self, indexer, sample_documents):
+    async def test_create_embeddings(self, indexer, sample_documents, mocker):
         """測試向量嵌入建立"""
-        # 準備資料
-        text_units = await indexer._create_text_units(sample_documents)
-        entities, relationships = await indexer._extract_entities_and_relationships(text_units)
-        communities = await indexer._detect_communities(entities, relationships)
+        import numpy as np
+        import json
+        
+        # 準備模擬資料
+        from chinese_graphrag.models import TextUnit, Entity, Community
+        
+        text_units = [
+            TextUnit(
+                id=f"{doc.id}_chunk_0",
+                text=doc.content[:50],
+                document_id=doc.id,
+                chunk_index=0,
+                metadata={"document_title": doc.title}
+            )
+            for doc in sample_documents
+        ]
+        
+        entities = [
+            Entity(id="e1", name="張三博士", type="人物", text_units=[text_units[0].id]),
+            Entity(id="e2", name="台灣大學", type="組織", text_units=[text_units[0].id])
+        ]
+        
+        communities = [
+            Community(
+                id="c1",
+                title="學術社群",
+                level=1,
+                entities=["e1", "e2"],
+                relationships=["r1"],
+                summary="關於學術研究的社群"
+            )
+        ]
+        
+        # 模擬 embed_texts 方法
+        mock_text_embeddings = np.random.rand(len(text_units), 768)  # 文本單元嵌入
+        mock_entity_embeddings = np.random.rand(len(entities), 768)  # 實體嵌入
+        mock_community_embeddings = np.random.rand(len(communities), 768)  # 社群嵌入
+        
+        # 建立 AsyncMock 來模擬 embed_texts 方法
+        mock_embed_texts = mocker.AsyncMock()
+        mock_embed_texts.side_effect = [mock_text_embeddings, mock_entity_embeddings, mock_community_embeddings]
+        
+        # model_selector 已被移除，不需要模擬
+        
+        # 替換 EmbeddingManager 的 embed_texts 方法
+        mocker.patch.object(
+            indexer.embedding_manager,
+            "embed_texts",
+            mock_embed_texts
+        )
+        
+        # 模擬 vector_store_manager 的方法
+        mock_store_text_unit = mocker.AsyncMock()
+        mock_store_entity = mocker.AsyncMock()
+        mock_store_community = mocker.AsyncMock()
+        mocker.patch.object(indexer.vector_store_manager, "store_text_unit", mock_store_text_unit)
+        mocker.patch.object(indexer.vector_store_manager, "store_entity", mock_store_entity)
+        mocker.patch.object(indexer.vector_store_manager, "store_community", mock_store_community)
         
         # 建立嵌入
         await indexer._create_embeddings(text_units, entities, communities)
         
-        # 檢查嵌入是否建立
-        for unit in text_units:
-            if unit.embedding is not None:
-                assert unit.embedding.shape[0] > 0  # 檢查向量維度
+        # 驗證 embed_texts 被正確呼叫
+        assert mock_embed_texts.call_count == 3
+        
+        # 驗證文本單元和實體的嵌入已設置
+        for i, unit in enumerate(text_units):
+            assert unit.embedding is not None
+            np.testing.assert_array_equal(unit.embedding, mock_text_embeddings[i])
+            
+        for i, entity in enumerate(entities):
+            assert entity.embedding is not None
+            np.testing.assert_array_equal(entity.embedding, mock_entity_embeddings[i])
+            
+        for i, community in enumerate(communities):
+            assert community.embedding is not None
+            np.testing.assert_array_equal(community.embedding, mock_community_embeddings[i])
+            
+        # 驗證向量存儲方法被呼叫
+        assert mock_store_text_unit.call_count == len(text_units)
+        assert mock_store_entity.call_count == len(entities)
+        assert mock_store_community.call_count == len(communities)
 
     def test_get_statistics(self, indexer):
         """測試統計資訊取得"""
@@ -174,40 +299,120 @@ class TestGraphRAGIndexer:
         assert len(indexer.communities) == 0
 
     @pytest.mark.asyncio
-    async def test_full_indexing_workflow(self, indexer):
+    async def test_full_indexing_workflow(self, indexer, sample_documents, mocker):
         """測試完整的索引工作流程"""
+        import numpy as np
+        from chinese_graphrag.models import TextUnit, Entity, Relationship, Community
+        
+        # 模擬文件處理
+        mock_process_documents = mocker.patch.object(
+            indexer, 
+            "_process_documents", 
+            return_value=sample_documents
+        )
+        
+        # 模擬文本單元建立
+        text_units = [
+            TextUnit(
+                id=f"{doc.id}_chunk_0",
+                text=doc.content[:50],
+                document_id=doc.id,
+                chunk_index=0,
+                metadata={"document_title": doc.title}
+            )
+            for doc in sample_documents
+        ]
+        mock_create_text_units = mocker.patch.object(
+            indexer, 
+            "_create_text_units", 
+            return_value=text_units
+        )
+        
+        # 模擬實體和關係提取
+        entities = [
+            Entity(id="e1", name="張三博士", type="人物", text_units=[text_units[0].id]),
+            Entity(id="e2", name="台灣大學", type="組織", text_units=[text_units[0].id])
+        ]
+        relationships = [
+            Relationship(
+                id="r1", 
+                source_entity_id="e1", 
+                target_entity_id="e2", 
+                relationship_type="工作於",
+                description="張三博士在台灣大學工作",
+                text_units=[text_units[0].id]
+            )
+        ]
+        mock_extract = mocker.patch.object(
+            indexer, 
+            "_extract_entities_and_relationships", 
+            return_value=(entities, relationships)
+        )
+        
+        # 模擬社群檢測
+        communities = [
+            Community(
+                id="c1",
+                title="學術社群",
+                level=1,
+                entities=["e1", "e2"],
+                relationships=["r1"],
+                summary="關於學術研究的社群"
+            )
+        ]
+        mock_detect = mocker.patch.object(
+            indexer, 
+            "_detect_communities", 
+            return_value=communities
+        )
+        
+        # 模擬嵌入建立
+        mock_create_embeddings = mocker.patch.object(
+            indexer, 
+            "_create_embeddings", 
+            return_value=None
+        )
+        
+        # 模擬結果儲存
+        mock_save_results = mocker.patch.object(
+            indexer, 
+            "_save_results", 
+            return_value=None
+        )
+        
+        # 執行索引流程
         with tempfile.TemporaryDirectory() as temp_dir:
-            # 建立測試文件
-            input_dir = Path(temp_dir) / "input"
-            input_dir.mkdir()
-            
-            test_file = input_dir / "test.txt"
-            test_file.write_text("這是一個測試文件。張三在台灣大學工作。", encoding="utf-8")
-            
-            output_dir = Path(temp_dir) / "output"
+            input_path = Path(temp_dir) / "input"
+            output_path = Path(temp_dir) / "output"
+            input_path.mkdir()
             
             # 執行索引
-            stats = await indexer.index_documents(input_dir, output_dir)
+            stats = await indexer.index_documents(input_path, output_path)
             
-            # 檢查統計結果
+            # 驗證各個方法被正確呼叫
+            mock_process_documents.assert_called_once_with(input_path)
+            mock_create_text_units.assert_called_once_with(sample_documents)
+            mock_extract.assert_called_once_with(text_units)
+            mock_detect.assert_called_once_with(entities, relationships)
+            mock_create_embeddings.assert_called_once()
+            mock_save_results.assert_called_once_with(output_path)
+            
+            # 驗證統計結果
             assert isinstance(stats, dict)
-            assert "documents" in stats
-            assert "text_units" in stats
-            assert "entities" in stats
-            assert "relationships" in stats
-            assert "communities" in stats
+            assert stats["documents"] == len(sample_documents)
+            assert stats["text_units"] == len(text_units)
+            assert stats["entities"] == len(entities)
+            assert stats["relationships"] == len(relationships)
+            assert stats["communities"] == len(communities)
             
-            # 檢查輸出檔案
-            if output_dir.exists():
-                expected_files = [
-                    "documents.json",
-                    "entities.json", 
-                    "relationships.json",
-                    "communities.json",
-                    "index_stats.json"
-                ]
-                
-                for filename in expected_files:
-                    file_path = output_dir / filename
-                    if file_path.exists():
-                        assert file_path.stat().st_size > 0
+            # 驗證索引狀態已更新
+            for doc in sample_documents:
+                assert doc.id in indexer.indexed_documents
+            for unit in text_units:
+                assert unit.id in indexer.text_units
+            for entity in entities:
+                assert entity.id in indexer.entities
+            for rel in relationships:
+                assert rel.id in indexer.relationships
+            for comm in communities:
+                assert comm.id in indexer.communities

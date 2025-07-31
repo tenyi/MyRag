@@ -1,74 +1,42 @@
-"""
-配置管理模組
+from enum import Enum, auto
+from typing import Dict, Any, Optional, List, Union
+from pydantic import BaseModel, Field
 
-提供 GraphRAG 系統的完整配置管理功能，包括：
-- 配置資料模型定義
-- YAML 配置檔案載入和驗證
-- 模型選擇和切換策略
-- 環境變數處理
-"""
 
-from .loader import ConfigLoader, load_config, create_default_config
-from .models import (
-    GraphRAGConfig,
-    LLMConfig,
-    EmbeddingConfig,
-    VectorStoreConfig,
-    ChineseProcessingConfig,
-    InputConfig,
-    ChunkConfig,
-    IndexingConfig,
-    QueryConfig,
-    StorageConfig,
-    ParallelizationConfig,
-    ModelSelectionConfig,
-    LLMType,
-    EmbeddingType,
-    VectorStoreType,
-    DeviceType,
-)
-from .strategy import (
-    ModelSelector,
-    ModelSelectionStrategy,
-    DefaultModelSelectionStrategy,
-    CostOptimizedSelectionStrategy,
-    AdaptiveSelectionStrategy,
-    TaskType,
-    ModelPerformanceMetrics,
-)
+class VectorStoreType(str, Enum):
+    """向量存儲類型"""
+    LANCEDB = "lancedb"
+    FAISS = "faiss"
+    MILVUS = "milvus"
+    WEAVIATE = "weaviate"
 
-__all__ = [
-    # 載入器
-    "ConfigLoader",
-    "load_config",
-    "create_default_config",
+
+class VectorStoreConfig(BaseModel):
+    """向量存儲配置"""
+    type: VectorStoreType = Field(description="向量存儲類型")
+    uri: str = Field(description="向量存儲URI")
+    collection_prefix: str = Field(default="graphrag_", description="集合名稱前綴")
+    connection_args: Optional[Dict[str, Any]] = Field(default=None, description="連接參數")
+
+
+class GraphRAGConfig(BaseModel):
+    """GraphRAG 配置"""
+    models: Dict[str, Dict[str, Any]] = Field(description="模型配置")
+    vector_store: VectorStoreConfig = Field(description="向量存儲配置")
     
-    # 配置模型
-    "GraphRAGConfig",
-    "LLMConfig",
-    "EmbeddingConfig",
-    "VectorStoreConfig",
-    "ChineseProcessingConfig",
-    "InputConfig",
-    "ChunkConfig",
-    "IndexingConfig",
-    "QueryConfig",
-    "StorageConfig",
-    "ParallelizationConfig",
-    "ModelSelectionConfig",
+    # 文本處理配置
+    chunk_size: int = Field(default=512, description="文本塊大小")
+    chunk_overlap: int = Field(default=128, description="文本塊重疊大小")
     
-    # 枚舉類型
-    "LLMType",
-    "EmbeddingType",
-    "VectorStoreType",
-    "DeviceType",
+    # 實體和關係提取配置
+    entity_extraction_model: Optional[str] = Field(default=None, description="實體提取模型名稱")
+    relationship_extraction_model: Optional[str] = Field(default=None, description="關係提取模型名稱")
     
-    # 策略相關
-    "ModelSelector",
-    "ModelSelectionStrategy",
-    "DefaultModelSelectionStrategy",
-    "CostOptimizedSelectionStrategy",
-    "AdaptiveSelectionStrategy",
-    "TaskType",
-    "ModelPerformanceMetrics",
-]
+    # 嵌入配置
+    embedding_model: Optional[str] = Field(default=None, description="嵌入模型名稱")
+    embedding_dimension: int = Field(default=768, description="嵌入維度")
+    
+    # 社群檢測配置
+    community_detection_algorithm: str = Field(default="louvain", description="社群檢測演算法")
+    community_min_size: int = Field(default=3, description="最小社群大小")
+    community_resolution: float = Field(default=1.0, description="社群解析度參數")

@@ -124,4 +124,5 @@ strict_equality = true
 [dependency-groups]
 dev = [
     "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
 ]

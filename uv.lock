@@ -426,6 +426,7 @@ docs = [
 [package.dev-dependencies]
 dev = [
     { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
 ]
 
 [package.metadata]
@@ -464,7 +465,10 @@ requires-dist = [
 provides-extras = ["dev", "docs"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest-asyncio", specifier = ">=1.1.0" }]
+dev = [
+    { name = "pytest-asyncio", specifier = ">=1.1.0" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
+]
 
 [[package]]
 name = "click"

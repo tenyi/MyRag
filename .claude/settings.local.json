@@ -17,7 +17,13 @@
       "mcp__serena__find_file",
       "Bash(find:*)",
       "Bash(uv run:*)",
-      "mcp__serena__insert_before_symbol"
+      "mcp__serena__insert_before_symbol",
+      "Bash(cat:*)",
+      "Bash(uv add:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(git add:*)"
     ]
   },
   "enabledMcpjsonServers": [

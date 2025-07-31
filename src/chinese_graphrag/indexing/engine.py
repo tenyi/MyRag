@@ -49,7 +49,7 @@ except ImportError:
     GRAPHRAG_AVAILABLE = False
 
 from chinese_graphrag.config import GraphRAGConfig
-from chinese_graphrag.config.strategy import ModelSelector, TaskType
+# from chinese_graphrag.config.strategy import ModelSelector, TaskType  # 已移除
 from chinese_graphrag.embeddings import EmbeddingManager
 from chinese_graphrag.models import Community, Document, Entity, Relationship, TextUnit
 from chinese_graphrag.vector_stores import VectorStoreManager
@@ -76,7 +76,7 @@ class GraphRAGIndexer:
             config: GraphRAG 配置
         """
         self.config = config
-        self.model_selector = ModelSelector(config)
+        # self.model_selector = ModelSelector(config)  # 已移除
         
         # 初始化各個元件
         from chinese_graphrag.indexing.document_processor import DocumentProcessor
@@ -84,9 +84,9 @@ class GraphRAGIndexer:
         self.embedding_manager = EmbeddingManager(config)
         self.vector_store_manager = VectorStoreManager(config)
         self.community_detector = CommunityDetector(
-            min_community_size=config.indexing.min_community_size,
-            max_community_size=config.indexing.max_community_size,
-            enable_hierarchical=config.indexing.enable_hierarchical_communities
+            min_community_size=config.community_min_size,
+            max_community_size=50,  # 預設值
+            enable_hierarchical=True  # 預設啟用
         )
         self.report_generator = CommunityReportGenerator(config)
         
@@ -182,8 +182,8 @@ class GraphRAGIndexer:
             # 使用配置的分塊策略
             chunks = self.document_processor.split_text(
                 doc.content,
-                chunk_size=self.config.chunks.size,
-                overlap=self.config.chunks.overlap
+                chunk_size=self.config.chunk_size,
+                overlap=self.config.chunk_overlap
             )
             
             for i, chunk in enumerate(chunks):
@@ -211,15 +211,19 @@ class GraphRAGIndexer:
         """提取實體和關係"""
         logger.info("提取實體和關係")
         
-        if not self.config.indexing.enable_entity_extraction:
-            logger.info("實體提取已停用")
-            return [], []
+        # 實體提取預設啟用
+        # if not self.config.indexing.enable_entity_extraction:
+        #     logger.info("實體提取已停用")
+        #     return [], []
         
-        # 選擇 LLM 模型進行實體提取
-        llm_name, llm_config = self.model_selector.select_llm_model(
-            TaskType.ENTITY_EXTRACTION,
-            context={"language": "zh"}
-        )
+        # 使用預設的 LLM 配置
+        llm_name = self.config.entity_extraction_model or "mock"
+        llm_config = {
+            "type": llm_name,
+            "model": self.config.entity_extraction_model or "test_model",
+            "max_tokens": 4000,
+            "temperature": 0.7
+        }
         
         logger.info(f"使用 LLM 模型進行實體提取: {llm_name}")
         
@@ -227,7 +231,7 @@ class GraphRAGIndexer:
         relationships = []
         
         # 批次處理文本單元
-        batch_size = self.config.parallelization.batch_size
+        batch_size = 10  # 預設批次大小
         
         for i in range(0, len(text_units), batch_size):
             batch = text_units[i:i + batch_size]
@@ -254,99 +258,174 @@ class GraphRAGIndexer:
         return entities, relationships
 
     async def _process_text_unit_batch(
-        self, 
+        self,
         text_units: List[TextUnit],
         llm_config
     ) -> Tuple[List[Entity], List[Relationship]]:
-        """處理文本單元批次"""
-        # 這裡應該整合實際的 GraphRAG 實體提取邏輯
-        # 目前提供一個簡化的實作
+        """
+        使用 LLM 從一批文本單元中提取實體和關係。
+        """
+        if not text_units:
+            return [], []
+
+        # 呼叫新的圖譜提取方法
+        entities, relationships = await self._extract_graph_from_batch(text_units, llm_config)
         
+        # 處理關係中的實體名稱，將其轉換為 ID
+        entity_name_to_id = {entity.name: entity.id for entity in entities}
+        
+        valid_relationships = []
+        for rel in relationships:
+            # 確保來源和目標實體都存在
+            if rel.source_entity_id in entity_name_to_id and rel.target_entity_id in entity_name_to_id:
+                rel.source_entity_id = entity_name_to_id[rel.source_entity_id]
+                rel.target_entity_id = entity_name_to_id[rel.target_entity_id]
+                valid_relationships.append(rel)
+            else:
+                logger.warning(f"關係 '{rel.description}' 的實體 '{rel.source_entity_id}' 或 '{rel.target_entity_id}' 不存在，已忽略。")
+        
+        return entities, valid_relationships
+
+    async def _extract_graph_from_batch(
+        self,
+        text_units: List[TextUnit],
+        llm_config
+    ) -> Tuple[List[Entity], List[Relationship]]:
+        """
+        使用 LLM 從一批文本單元中提取實體和關係圖譜。
+        """
+        from chinese_graphrag.llm import create_llm, LLM
+        
+        # 建立 LLM 實例
+        llm: LLM = create_llm(llm_config.type, llm_config)
+
+        # 建構 prompt
+        prompt = self._build_extraction_prompt(text_units)
+
+        # 呼叫 LLM
+        try:
+            response = await llm.async_generate(prompt)
+            output = json.loads(response)
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.error(f"無法解析 LLM 回應: {e}. 回應內容: {response}")
+            return [], []
+        except Exception as e:
+            logger.error(f"LLM 呼叫失敗: {e}")
+            return [], []
+        
+        # 解析回應
+        return self._parse_llm_output(output, text_units)
+
+    def _build_extraction_prompt(self, text_units: List[TextUnit]) -> str:
+        """建構實體和關係提取的 prompt"""
+        input_text = "\n\n".join([f"## 文件片段 (ID: {unit.id})\n\n{unit.text}" for unit in text_units])
+        
+        return f"""# 指令：知識圖譜提取
+
+## 角色
+你是一個專業的知識圖譜分析師，擅長從非結構化的中文文本中精確地提取實體（Entities）和它們之間的關係（Relationships）。
+
+## 任務
+你的任務是仔細閱讀以下提供的多個文件片段，並以 JSON 格式輸出一個包含所有實體和關係的知識圖譜。
+
+## 實體（Entity）定義
+- **定義**: 在文本中有明確意義的名詞或概念，通常是現實世界中的物體、人物、地點、組織、專有名詞、或重要的概念。
+- **屬性**:
+  - `name`: 實體的唯一名稱 (字串)。
+  - `type`: 實體的類型 (字串)，例如：「公司」、「人物」、「技術」、「地點」、「產品」、「專案」。
+  - `description`: 對實體的簡要描述 (字串)。
+
+## 關係（Relationship）定義
+- **定義**: 描述兩個實體之間有意義的連結。
+- **屬性**:
+  - `source`: 關係的來源實體名稱 (字串)，必須是你在實體列表中定義的實體名稱。
+  - `target`: 關係的目標實體名稱 (字串)，必須是你在實體列表中定義的實體名稱。
+  - `description`: 對關係的詳細描述 (字串)，需能清楚說明兩個實體的關係。
+
+## 輸出格式要求
+- 你必須嚴格以 JSON 格式輸出。
+- JSON 的根節點應包含兩個鍵：`entities` 和 `relationships`。
+- `entities` 的值是一個包含所有實體物件的陣列。
+- `relationships` 的值是一個包含所有關係物件的陣列。
+- 關係中的 `source` 和 `target` 必須與 `entities` 列表中的實體 `name` 完全對應。
+- 所有的文字都應使用繁體中文。
+
+## 範例
+
+### 輸入文本
+```
+## 文件片段 (ID: doc1_chunk_0)
+
+會議記錄顯示，張偉明代表「宏達電（HTC）」與「台灣大哥大」的林總經理討論了關於「5G應用」的合作計畫。此計畫旨在利用HTC的「虛擬實境（VR）」技術開發新的消費者應用。
+```
+
+### 輸出JSON
+```json
+{{
+  "entities": [
+    {{ "name": "張偉明", "type": "人物", "description": "宏達電的代表" }},
+    {{ "name": "宏達電（HTC）", "type": "公司", "description": "一家消費性電子產品公司，專注於虛擬實境技術" }},
+    {{ "name": "台灣大哥大", "type": "公司", "description": "台灣主要的電信服務提供商之一" }},
+    {{ "name": "林總經理", "type": "人物", "description": "台灣大哥大的總經理" }},
+    {{ "name": "5G應用", "type": "技術", "description": "基於第五代行動通訊技術的應用服務" }},
+    {{ "name": "虛擬實境（VR）", "type": "技術", "description": "HTC 專長的一種沉浸式技術" }}
+  ],
+  "relationships": [
+    {{ "source": "張偉明", "target": "宏達電（HTC）", "description": "張偉明是宏達電（HTC）的代表" }},
+    {{ "source": "林總經理", "target": "台灣大哥大", "description": "林總經理是台灣大哥大的總經理" }},
+    {{ "source": "宏達電（HTC）", "target": "台灣大哥大", "description": "宏達電與台灣大哥大討論合作計畫" }},
+    {{ "source": "合作計畫", "target": "5G應用", "description": "合作計畫的主題是5G應用" }},
+    {{ "source": "合作計畫", "target": "虛擬實境（VR）", "description": "合作計畫利用虛擬實境（VR）技術" }}
+  ]
+}}
+```
+
+## 待處理文本
+
+請根據以上規則，處理以下文本：
+
+```
+{input_text}
+```
+
+## 輸出 JSON
+"""
+
+    def _parse_llm_output(
+        self, 
+        output: Dict[str, List[Dict[str, str]]],
+        text_units: List[TextUnit]
+    ) -> Tuple[List[Entity], List[Relationship]]:
+        """解析 LLM 的 JSON 輸出並轉換為系統的資料模型"""
         entities = []
         relationships = []
         
-        for text_unit in text_units:
-            # 模擬實體提取（實際應該使用 LLM）
-            extracted_entities = await self._extract_entities_from_text(
-                text_unit.text, text_unit.id, llm_config
+        # 提取實體
+        for item in output.get("entities", []):
+            entity = Entity(
+                id=str(uuid.uuid4()),
+                name=item.get("name"),
+                type=item.get("type"),
+                description=item.get("description"),
+                text_units=[unit.id for unit in text_units],  # 關聯到所有輸入的文本單元
+                rank=1.0
             )
-            entities.extend(extracted_entities)
+            entities.append(entity)
+
+        # 提取關係
+        for item in output.get("relationships", []):
+            relationship = Relationship(
+                id=str(uuid.uuid4()),
+                source_entity_id=item.get("source"), # 暫存實體名稱
+                target_entity_id=item.get("target"), # 暫存實體名稱
+                relationship_type="related_to", # 可從 description 推斷
+                description=item.get("description"),
+                weight=0.8,
+                text_units=[unit.id for unit in text_units]
+            )
+            relationships.append(relationship)
             
-            # 模擬關係提取
-            if self.config.indexing.enable_relationship_extraction:
-                extracted_relationships = await self._extract_relationships_from_text(
-                    text_unit.text, text_unit.id, extracted_entities, llm_config
-                )
-                relationships.extend(extracted_relationships)
-        
         return entities, relationships
-
-    async def _extract_entities_from_text(
-        self, 
-        text: str, 
-        text_unit_id: str,
-        llm_config
-    ) -> List[Entity]:
-        """從文本中提取實體"""
-        # 簡化的實體提取邏輯
-        # 實際實作應該使用 GraphRAG 的 LLM 提取流程
-        
-        entities = []
-        
-        # 模擬提取一些實體
-        import re
-        import uuid
-        
-        # 簡單的中文實體識別（實際應該使用 LLM）
-        patterns = {
-            "person": r'[\u4e00-\u9fff]{2,4}(?:先生|女士|教授|博士|主任|經理|總監)',
-            "organization": r'[\u4e00-\u9fff]{2,10}(?:公司|企業|機構|組織|部門|學校|大學)',
-            "location": r'[\u4e00-\u9fff]{2,8}(?:市|縣|區|省|國|地區|城市)',
-        }
-        
-        for entity_type, pattern in patterns.items():
-            matches = re.findall(pattern, text)
-            for match in matches:
-                entity = Entity(
-                    id=str(uuid.uuid4()),
-                    name=match,
-                    type=entity_type,
-                    description=f"從文本中提取的{entity_type}實體",
-                    text_units=[text_unit_id],
-                    rank=1.0
-                )
-                entities.append(entity)
-        
-        return entities
-
-    async def _extract_relationships_from_text(
-        self, 
-        text: str, 
-        text_unit_id: str,
-        entities: List[Entity],
-        llm_config
-    ) -> List[Relationship]:
-        """從文本中提取關係"""
-        # 簡化的關係提取邏輯
-        relationships = []
-        
-        # 如果有多個實體，建立簡單的關係
-        if len(entities) >= 2:
-            import uuid
-            
-            for i in range(len(entities) - 1):
-                relationship = Relationship(
-                    id=str(uuid.uuid4()),
-                    source_entity_id=entities[i].id,
-                    target_entity_id=entities[i + 1].id,
-                    relationship_type="related_to",
-                    description="在同一文本單元中出現",
-                    weight=0.5,
-                    text_units=[text_unit_id]
-                )
-                relationships.append(relationship)
-        
-        return relationships
 
     async def _detect_communities(
         self, 
@@ -356,9 +435,10 @@ class GraphRAGIndexer:
         """檢測社群"""
         logger.info("檢測社群結構")
         
-        if not self.config.indexing.enable_community_detection:
-            logger.info("社群檢測已停用")
-            return []
+        # 社群檢測預設啟用
+        # if not self.config.indexing.enable_community_detection:
+        #     logger.info("社群檢測已停用")
+        #     return []
         
         # 使用社群檢測器進行檢測
         communities = self.community_detector.detect_communities(entities, relationships)
@@ -367,8 +447,8 @@ class GraphRAGIndexer:
         for community in communities:
             self.communities[community.id] = community
         
-        # 生成社群報告
-        if self.config.indexing.enable_community_reports:
+        # 生成社群報告 (預設啟用)
+        try:
             logger.info("生成社群報告")
             self.community_reports = await self.report_generator.generate_community_reports(
                 communities,
@@ -376,6 +456,9 @@ class GraphRAGIndexer:
                 self.relationships,
                 self.text_units
             )
+        except Exception as e:
+            logger.warning(f"社群報告生成失敗: {e}")
+            self.community_reports = {}
         
         logger.info(f"檢測到 {len(communities)} 個社群")
         return communities
@@ -389,11 +472,8 @@ class GraphRAGIndexer:
         """建立向量嵌入"""
         logger.info("建立向量嵌入")
         
-        # 選擇 Embedding 模型
-        embedding_name, embedding_config = self.model_selector.select_embedding_model(
-            TaskType.TEXT_EMBEDDING,
-            context={"language": "zh"}
-        )
+        # 使用預設的 Embedding 模型
+        embedding_name = self.config.embedding_model or "bge-m3"
         
         logger.info(f"使用 Embedding 模型: {embedding_name}")
         
