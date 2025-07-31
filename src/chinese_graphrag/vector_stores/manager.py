@@ -580,6 +580,153 @@ class VectorStoreManager:
             raise VectorStoreError("沒有可用的向量儲存實例")
         
         return self.active_store
+
+    async def store_text_unit(self, text_unit) -> bool:
+        """
+        儲存文本單元到向量資料庫
+        
+        Args:
+            text_unit: TextUnit 物件
+            
+        Returns:
+            bool: 儲存是否成功
+        """
+        try:
+            if not self.active_store:
+                await self.initialize()
+            
+            # 確保有 text_units 集合
+            collection_name = "text_units"
+            collections = await self.list_collections()
+            collection_names = [col.name for col in collections]
+            
+            if collection_name not in collection_names:
+                await self.create_collection(
+                    collection_name,
+                    dimension=768,  # 假設使用 768 維向量
+                    metadata_schema={"text": "str", "document_id": "str", "chunk_index": "int"}
+                )
+            
+            # 準備向量資料
+            if text_unit.embedding is not None:
+                await self.insert_vectors(
+                    collection_name,
+                    ids=[text_unit.id],
+                    vectors=[text_unit.embedding],
+                    metadata=[{
+                        "id": text_unit.id,
+                        "text": text_unit.text,
+                        "document_id": text_unit.document_id,
+                        "chunk_index": text_unit.chunk_index,
+                        **text_unit.metadata
+                    }]
+                )
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"儲存文本單元失敗: {e}")
+            return False
+
+    async def store_entity(self, entity) -> bool:
+        """
+        儲存實體到向量資料庫
+        
+        Args:
+            entity: Entity 物件
+            
+        Returns:
+            bool: 儲存是否成功
+        """
+        try:
+            if not self.active_store:
+                await self.initialize()
+            
+            # 確保有 entities 集合
+            collection_name = "entities"
+            collections = await self.list_collections()
+            collection_names = [col.name for col in collections]
+            
+            if collection_name not in collection_names:
+                await self.create_collection(
+                    collection_name,
+                    dimension=768,
+                    metadata_schema={"name": "str", "type": "str", "description": "str", "rank": "float"}
+                )
+            
+            # 準備向量資料
+            if entity.embedding is not None:
+                await self.insert_vectors(
+                    collection_name,
+                    ids=[entity.id],
+                    vectors=[entity.embedding],
+                    metadata=[{
+                        "id": entity.id,
+                        "name": entity.name,
+                        "type": entity.type,
+                        "description": entity.description,
+                        "text_units": entity.text_units,
+                        "rank": entity.rank
+                    }]
+                )
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"儲存實體失敗: {e}")
+            return False
+
+    async def store_community(self, community) -> bool:
+        """
+        儲存社群到向量資料庫
+        
+        Args:
+            community: Community 物件
+            
+        Returns:
+            bool: 儲存是否成功
+        """
+        try:
+            if not self.active_store:
+                await self.initialize()
+            
+            # 確保有 communities 集合
+            collection_name = "communities"
+            collections = await self.list_collections()
+            collection_names = [col.name for col in collections]
+            
+            if collection_name not in collection_names:
+                await self.create_collection(
+                    collection_name,
+                    dimension=768,
+                    metadata_schema={"title": "str", "level": "int", "summary": "str", "rank": "float"}
+                )
+            
+            # 準備向量資料
+            if community.embedding is not None:
+                await self.insert_vectors(
+                    collection_name,
+                    ids=[community.id],
+                    vectors=[community.embedding],
+                    metadata=[{
+                        "id": community.id,
+                        "title": community.title,
+                        "level": community.level,
+                        "entities": community.entities,
+                        "relationships": community.relationships,
+                        "summary": community.summary,
+                        "rank": community.rank
+                    }]
+                )
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"儲存社群失敗: {e}")
+            return False
     
     async def __aenter__(self):
         """異步上下文管理器入口"""

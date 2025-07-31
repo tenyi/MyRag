@@ -387,8 +387,9 @@ class DiskCache(EmbeddingCache):
         self.index_file = self.cache_dir / "cache_index.json"
         self._index: Dict[str, Dict[str, Any]] = {}
         
-        # 載入現有索引
-        asyncio.create_task(self._load_index())
+        # 載入現有索引（延遲到第一次使用時）
+        self._index_loaded = False
+        self._index_dirty = False
         
         logger.info(f"初始化磁碟快取，目錄: {self.cache_dir}")
     
@@ -409,6 +410,8 @@ class DiskCache(EmbeddingCache):
         except Exception as e:
             logger.error(f"載入磁碟快取索引失敗: {e}")
             self._index = {}
+        finally:
+            self._index_loaded = True
     
     async def _save_index(self) -> None:
         """儲存快取索引"""
@@ -428,6 +431,10 @@ class DiskCache(EmbeddingCache):
     
     async def get(self, key: str) -> Optional[CacheEntry]:
         """取得快取條目"""
+        # 確保索引已載入
+        if not self._index_loaded:
+            await self._load_index()
+            
         with self._lock:
             if key not in self._index:
                 self.stats['misses'] += 1
@@ -439,7 +446,8 @@ class DiskCache(EmbeddingCache):
                 if not cache_file.exists():
                     # 索引存在但檔案不存在，清理索引
                     del self._index[key]
-                    asyncio.create_task(self._save_index())
+                    # 延遲保存索引，避免在同步上下文中創建任務
+                    self._index_dirty = True
                     self.stats['misses'] += 1
                     return None
                 
@@ -462,10 +470,17 @@ class DiskCache(EmbeddingCache):
                     'access_count': entry.access_count,
                     'last_access': entry.last_access
                 })
-                asyncio.create_task(self._save_index())
+                # 延遲保存索引，避免在同步上下文中創建任務
+                self._index_dirty = True
                 
                 self.stats['hits'] += 1
                 logger.debug(f"磁碟快取命中: {key[:16]}...")
+                
+                # 如果索引髒了，保存它
+                if self._index_dirty:
+                    await self._save_index()
+                    self._index_dirty = False
+                
                 return entry
                 
             except Exception as e:
@@ -475,6 +490,10 @@ class DiskCache(EmbeddingCache):
     
     async def put(self, key: str, entry: CacheEntry) -> bool:
         """存入快取條目"""
+        # 確保索引已載入
+        if not self._index_loaded:
+            await self._load_index()
+            
         with self._lock:
             try:
                 # 檢查是否需要淘汰

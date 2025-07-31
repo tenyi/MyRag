@@ -18,16 +18,16 @@ from .base import (
 
 from .manager import EmbeddingManager
 
-from .bge_m3 import (
-    BGEM3EmbeddingService,
-    create_bge_m3_service
-)
+# from .bge_m3 import (
+#     BGEM3EmbeddingService,
+#     create_bge_m3_service
+# )
 
-from .openai_service import (
-    OpenAIEmbeddingService,
-    create_openai_service,
-    OPENAI_MODELS
-)
+# from .openai_service import (
+#     OpenAIEmbeddingService,
+#     create_openai_service,
+#     OPENAI_MODELS
+# )
 
 from .local_models import (
     LocalEmbeddingService,
@@ -65,26 +65,26 @@ from .cache import (
     create_embedding_cache
 )
 
-from .gpu_acceleration import (
-    DeviceManager,
-    MemoryOptimizer,
-    BatchProcessor,
-    GPUInfo,
-    MemoryStats,
-    get_device_manager,
-    get_memory_optimizer,
-    create_batch_processor
-)
+# from .gpu_acceleration import (
+#     DeviceManager,
+#     MemoryOptimizer,
+#     BatchProcessor,
+#     GPUInfo,
+#     MemoryStats,
+#     get_device_manager,
+#     get_memory_optimizer,
+#     create_batch_processor
+# )
 
-from .monitoring import (
-    UsageMonitor,
-    UsageRecord,
-    ModelStats,
-    Alert,
-    AlertLevel,
-    get_usage_monitor,
-    record_embedding_usage
-)
+# from .monitoring import (
+#     UsageMonitor,
+#     UsageRecord,
+#     ModelStats,
+#     Alert,
+#     AlertLevel,
+#     get_usage_monitor,
+#     record_embedding_usage
+# )
 
 __all__ = [
     # 基礎類別和介面
@@ -101,14 +101,14 @@ __all__ = [
     # 管理器
     "EmbeddingManager",
     
-    # BGE-M3 服務
-    "BGEM3EmbeddingService",
-    "create_bge_m3_service",
+    # BGE-M3 服務（暫時禁用）
+    # "BGEM3EmbeddingService",
+    # "create_bge_m3_service",
     
-    # OpenAI 服務
-    "OpenAIEmbeddingService", 
-    "create_openai_service",
-    "OPENAI_MODELS",
+    # OpenAI 服務（暫時禁用）
+    # "OpenAIEmbeddingService", 
+    # "create_openai_service",
+    # "OPENAI_MODELS",
     
     # 本地模型服務
     "LocalEmbeddingService",
