@@ -13,7 +13,11 @@
       "mcp__serena__insert_after_symbol",
       "Bash(git add src/chinese_graphrag/processors/chinese_text_processor.py tests/test_processors/test_chinese_text_processor.py src/chinese_graphrag/processors/__init__.py .kiro/specs/chinese-graphrag-system/tasks.md)",
       "Bash(git commit -m \"$(cat <<''EOF''\nfeat: 完成中文文本處理模組開發\n\n- 實作 ChineseTextProcessor 核心功能\n  - 中文分詞和停用詞過濾\n  - 智能文本分塊和清理\n  - 關鍵詞提取和統計分析\n\n- 新增中文實體識別預處理功能\n  - 基於詞性標註的實體候選識別\n  - 預定義模式匹配（日期、電話、郵件等）\n  - 位置資訊保留和候選去重\n\n- 建立中文文本品質評估機制\n  - 七維度評估體系（長度、中文比例、句子結構等）\n  - 具體問題識別和改進建議\n  - 品質等級劃分和評分系統\n\n- 完整測試覆蓋\n  - 功能測試、邊界測試、整合測試\n  - 涵蓋所有新增功能的測試案例\n\n- 更新任務狀態：標記任務3為已完成\n\n🤖 Generated with [Claude Code](https://claude.ai/code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "mcp__time__get_current_time"
+      "mcp__time__get_current_time",
+      "mcp__serena__find_file",
+      "Bash(find:*)",
+      "Bash(uv run:*)",
+      "mcp__serena__insert_before_symbol"
     ]
   },
   "enabledMcpjsonServers": [
