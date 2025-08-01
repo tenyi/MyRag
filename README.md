@@ -74,6 +74,18 @@ chinese-graphrag/
 └── logs/                    # 日誌目錄
 ```
 
+## 📚 文件
+
+完整的文件請參考 [docs/](docs/) 目錄：
+
+- **[📖 文件首頁](docs/README.md)** - 文件導航和概覽
+- **[🚀 安裝指南](docs/installation_guide.md)** - 詳細的安裝和配置說明
+- **[🔧 API 文件](docs/api_usage_guide.md)** - REST API 完整參考
+- **[💡 範例教學](docs/examples_and_tutorials.md)** - 程式碼範例和教學
+- **[🐛 故障排除](docs/troubleshooting_guide.md)** - 常見問題和解決方案
+- **[🏗️ 架構設計](docs/architecture_design.md)** - 系統架構和設計文件
+- **[👥 貢獻指南](docs/contributing_guide.md)** - 開發者貢獻指南
+
 ## 開發
 
 ### 安裝開發依賴
@@ -100,6 +112,13 @@ uv run isort src/ tests/
 ```bash
 uv run mypy src/
 ```
+
+## 社群和支援
+
+- **GitHub Issues**: [回報問題或功能請求](https://github.com/your-org/chinese-graphrag/issues)
+- **GitHub Discussions**: [社群討論和問答](https://github.com/your-org/chinese-graphrag/discussions)
+- **文件**: [完整文件](docs/README.md)
+- **範例**: [程式碼範例](docs/examples_and_tutorials.md)
 
 ## 授權
 
