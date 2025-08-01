@@ -58,6 +58,7 @@ class ChineseTextProcessor:
             'n', 'nr', 'ns', 'nt', 'nw', 'nz',  # 名詞類
             'v', 'vd', 'vn', 'vshi', 'vyou', 'vf', 'vx', 'vi', 'vl', 'vg',  # 動詞類
             'a', 'ad', 'an', 'ag', 'al',  # 形容詞類
+            'r', 'rr', 'rz', 'rzt', 'rzs', 'rzv', 'ry', 'ryt', 'rys', 'ryv',  # 代詞類
             'i', 'j', 'l',  # 成語、簡稱、習用語
             'eng',  # 英文
         }
@@ -213,7 +214,7 @@ class ChineseTextProcessor:
         if remove_stopwords:
             words = [word for word in words if word not in self.stopwords]
         
-        # 過濾長度過短的詞（單字符且非中文數字）
+        # 過濾長度過短的詞（單字符且非中文字符）
         words = [word for word in words 
                 if len(word) > 1 or re.match(r'[\u4e00-\u9fff]', word)]
         
@@ -380,7 +381,7 @@ class ChineseTextProcessor:
         cleaned_sentences = []
         for sentence in sentences:
             sentence = sentence.strip()
-            if sentence and len(sentence) > 5:  # 過濾太短的句子
+            if sentence and len(sentence) >= 2:  # 過濾太短的句子
                 cleaned_sentences.append(sentence)
         
         return cleaned_sentences
@@ -402,7 +403,9 @@ class ChineseTextProcessor:
                 'paragraph_count': 0,
                 'chinese_char_count': 0,
                 'english_word_count': 0,
-                'punctuation_count': 0
+                'punctuation_count': 0,
+                'avg_sentence_length': 0,
+                'avg_word_length': 0
             }
         
         # 基本統計

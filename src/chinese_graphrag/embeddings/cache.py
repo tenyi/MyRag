@@ -25,7 +25,8 @@ try:
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
-    logger.warning("redis 套件未安裝，分散式快取將不可用")
+    # 使用 debug 級別避免過多警告
+    logger.debug("redis 套件未安裝，分散式快取將不可用")
 
 
 @dataclass

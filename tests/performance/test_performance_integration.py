@@ -6,6 +6,7 @@
 
 import asyncio
 import pytest
+import pytest_asyncio
 import tempfile
 import time
 from pathlib import Path
@@ -26,7 +27,7 @@ class TestPerformanceIntegration:
     """效能優化整合測試"""
     
     @pytest.fixture
-    async def temp_storage(self):
+    def temp_storage(self):
         """臨時儲存目錄"""
         with tempfile.TemporaryDirectory() as temp_dir:
             yield temp_dir
@@ -61,7 +62,7 @@ class TestPerformanceIntegration:
             storage_path=temp_storage
         )
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def optimizer_manager(self, optimization_config):
         """優化管理器實例"""
         manager = OptimizerManager(optimization_config)

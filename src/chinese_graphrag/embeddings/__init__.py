@@ -141,22 +141,22 @@ __all__ = [
     "LFUStrategy",
     "create_embedding_cache",
     
-    # GPU 加速和記憶體優化
-    "DeviceManager",
-    "MemoryOptimizer",
-    "BatchProcessor",
-    "GPUInfo",
-    "MemoryStats",
-    "get_device_manager",
-    "get_memory_optimizer",
-    "create_batch_processor",
+    # GPU 加速和記憶體優化（暫時禁用）
+    # "DeviceManager",
+    # "MemoryOptimizer",
+    # "BatchProcessor",
+    # "GPUInfo",
+    # "MemoryStats",
+    # "get_device_manager",
+    # "get_memory_optimizer",
+    # "create_batch_processor",
     
-    # 使用量監控
-    "UsageMonitor",
-    "UsageRecord",
-    "ModelStats",
-    "Alert",
-    "AlertLevel",
-    "get_usage_monitor",
-    "record_embedding_usage"
+    # 使用量監控（暫時禁用）
+    # "UsageMonitor",
+    # "UsageRecord",
+    # "ModelStats",
+    # "Alert",
+    # "AlertLevel",
+    # "get_usage_monitor",
+    # "record_embedding_usage"
 ]

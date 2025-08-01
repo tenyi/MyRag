@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from chinese_graphrag.config import GraphRAGConfig, VectorStoreConfig, VectorStoreType
-from chinese_graphrag.indexing import GraphRAGIndexer
-from chinese_graphrag.models import Document
+from src.chinese_graphrag.config import GraphRAGConfig, VectorStoreConfig, VectorStoreType
+from src.chinese_graphrag.indexing import GraphRAGIndexer
+from src.chinese_graphrag.models import Document
 
 
 class TestGraphRAGIndexer:

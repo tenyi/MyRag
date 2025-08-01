@@ -84,7 +84,17 @@ class TestConfigLoader:
                     "api_key": "${TEST_API_KEY}",
                     "max_tokens": "${TEST_MAX_TOKENS:4000}",
                     "temperature": 0.0
+                },
+                "test_embedding": {
+                    "type": "bge_m3",
+                    "model": "BAAI/bge-m3",
+                    "device": "cpu",
+                    "batch_size": 16
                 }
+            },
+            "vector_store": {
+                "type": "lancedb",
+                "uri": "./test_data/lancedb"
             },
             "model_selection": {
                 "default_llm": "test_llm",

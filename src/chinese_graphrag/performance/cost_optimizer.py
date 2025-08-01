@@ -55,6 +55,30 @@ class ModelConfig:
 
 
 @dataclass
+class ModelUsage:
+    """模型使用統計"""
+    model_name: str
+    model_type: ModelType
+    total_requests: int = 0
+    total_tokens: int = 0
+    total_cost: float = 0.0
+    average_latency: float = 0.0
+    success_rate: float = 1.0
+    last_used: Optional[datetime] = None
+
+
+@dataclass
+class QualityMetrics:
+    """品質指標"""
+    accuracy: float = 0.0
+    precision: float = 0.0
+    recall: float = 0.0
+    f1_score: float = 0.0
+    relevance_score: float = 0.0
+    coherence_score: float = 0.0
+
+
+@dataclass
 class UsageRecord:
     """使用記錄"""
     timestamp: float

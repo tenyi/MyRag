@@ -169,30 +169,32 @@ class OptimizerManager:
             
             # 初始化批次優化器
             if self.config.batch_enabled:
-                self.batch_optimizer = BatchOptimizer(
-                    default_batch_size=self.config.batch_size,
+                from .batch_optimizer import BatchProcessingConfig
+                batch_config = BatchProcessingConfig(
+                    initial_batch_size=self.config.batch_size,
                     max_batch_size=self.config.max_batch_size,
-                    parallel_workers=self.config.parallel_workers,
-                    memory_threshold_mb=self.config.memory_threshold_mb
+                    max_workers=self.config.parallel_workers,
+                    memory_limit_mb=int(self.config.memory_threshold_mb)
                 )
+                self.batch_optimizer = BatchOptimizer(batch_config)
                 logger.info("批次優化器已初始化")
             
             # 初始化查詢優化器
             if self.config.query_cache_enabled:
-                self.query_optimizer = QueryOptimizer(
-                    cache_ttl=self.config.cache_ttl_seconds,
-                    max_cache_size=self.config.cache_max_size,
+                from .query_optimizer import QueryCacheConfig
+                query_config = QueryCacheConfig(
+                    memory_cache_ttl=self.config.cache_ttl_seconds,
+                    memory_cache_size=self.config.cache_max_size,
                     enable_preloading=self.config.preload_enabled
                 )
+                self.query_optimizer = QueryOptimizer(query_config)
                 logger.info("查詢優化器已初始化")
             
             # 初始化成本優化器
             if self.config.cost_tracking_enabled:
-                self.cost_optimizer = CostOptimizer(
-                    budget_limit=self.config.budget_limit_usd,
-                    quality_threshold=self.config.quality_threshold,
-                    storage_path=str(storage_path / "cost_tracking.json")
-                )
+                from .cost_optimizer import ModelUsageTracker
+                usage_tracker = ModelUsageTracker()
+                self.cost_optimizer = CostOptimizer(usage_tracker)
                 logger.info("成本優化器已初始化")
             
             # 初始化效能監控器
@@ -487,6 +489,19 @@ class OptimizerManager:
         
         return cls(config)
     
+    def _handle_alert(self, metric_name: str, value: float, threshold: float):
+        """處理效能警報
+        
+        Args:
+            metric_name: 指標名稱
+            value: 當前值
+            threshold: 閾值
+        """
+        logger.warning(f"效能警報: {metric_name} = {value:.2f} > {threshold:.2f}")
+        
+        # 可以在這裡添加更多的警報處理邏輯
+        # 例如：自動調整批次大小、清理快取等
+        
     async def __aenter__(self):
         """異步上下文管理器進入"""
         await self.start()

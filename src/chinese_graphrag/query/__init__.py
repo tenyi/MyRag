@@ -9,16 +9,22 @@
 - 統一查詢介面
 """
 
-from .manager import LLMManager
-from .processor import ChineseQueryProcessor
+from .manager import LLMManager, LLMConfig, LLMProvider, TaskType
+from .processor import ChineseQueryProcessor, QueryType, QueryIntent
 from .global_search import GlobalSearchEngine
 from .local_search import LocalSearchEngine
-from .engine import QueryEngine
+from .engine import QueryEngine, QueryEngineConfig
 
 __all__ = [
     "LLMManager",
-    "ChineseQueryProcessor", 
+    "LLMConfig",
+    "LLMProvider", 
+    "TaskType",
+    "ChineseQueryProcessor",
+    "QueryType",
+    "QueryIntent", 
     "GlobalSearchEngine",
     "LocalSearchEngine",
     "QueryEngine",
+    "QueryEngineConfig",
 ]

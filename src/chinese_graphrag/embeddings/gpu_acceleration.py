@@ -24,14 +24,16 @@ try:
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
-    logger.warning("PyTorch 未安裝，GPU 加速將不可用")
+    # 使用 debug 級別避免過多警告
+    logger.debug("PyTorch 未安裝，GPU 加速將不可用")
 
 try:
     import GPUtil
     GPUTIL_AVAILABLE = True
 except ImportError:
     GPUTIL_AVAILABLE = False
-    logger.warning("GPUtil 未安裝，GPU 監控功能受限")
+    # 使用 debug 級別避免過多警告
+    logger.debug("GPUtil 未安裝，GPU 監控功能受限")
 
 
 @dataclass
