@@ -67,6 +67,7 @@ graph TB
 ### 快速開始
 
 1. **設定測試環境**
+
    ```bash
    # 安裝依賴
    uv sync --dev
@@ -76,6 +77,7 @@ graph TB
    ```
 
 2. **執行完整測試管道**
+
    ```bash
    # 執行所有測試
    python scripts/run_test_automation.py
@@ -88,6 +90,7 @@ graph TB
    ```
 
 3. **單獨執行各個元件**
+
    ```bash
    # 品質閘門檢查
    python scripts/quality_gate.py --test-results-dir .
@@ -281,6 +284,7 @@ GITHUB_REPOSITORY=automatically_provided
 3. **文字摘要**: 簡潔的命令列輸出
 
 報告內容包括：
+
 - 測試結果摘要
 - 覆蓋率詳情
 - 效能基準測試結果
@@ -299,6 +303,7 @@ GITHUB_REPOSITORY=automatically_provided
 ### 常見問題
 
 1. **測試環境設定失敗**
+
    ```bash
    # 重設測試資料
    python scripts/init_test_data.py --reset
@@ -308,6 +313,7 @@ GITHUB_REPOSITORY=automatically_provided
    ```
 
 2. **品質閘門檢查失敗**
+
    ```bash
    # 查看詳細結果
    python scripts/quality_gate.py --test-results-dir . --output quality-results.json
@@ -317,6 +323,7 @@ GITHUB_REPOSITORY=automatically_provided
    ```
 
 3. **通知發送失敗**
+
    ```bash
    # 檢查環境變數設定
    echo $SLACK_WEBHOOK_URL
@@ -337,12 +344,14 @@ GITHUB_REPOSITORY=automatically_provided
 ### 撰寫測試
 
 1. **使用描述性的測試名稱**
+
    ```python
    def test_chinese_text_processor_should_segment_chinese_text_correctly():
        pass
    ```
 
 2. **適當使用測試標記**
+
    ```python
    @pytest.mark.chinese
    @pytest.mark.integration
@@ -351,6 +360,7 @@ GITHUB_REPOSITORY=automatically_provided
    ```
 
 3. **使用測試夾具**
+
    ```python
    def test_document_processing(sample_chinese_document):
        # 使用預定義的測試資料

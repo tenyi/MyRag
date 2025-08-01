@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 常用指令
 
 ### 環境設定
+
 ```bash
 # 安裝依賴
 uv sync
@@ -18,6 +19,7 @@ uv sync --extra dev
 ```
 
 ### 開發指令
+
 ```bash
 # 執行測試
 uv run pytest
@@ -41,6 +43,7 @@ uv run chinese-graphrag --help
 ```
 
 ### 系統操作
+
 ```bash
 # 初始化系統
 uv run python -m chinese_graphrag.cli init
@@ -55,6 +58,7 @@ uv run chinese-graphrag query "您的中文問題"
 ## 架構設計
 
 ### 目錄結構
+
 - `src/chinese_graphrag/`: 主要程式碼（src layout）
   - `cli/`: 命令列介面
   - `config/`: 配置管理
@@ -71,6 +75,7 @@ uv run chinese-graphrag query "您的中文問題"
 - `ragtest/`: 測試資料與範例
 
 ### 核心元件
+
 1. **文件處理模組** (`processors/`): 處理各種格式的中文文件輸入（txt、pdf、docx、md）
 2. **中文文本處理器** (`ChineseTextProcessor`): 使用 jieba 進行中文分詞和文本預處理
 3. **BGE-M3 Embedding 服務**: 提供中文優化的向量化服務
@@ -79,6 +84,7 @@ uv run chinese-graphrag query "您的中文問題"
 6. **查詢引擎**: 處理中文查詢並返回結構化結果
 
 ### 資料模型
+
 - **Document**: 文件模型，包含 id、title、content、metadata 等
 - **TextUnit**: 文本單元模型，用於文本分塊
 - **Entity**: 實體模型，包含實體資訊和 embedding
@@ -100,19 +106,23 @@ uv run chinese-graphrag query "您的中文問題"
 ## 開發慣例
 
 ### 命名規範
+
 - 模組檔案：snake_case (`chinese_text_processor.py`)
 - 類別名稱：PascalCase (`ChineseTextProcessor`)
 - 函數名稱：snake_case (`extract_entities`)
 - 常數：UPPER_SNAKE_CASE (`DEFAULT_BATCH_SIZE`)
 
 ### 程式碼風格
+
 - 行長度：88 字元（black 標準）
 - 必須使用完整的型別提示
 - 使用中文註解和文件字串
 - 測試覆蓋率目標 >90%
 
 ### 文件字串格式
+
 使用中文描述功能和用途：
+
 ```python
 def process_text(text: str) -> List[str]:
     """處理中文文本。
@@ -129,6 +139,7 @@ def process_text(text: str) -> List[str]:
 ```
 
 ### 測試結構
+
 - 測試檔案鏡像 src 結構
 - 測試類別使用 `Test` 前綴
 - 每個模組/功能都有對應的測試檔案
@@ -144,6 +155,7 @@ def process_text(text: str) -> List[str]:
 ## 錯誤處理
 
 定義了具體的異常類型：
+
 - `DocumentProcessingError`: 文件處理相關錯誤
 - `EmbeddingServiceError`: Embedding 服務錯誤
 - `DatabaseError`: 資料庫相關錯誤
@@ -164,3 +176,5 @@ def process_text(text: str) -> List[str]:
 - 查詢響應時間目標 < 30秒
 - 支援水平擴展和負載均衡
 - 記憶體優化和分頁處理機制
+
+### 需要寫日期時間時，必須要使用 time mcp

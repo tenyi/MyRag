@@ -4,7 +4,7 @@
 
 ## 文件結構
 
-```
+```text
 docs/
 ├── README.md                    # 文件首頁和導航
 ├── navigation.md               # 本文件 - 導航配置

@@ -33,6 +33,7 @@ Chinese GraphRAG 系統的效能優化模組提供全面的效能提升解決方
 批次處理優化器提供智慧的批次處理功能，自動調整批次大小和並行度以達到最佳效能。
 
 #### 主要功能
+
 - 動態批次大小調整
 - 記憶體感知處理
 - 並行工作者管理
@@ -40,6 +41,7 @@ Chinese GraphRAG 系統的效能優化模組提供全面的效能提升解決方
 - 效能統計追蹤
 
 #### 使用範例
+
 ```python
 from src.chinese_graphrag.performance import BatchOptimizer
 
@@ -64,6 +66,7 @@ async def process_texts(texts):
 查詢優化器提供多層快取系統，大幅提升重複查詢的效能。
 
 #### 主要功能
+
 - 記憶體快取 (LRU)
 - Redis 分散式快取
 - 語義快取
@@ -71,6 +74,7 @@ async def process_texts(texts):
 - 快取統計分析
 
 #### 使用範例
+
 ```python
 from src.chinese_graphrag.performance import QueryOptimizer
 
@@ -99,6 +103,7 @@ async def optimized_query(query):
 成本優化器追蹤模型使用情況，提供成本控制和智慧模型選擇建議。
 
 #### 主要功能
+
 - 使用情況追蹤
 - 成本計算和預算控制
 - 品質評估
@@ -106,6 +111,7 @@ async def optimized_query(query):
 - 成本分析報告
 
 #### 使用範例
+
 ```python
 from src.chinese_graphrag.performance import CostOptimizer
 
@@ -136,6 +142,7 @@ recommendation = await optimizer.get_model_recommendation(
 效能監控器提供即時的系統效能監控和歷史分析功能。
 
 #### 主要功能
+
 - 系統資源監控 (CPU, 記憶體, 磁碟, GPU)
 - 應用程式效能指標
 - 自訂指標收集
@@ -143,6 +150,7 @@ recommendation = await optimizer.get_model_recommendation(
 - 歷史資料分析
 
 #### 使用範例
+
 ```python
 from src.chinese_graphrag.performance import PerformanceMonitor
 
@@ -254,6 +262,7 @@ config = OptimizationConfig(
 ### 批次處理最佳化
 
 1. **選擇合適的批次大小**
+
    ```python
    # 小批次 - 適合記憶體受限環境
    optimizer = BatchOptimizer(default_batch_size=16, max_batch_size=32)
@@ -263,6 +272,7 @@ config = OptimizationConfig(
    ```
 
 2. **並行處理調整**
+
    ```python
    # CPU 密集型任務
    optimizer = BatchOptimizer(parallel_workers=cpu_count())
@@ -272,6 +282,7 @@ config = OptimizationConfig(
    ```
 
 3. **記憶體管理**
+
    ```python
    # 啟用記憶體監控
    optimizer = BatchOptimizer(
@@ -283,6 +294,7 @@ config = OptimizationConfig(
 ### 查詢快取策略
 
 1. **快取層級選擇**
+
    ```python
    # 僅記憶體快取 - 適合單機部署
    optimizer = QueryOptimizer(cache_backend="memory")
@@ -295,6 +307,7 @@ config = OptimizationConfig(
    ```
 
 2. **快取失效策略**
+
    ```python
    # 時間基礎失效
    optimizer = QueryOptimizer(cache_ttl=3600)  # 1小時
@@ -304,6 +317,7 @@ config = OptimizationConfig(
    ```
 
 3. **預載策略**
+
    ```python
    # 啟用智慧預載
    optimizer = QueryOptimizer(
@@ -315,6 +329,7 @@ config = OptimizationConfig(
 ### 成本控制
 
 1. **預算管理**
+
    ```python
    optimizer = CostOptimizer(
        budget_limit=50.0,  # $50 月預算
@@ -323,6 +338,7 @@ config = OptimizationConfig(
    ```
 
 2. **模型選擇策略**
+
    ```python
    # 成本優先
    recommendation = await optimizer.get_model_recommendation(
@@ -483,11 +499,13 @@ result = await runner.run_benchmark(
 **症狀**: 批次處理速度慢於預期
 
 **可能原因**:
+
 - 批次大小設定不當
 - 並行工作者數量不足
 - 記憶體不足導致頻繁 GC
 
 **解決方案**:
+
 ```python
 # 調整批次大小
 optimizer.adjust_batch_size(factor=1.5)
@@ -504,11 +522,13 @@ optimizer.enable_memory_monitoring = True
 **症狀**: 快取命中率低於預期
 
 **可能原因**:
+
 - 快取鍵設計不當
 - TTL 設定過短
 - 快取大小限制
 
 **解決方案**:
+
 ```python
 # 調整 TTL
 optimizer.cache_ttl = 7200  # 2小時
@@ -525,11 +545,13 @@ optimizer.enable_cache_key_analysis = True
 **症狀**: 模型使用成本超出預算
 
 **可能原因**:
+
 - 模型選擇不當
 - 使用量超出預期
 - 缺乏成本控制
 
 **解決方案**:
+
 ```python
 # 啟用嚴格預算控制
 optimizer.strict_budget_enforcement = True
@@ -546,11 +568,13 @@ optimizer.set_usage_limit("gpt-4", max_tokens_per_day=10000)
 **症狀**: 監控資料顯示異常值
 
 **可能原因**:
+
 - 監控間隔設定不當
 - 系統負載波動
 - 監控器配置錯誤
 
 **解決方案**:
+
 ```python
 # 調整監控間隔
 monitor.collection_interval = 10.0  # 10秒

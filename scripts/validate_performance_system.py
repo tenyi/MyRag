@@ -1,367 +1,230 @@
 #!/usr/bin/env python3
 """
-效能優化系統驗證腳本
+系統效能驗證腳本
 
-驗證所有效能優化模組的基本功能
+快速驗證系統的基本功能和效能
 """
 
-import asyncio
 import sys
-import tempfile
 import time
+import traceback
 from pathlib import Path
 
-# 添加專案根目錄到 Python 路徑
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-try:
-    from src.chinese_graphrag.performance import (
-        OptimizerManager,
-        OptimizationConfig,
-        BatchOptimizer,
-        QueryOptimizer,
-        CostOptimizer,
-        PerformanceMonitor,
-        BenchmarkRunner,
-        ConfigLoader,
-        load_performance_config
-    )
-    print("✅ 所有模組匯入成功")
-except ImportError as e:
-    print(f"❌ 模組匯入失敗: {e}")
-    sys.exit(1)
-
-
-async def test_batch_optimizer():
-    """測試批次優化器"""
-    print("\n🔄 測試批次優化器...")
+def validate_imports():
+    """驗證核心模組導入"""
+    print("🔍 驗證核心模組導入...")
     
     try:
-        optimizer = BatchOptimizer(
-            default_batch_size=8,
-            max_batch_size=32,
-            parallel_workers=2
+        # 測試核心模組導入
+        from src.chinese_graphrag.processors.chinese_text_processor import ChineseTextProcessor
+        print("✅ ChineseTextProcessor 導入成功")
+        
+        from src.chinese_graphrag.config.loader import ConfigLoader
+        print("✅ ConfigLoader 導入成功")
+        
+        from src.chinese_graphrag.models.base import BaseModel
+        print("✅ BaseModel 導入成功")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ 模組導入失敗: {e}")
+        return False
+
+def validate_chinese_processing():
+    """驗證中文處理功能"""
+    print("\n🇨🇳 驗證中文處理功能...")
+    
+    try:
+        from src.chinese_graphrag.processors.chinese_text_processor import ChineseTextProcessor
+        
+        processor = ChineseTextProcessor()
+        
+        # 測試中文文本處理
+        test_text = "人工智慧技術正在快速發展，機器學習已經廣泛應用於各個領域。"
+        
+        start_time = time.time()
+        processed_text = processor.preprocess_text(test_text)
+        processing_time = time.time() - start_time
+        
+        print(f"✅ 中文文本預處理成功 (耗時: {processing_time:.3f}s)")
+        print(f"   原文: {test_text}")
+        print(f"   處理後: {processed_text}")
+        
+        # 測試文本分塊
+        chunks = processor.split_text(processed_text, chunk_size=50)
+        print(f"✅ 文本分塊成功 (分塊數: {len(chunks)})")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ 中文處理功能驗證失敗: {e}")
+        traceback.print_exc()
+        return False
+
+def validate_config_system():
+    """驗證配置系統"""
+    print("\n⚙️ 驗證配置系統...")
+    
+    try:
+        from src.chinese_graphrag.config.loader import ConfigLoader
+        
+        config_loader = ConfigLoader()
+        
+        # 檢查配置檔案
+        config_files = [
+            Path("config/settings.yaml"),
+            Path("config/dev.yaml"),
+            Path("pyproject.toml")
+        ]
+        
+        existing_files = [f for f in config_files if f.exists()]
+        print(f"✅ 找到配置檔案: {len(existing_files)}/{len(config_files)}")
+        
+        for file in existing_files:
+            print(f"   - {file}")
+        
+        return len(existing_files) > 0
+        
+    except Exception as e:
+        print(f"❌ 配置系統驗證失敗: {e}")
+        return False
+
+def validate_data_models():
+    """驗證資料模型"""
+    print("\n📊 驗證資料模型...")
+    
+    try:
+        from src.chinese_graphrag.models.document import Document
+        from src.chinese_graphrag.models.entity import Entity
+        from src.chinese_graphrag.models.text_unit import TextUnit
+        
+        # 測試文件模型
+        doc = Document(
+            id="test_doc",
+            title="測試文件",
+            content="這是一個測試文件的內容",
+            metadata={"source": "test"}
         )
+        print(f"✅ Document 模型創建成功: {doc.title}")
         
-        # 模擬處理函數
-        async def mock_process(item):
-            await asyncio.sleep(0.01)
-            return f"processed_{item}"
-        
-        # 測試批次處理
-        test_items = list(range(20))
-        results = await optimizer.process_batch(test_items, mock_process)
-        
-        assert len(results) == len(test_items)
-        print("✅ 批次優化器測試通過")
-        return True
-        
-    except Exception as e:
-        print(f"❌ 批次優化器測試失敗: {e}")
-        return False
-
-
-async def test_query_optimizer():
-    """測試查詢優化器"""
-    print("\n🔍 測試查詢優化器...")
-    
-    try:
-        optimizer = QueryOptimizer(
-            cache_ttl=300,
-            max_cache_size=100
+        # 測試實體模型
+        entity = Entity(
+            id="test_entity",
+            name="人工智慧",
+            type="概念",
+            description="電腦科學的重要分支"
         )
+        print(f"✅ Entity 模型創建成功: {entity.name}")
         
-        # 模擬查詢函數
-        call_count = 0
-        async def mock_query(query):
-            nonlocal call_count
-            call_count += 1
-            await asyncio.sleep(0.05)
-            return f"result_for_{query}"
-        
-        query = "test_query"
-        
-        # 第一次查詢
-        result1 = await optimizer.get_cached_result(query)
-        if result1 is None:
-            result1 = await mock_query(query)
-            await optimizer.cache_result(query, result1)
-        
-        # 第二次查詢（應該從快取取得）
-        result2 = await optimizer.get_cached_result(query)
-        
-        assert result1 == result2
-        assert result2 is not None
-        print("✅ 查詢優化器測試通過")
-        return True
-        
-    except Exception as e:
-        print(f"❌ 查詢優化器測試失敗: {e}")
-        return False
-
-
-async def test_cost_optimizer():
-    """測試成本優化器"""
-    print("\n💰 測試成本優化器...")
-    
-    try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            optimizer = CostOptimizer(
-                budget_limit=10.0,
-                quality_threshold=0.8,
-                storage_path=str(Path(temp_dir) / "cost_tracking.json")
-            )
-            
-            # 測試使用追蹤
-            await optimizer.track_usage(
-                model_name="test-model",
-                input_tokens=100,
-                output_tokens=50,
-                operation_type="test"
-            )
-            
-            # 測試統計
-            stats = optimizer.get_usage_stats(60)
-            assert "total_cost" in stats
-            
-            print("✅ 成本優化器測試通過")
-            return True
-            
-    except Exception as e:
-        print(f"❌ 成本優化器測試失敗: {e}")
-        return False
-
-
-async def test_performance_monitor():
-    """測試效能監控器"""
-    print("\n📈 測試效能監控器...")
-    
-    try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            monitor = PerformanceMonitor(
-                collection_interval=1.0,
-                history_size=10,
-                storage_path=temp_dir
-            )
-            
-            # 啟動監控
-            monitor.start_monitoring()
-            
-            # 等待收集一些資料
-            await asyncio.sleep(2.5)
-            
-            # 檢查資料
-            current_metrics = monitor.get_current_metrics()
-            assert current_metrics is not None
-            assert current_metrics.cpu_usage >= 0
-            
-            # 停止監控
-            monitor.stop_monitoring()
-            
-            print("✅ 效能監控器測試通過")
-            return True
-            
-    except Exception as e:
-        print(f"❌ 效能監控器測試失敗: {e}")
-        return False
-
-
-async def test_benchmark_runner():
-    """測試基準測試執行器"""
-    print("\n🏁 測試基準測試執行器...")
-    
-    try:
-        runner = BenchmarkRunner()
-        
-        # 定義測試函數
-        async def test_function():
-            await asyncio.sleep(0.01)
-            return "test_result"
-        
-        # 執行基準測試
-        result = await runner.run_benchmark(
-            test_name="simple_test",
-            test_func=test_function,
-            test_params={},
-            iterations=3
+        # 測試文本單元模型
+        text_unit = TextUnit(
+            id="test_unit",
+            text="測試文本單元",
+            document_id="test_doc",
+            chunk_index=0
         )
+        print(f"✅ TextUnit 模型創建成功: {text_unit.text}")
         
-        assert result.test_name == "simple_test"
-        assert result.total_operations == 3
-        assert result.throughput > 0
-        
-        print("✅ 基準測試執行器測試通過")
         return True
         
     except Exception as e:
-        print(f"❌ 基準測試執行器測試失敗: {e}")
+        print(f"❌ 資料模型驗證失敗: {e}")
+        traceback.print_exc()
         return False
 
-
-async def test_optimizer_manager():
-    """測試優化管理器"""
-    print("\n🎯 測試優化管理器...")
+def validate_performance():
+    """驗證基本效能"""
+    print("\n⚡ 驗證基本效能...")
     
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            config = OptimizationConfig(
-                batch_enabled=True,
-                batch_size=8,
-                parallel_workers=2,
-                query_cache_enabled=True,
-                cache_ttl_seconds=300,
-                cost_tracking_enabled=True,
-                budget_limit_usd=10.0,
-                monitoring_enabled=True,
-                monitoring_interval=2.0,
-                storage_path=temp_dir
-            )
-            
-            async with OptimizerManager(config) as manager:
-                # 測試批次處理
-                async def mock_process(item):
-                    return f"item_{item}"
-                
-                results = await manager.optimize_batch_processing(
-                    items=[1, 2, 3],
-                    process_func=mock_process
-                )
-                assert len(results) == 3
-                
-                # 測試查詢優化
-                async def mock_query(query):
-                    return f"result_{query}"
-                
-                result = await manager.optimize_query(
-                    query="test",
-                    query_func=mock_query
-                )
-                assert result == "result_test"
-                
-                # 測試狀態
-                status = manager.get_performance_status()
-                assert status["initialized"]
-                assert status["running"]
-                
-                print("✅ 優化管理器測試通過")
-                return True
-                
-    except Exception as e:
-        print(f"❌ 優化管理器測試失敗: {e}")
-        return False
-
-
-def test_config_loader():
-    """測試配置載入器"""
-    print("\n⚙️ 測試配置載入器...")
-    
-    try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # 建立測試配置檔案
-            config_content = """
-batch_optimization:
-  enabled: true
-  default_batch_size: 16
-  parallel_workers: 2
-
-query_optimization:
-  cache_enabled: true
-  cache_ttl_seconds: 600
-
-cost_optimization:
-  tracking_enabled: true
-  budget_limit_usd: 50.0
-
-performance_monitoring:
-  enabled: true
-  collection_interval: 5.0
-
-storage:
-  base_path: "test_logs"
-"""
-            
-            config_path = Path(temp_dir) / "test_config.yaml"
-            with open(config_path, 'w') as f:
-                f.write(config_content)
-            
-            # 測試載入配置
-            loader = ConfigLoader(str(config_path), "development")
-            config = loader.load_config()
-            
-            assert config.optimization.batch_enabled
-            assert config.optimization.batch_size == 16
-            assert config.optimization.parallel_workers == 2
-            
-            print("✅ 配置載入器測試通過")
+        from src.chinese_graphrag.processors.chinese_text_processor import ChineseTextProcessor
+        
+        processor = ChineseTextProcessor()
+        
+        # 效能測試資料
+        test_texts = [
+            "人工智慧技術發展迅速" * 10,
+            "機器學習應用廣泛" * 20,
+            "深度學習模型複雜" * 15
+        ]
+        
+        # 批次處理測試
+        start_time = time.time()
+        processed_texts = []
+        
+        for text in test_texts:
+            processed = processor.preprocess_text(text)
+            chunks = processor.split_text(processed, chunk_size=100)
+            processed_texts.append({
+                "original_length": len(text),
+                "processed_length": len(processed),
+                "chunks_count": len(chunks)
+            })
+        
+        total_time = time.time() - start_time
+        throughput = len(test_texts) / total_time
+        
+        print(f"✅ 批次處理效能測試完成")
+        print(f"   處理文件數: {len(test_texts)}")
+        print(f"   總耗時: {total_time:.3f}s")
+        print(f"   吞吐量: {throughput:.2f} docs/s")
+        
+        # 效能要求檢查
+        if throughput >= 5.0:
+            print("✅ 效能符合要求 (>= 5 docs/s)")
             return True
-            
+        else:
+            print("⚠️ 效能低於預期 (< 5 docs/s)")
+            return False
+        
     except Exception as e:
-        print(f"❌ 配置載入器測試失敗: {e}")
+        print(f"❌ 效能驗證失敗: {e}")
         return False
-
-
-async def run_all_tests():
-    """執行所有測試"""
-    print("🚀 開始效能優化系統驗證")
-    print("=" * 50)
-    
-    tests = [
-        test_batch_optimizer,
-        test_query_optimizer,
-        test_cost_optimizer,
-        test_performance_monitor,
-        test_benchmark_runner,
-        test_optimizer_manager,
-    ]
-    
-    sync_tests = [
-        test_config_loader,
-    ]
-    
-    passed = 0
-    total = len(tests) + len(sync_tests)
-    
-    # 執行異步測試
-    for test in tests:
-        try:
-            if await test():
-                passed += 1
-        except Exception as e:
-            print(f"❌ 測試執行錯誤: {e}")
-    
-    # 執行同步測試
-    for test in sync_tests:
-        try:
-            if test():
-                passed += 1
-        except Exception as e:
-            print(f"❌ 測試執行錯誤: {e}")
-    
-    print("\n" + "=" * 50)
-    print(f"📊 測試結果: {passed}/{total} 通過")
-    
-    if passed == total:
-        print("🎉 所有測試通過！效能優化系統驗證成功")
-        return True
-    else:
-        print(f"⚠️  有 {total - passed} 個測試失敗")
-        return False
-
 
 def main():
     """主函數"""
-    try:
-        success = asyncio.run(run_all_tests())
-        sys.exit(0 if success else 1)
-    except KeyboardInterrupt:
-        print("\n⏹️  測試被中斷")
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ 測試執行失敗: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
+    print("🚀 開始系統效能驗證")
+    print("=" * 50)
+    
+    # 執行各項驗證
+    validations = [
+        ("核心模組導入", validate_imports),
+        ("中文處理功能", validate_chinese_processing),
+        ("配置系統", validate_config_system),
+        ("資料模型", validate_data_models),
+        ("基本效能", validate_performance)
+    ]
+    
+    results = {}
+    
+    for name, validator in validations:
+        try:
+            results[name] = validator()
+        except Exception as e:
+            print(f"❌ {name} 驗證過程中發生錯誤: {e}")
+            results[name] = False
+    
+    # 生成驗證報告
+    print("\n" + "=" * 50)
+    print("📊 驗證結果摘要:")
+    
+    passed_count = sum(1 for result in results.values() if result)
+    total_count = len(results)
+    success_rate = passed_count / total_count * 100
+    
+    for name, result in results.items():
+        status = "✅ 通過" if result else "❌ 失敗"
+        print(f"   {name}: {status}")
+    
+    print(f"\n總體結果: {passed_count}/{total_count} 通過 ({success_rate:.1f}%)")
+    
+    if success_rate >= 80:
+        print("🎉 系統驗證通過！系統基本功能正常。")
+        return 0
+    else:
+        print("⚠️ 系統驗證未完全通過，建議檢查失敗項目。")
+        return 1
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

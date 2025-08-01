@@ -243,6 +243,7 @@ Closes #123"
 ```
 
 **類型 (type)**：
+
 - `feat`: 新功能
 - `fix`: 錯誤修復
 - `docs`: 文件變更
@@ -252,6 +253,7 @@ Closes #123"
 - `chore`: 建置或輔助工具變更
 
 **範例**：
+
 ```
 feat(embedding): 添加 BGE-M3 模型支援
 
@@ -452,6 +454,7 @@ uv run pytest tests/integration/ -m integration
 
 - [連結1](url1)
 - [連結2](url2)
+
 ```
 
 ### 3. 程式碼文件
@@ -614,6 +617,7 @@ def extract_entities(
 - 單元測試覆蓋率 > 90%
 - 整合測試
 - 效能基準測試
+
 ```
 
 ## 程式碼審查
@@ -676,6 +680,7 @@ def preprocess_text(self, text):
 - [ ] 修復類型提示問題
 - [ ] 添加邊界條件測試
 - [ ] 更新文檔字串
+
 ```
 
 ## 發布流程
@@ -739,7 +744,7 @@ gh release create v0.2.0 --title "Release 0.2.0" --notes-file CHANGELOG.md
 
 - **GitHub Issues**：技術問題和錯誤報告
 - **GitHub Discussions**：一般討論和問答
-- **電子郵件**：maintainers@chinese-graphrag.org
+- **電子郵件**：<maintainers@chinese-graphrag.org>
 - **社群聊天**：[Discord 連結]
 
 感謝您對 Chinese GraphRAG 專案的貢獻！🎉
