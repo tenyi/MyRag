@@ -1,0 +1,131 @@
+# 品質閘門配置文件
+# 定義各種品質指標的閾值和檢查規則
+
+# 品質閾值設定
+thresholds:
+  # 測試通過率閾值 (%)
+  test_pass_rate: 90.0
+  integration_pass_rate: 85.0
+  chinese_test_pass_rate: 90.0
+  
+  # 程式碼覆蓋率閾值 (%)
+  code_coverage: 80.0
+  
+  # 效能閾值
+  max_test_duration: 300  # 最大測試執行時間 (秒)
+  max_embedding_time: 1.0  # 最大 embedding 生成時間 (秒)
+  max_query_time: 0.5      # 最大查詢時間 (秒)
+  
+  # 安全性閾值
+  max_security_issues: 0   # 最大允許的安全問題數量
+  max_high_security_issues: 0  # 最大允許的高風險安全問題
+  max_medium_security_issues: 2  # 最大允許的中風險安全問題
+
+# 必要檢查項目 (必須通過)
+required_checks:
+  - test_pass_rate
+  - code_coverage
+  - integration_tests
+  - chinese_tests
+
+# 可選檢查項目 (建議通過)
+optional_checks:
+  - performance_tests
+  - security_scan
+
+# 配置選項
+options:
+  # 是否在可選檢查失敗時也失敗整個品質閘門
+  fail_on_missing_optional: false
+  
+  # 是否啟用詳細日誌
+  verbose_logging: true
+  
+  # 是否生成詳細報告
+  generate_detailed_report: true
+
+# 通知設定
+notifications:
+  # 是否啟用通知
+  enabled: true
+  
+  # 通知條件
+  conditions:
+    - on_failure  # 失敗時通知
+    - on_success  # 成功時通知 (可選)
+    - on_quality_regression  # 品質回歸時通知
+  
+  # 通知渠道
+  channels:
+    slack:
+      enabled: false
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#ci-cd"
+      
+    email:
+      enabled: false
+      smtp_server: "${SMTP_SERVER}"
+      recipients:
+        - "dev-team@company.com"
+        
+    github:
+      enabled: true
+      create_issue_on_failure: false
+      add_pr_comment: true
+
+# 報告設定
+reporting:
+  # 報告格式
+  formats:
+    - json
+    - html
+    - markdown
+  
+  # 報告輸出目錄
+  output_dir: "quality-reports"
+  
+  # 是否包含歷史趨勢
+  include_trends: true
+  
+  # 保留報告天數
+  retention_days: 30
+
+# 品質趨勢監控
+trend_monitoring:
+  # 是否啟用趨勢監控
+  enabled: true
+  
+  # 監控指標
+  metrics:
+    - test_pass_rate
+    - code_coverage
+    - performance_benchmarks
+  
+  # 回歸檢測閾值
+  regression_thresholds:
+    test_pass_rate: -5.0  # 通過率下降超過 5% 視為回歸
+    code_coverage: -3.0   # 覆蓋率下降超過 3% 視為回歸
+    performance: 20.0     # 效能下降超過 20% 視為回歸
+
+# 自動修復建議
+auto_suggestions:
+  # 是否啟用自動建議
+  enabled: true
+  
+  # 建議規則
+  rules:
+    low_coverage:
+      condition: "code_coverage < 70"
+      suggestion: "考慮增加單元測試以提高覆蓋率"
+      
+    test_failures:
+      condition: "test_pass_rate < 85"
+      suggestion: "檢查失敗的測試案例並修復相關問題"
+      
+    performance_issues:
+      condition: "performance_regression > 15"
+      suggestion: "分析效能瓶頸並進行優化"
+      
+    security_issues:
+      condition: "security_issues > 0"
+      suggestion: "立即修復發現的安全漏洞"

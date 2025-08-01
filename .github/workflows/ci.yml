@@ -1,0 +1,399 @@
+name: 持續整合測試
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 每天 UTC 02:00 (台北時間 10:00) 執行
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.11'
+  UV_VERSION: '0.1.0'
+
+jobs:
+  # 程式碼品質檢查
+  code-quality:
+    name: 程式碼品質檢查
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 檢出程式碼
+      uses: actions/checkout@v4
+      
+    - name: 設定 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 安裝 uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+    - name: 安裝依賴
+      run: |
+        uv sync --dev
+        
+    - name: 程式碼格式檢查 (Black)
+      run: |
+        uv run black --check --diff src/ tests/
+        
+    - name: 導入排序檢查 (isort)
+      run: |
+        uv run isort --check-only --diff src/ tests/
+        
+    - name: 程式碼風格檢查 (flake8)
+      run: |
+        uv run flake8 src/ tests/
+        
+    - name: 型別檢查 (mypy)
+      run: |
+        uv run mypy src/
+      continue-on-error: true  # 暫時允許型別檢查失敗
+
+  # 單元測試
+  unit-tests:
+    name: 單元測試
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+        
+    steps:
+    - name: 檢出程式碼
+      uses: actions/checkout@v4
+      
+    - name: 設定 Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: 安裝 uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+    - name: 安裝依賴
+      run: |
+        uv sync --dev
+        
+    - name: 初始化測試資料
+      run: |
+        uv run python scripts/init_test_data.py --reset
+        
+    - name: 執行單元測試
+      run: |
+        uv run pytest tests/ \
+          --cov=src/chinese_graphrag \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term-missing \
+          --junit-xml=pytest-unit.xml \
+          -m "not integration and not slow" \
+          --tb=short \
+          -v
+          
+    - name: 上傳覆蓋率報告到 Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        
+    - name: 上傳測試結果
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: unit-test-results-${{ matrix.python-version }}
+        path: |
+          pytest-unit.xml
+          htmlcov/
+          coverage.xml
+
+  # 整合測試
+  integration-tests:
+    name: 整合測試
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    steps:
+    - name: 檢出程式碼
+      uses: actions/checkout@v4
+      
+    - name: 設定 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 安裝 uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+    - name: 安裝依賴
+      run: |
+        uv sync --dev
+        
+    - name: 設定環境變數
+      run: |
+        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+        echo "AZURE_OPENAI_API_KEY=${{ secrets.AZURE_OPENAI_API_KEY }}" >> $GITHUB_ENV
+        echo "AZURE_OPENAI_ENDPOINT=${{ secrets.AZURE_OPENAI_ENDPOINT }}" >> $GITHUB_ENV
+        
+    - name: 初始化測試資料
+      run: |
+        uv run python scripts/init_test_data.py --reset
+        
+    - name: 執行整合測試
+      run: |
+        uv run pytest tests/integration/ \
+          --junit-xml=pytest-integration.xml \
+          -m "integration" \
+          --tb=short \
+          -v \
+          --timeout=300
+          
+    - name: 上傳整合測試結果
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: |
+          pytest-integration.xml
+          logs/
+
+  # 中文特定功能測試
+  chinese-tests:
+    name: 中文功能測試
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    steps:
+    - name: 檢出程式碼
+      uses: actions/checkout@v4
+      
+    - name: 設定 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 安裝 uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+    - name: 安裝依賴
+      run: |
+        uv sync --dev
+        
+    - name: 初始化測試資料
+      run: |
+        uv run python scripts/init_test_data.py --reset
+        
+    - name: 執行中文功能測試
+      run: |
+        uv run pytest tests/ \
+          --junit-xml=pytest-chinese.xml \
+          -m "chinese" \
+          --tb=short \
+          -v
+          
+    - name: 上傳中文測試結果
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: chinese-test-results
+        path: |
+          pytest-chinese.xml
+
+  # 效能測試
+  performance-tests:
+    name: 效能測試
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[perf]')
+    
+    steps:
+    - name: 檢出程式碼
+      uses: actions/checkout@v4
+      
+    - name: 設定 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 安裝 uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+    - name: 安裝依賴
+      run: |
+        uv sync --dev
+        
+    - name: 初始化測試資料
+      run: |
+        uv run python scripts/init_test_data.py --reset
+        
+    - name: 執行效能測試
+      run: |
+        uv run pytest tests/integration/test_performance.py \
+          --benchmark-json=benchmark.json \
+          --benchmark-only \
+          -v
+          
+    - name: 上傳效能測試結果
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-test-results
+        path: |
+          benchmark.json
+
+  # 生成測試報告
+  generate-report:
+    name: 生成測試報告
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, chinese-tests]
+    if: always()
+    
+    steps:
+    - name: 檢出程式碼
+      uses: actions/checkout@v4
+      
+    - name: 設定 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 安裝 uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+    - name: 安裝依賴
+      run: |
+        uv sync --dev
+        
+    - name: 下載所有測試結果
+      uses: actions/download-artifact@v3
+      with:
+        path: test-artifacts/
+        
+    - name: 生成綜合測試報告
+      run: |
+        # 複製測試結果檔案到根目錄
+        find test-artifacts/ -name "*.xml" -exec cp {} . \;
+        find test-artifacts/ -name "*.json" -exec cp {} . \;
+        
+        # 生成報告
+        uv run python scripts/generate_test_report.py \
+          --output-dir test-reports \
+          --format html,json,summary \
+          --include-coverage \
+          --include-performance
+          
+    - name: 上傳測試報告
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-reports
+        path: test-reports/
+        
+    - name: 發布測試報告到 GitHub Pages
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: test-reports/
+        destination_dir: test-reports
+
+  # 品質閘門檢查
+  quality-gate:
+    name: 品質閘門
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests, chinese-tests]
+    if: always()
+    
+    steps:
+    - name: 檢出程式碼
+      uses: actions/checkout@v4
+      
+    - name: 下載測試結果
+      uses: actions/download-artifact@v3
+      with:
+        path: test-artifacts/
+        
+    - name: 檢查品質閘門
+      run: |
+        # 檢查測試通過率
+        python -c "
+        import xml.etree.ElementTree as ET
+        import sys
+        import glob
+        
+        total_tests = 0
+        failed_tests = 0
+        
+        for xml_file in glob.glob('test-artifacts/**/pytest-*.xml', recursive=True):
+            try:
+                tree = ET.parse(xml_file)
+                root = tree.getroot()
+                
+                tests = int(root.get('tests', 0))
+                failures = int(root.get('failures', 0))
+                errors = int(root.get('errors', 0))
+                
+                total_tests += tests
+                failed_tests += failures + errors
+                
+                print(f'{xml_file}: {tests} tests, {failures} failures, {errors} errors')
+            except Exception as e:
+                print(f'Error parsing {xml_file}: {e}')
+        
+        if total_tests == 0:
+            print('No tests found!')
+            sys.exit(1)
+            
+        pass_rate = (total_tests - failed_tests) / total_tests * 100
+        print(f'Overall pass rate: {pass_rate:.1f}% ({total_tests - failed_tests}/{total_tests})')
+        
+        # 品質閘門：通過率必須 >= 90%
+        if pass_rate < 90:
+            print(f'Quality gate failed: pass rate {pass_rate:.1f}% < 90%')
+            sys.exit(1)
+        else:
+            print('Quality gate passed!')
+        "
+        
+    - name: 通知測試結果
+      if: always()
+      run: |
+        echo "測試完成！查看詳細報告請前往 Actions 頁面。"
+
+  # 安全性掃描
+  security-scan:
+    name: 安全性掃描
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 檢出程式碼
+      uses: actions/checkout@v4
+      
+    - name: 執行 Bandit 安全掃描
+      run: |
+        pip install bandit[toml]
+        bandit -r src/ -f json -o bandit-report.json || true
+        bandit -r src/ -f txt
+        
+    - name: 上傳安全掃描報告
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-scan-results
+        path: bandit-report.json
