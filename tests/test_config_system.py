@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from pydantic import ValidationError
 
 from src.chinese_graphrag.config import (
     ConfigLoader,
@@ -240,11 +241,9 @@ class TestConfigValidator:
             }
         })
         
-        config = GraphRAGConfig(**config_dict)
-        validator = ConfigValidator()
-        
-        with pytest.raises(ConfigValidationError):
-            validator.validate_config(config)
+        # Pydantic 會在創建 GraphRAGConfig 時就拋出 ValidationError
+        with pytest.raises(ValidationError):
+            config = GraphRAGConfig(**config_dict)
     
     def test_validate_missing_default_models(self):
         """測試驗證缺失預設模型的配置。"""
@@ -340,7 +339,17 @@ class TestConfigIntegration:
                     "model": "gpt-4o-mini",
                     "max_tokens": 10000,  # 過大的值，應該產生警告
                     "temperature": 0.0
+                },
+                "test_embedding": {
+                    "type": "bge_m3",
+                    "model": "BAAI/bge-m3",
+                    "device": "cpu",
+                    "batch_size": 16
                 }
+            },
+            "vector_store": {
+                "type": "lancedb",
+                "uri": "./test_data/lancedb"
             },
             "parallelization": {
                 "num_threads": 32,  # 過大的值，應該產生警告
