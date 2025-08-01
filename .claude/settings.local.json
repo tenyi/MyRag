@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "mcp__serena__list_dir",
@@ -23,7 +24,13 @@
       "Bash(rm:*)",
       "Bash(mkdir:*)",
       "Bash(touch:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "mcp__serena__think_about_task_adherence",
+      "mcp__serena__read_memory",
+      "Bash(true)",
+      "Bash(mv:*)",
+      "mcp__serena__replace_symbol_body",
+      "mcp__serena__search_for_pattern"
     ]
   },
   "enabledMcpjsonServers": [

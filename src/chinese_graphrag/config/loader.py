@@ -7,7 +7,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import yaml
 from pydantic import ValidationError
@@ -29,14 +29,19 @@ class ConfigurationError(Exception):
 class ConfigLoader:
     """配置載入器"""
 
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, config_path: Optional[Union[str, Path]] = None):
         """
         初始化配置載入器
         
         Args:
             config_path: 配置檔案路徑，預設為 settings.yaml
         """
-        self.config_path = config_path or Path("settings.yaml")
+        if config_path is None:
+            self.config_path = Path("settings.yaml")
+        elif isinstance(config_path, str):
+            self.config_path = Path(config_path)
+        else:
+            self.config_path = config_path
         self.env_pattern = re.compile(r'\$\{([^}]+)\}')
 
     def load_config(self) -> GraphRAGConfig:

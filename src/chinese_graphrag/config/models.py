@@ -78,6 +78,7 @@ class EmbeddingConfig(BaseModel):
     device: DeviceType = Field(DeviceType.AUTO, description="運算設備")
     batch_size: int = Field(32, description="批次大小")
     max_length: int = Field(512, description="最大序列長度")
+    vector_size: int = Field(1024, description="向量維度")
     normalize_embeddings: bool = Field(True, description="是否正規化向量")
     cache_enabled: bool = Field(True, description="是否啟用快取")
 
@@ -205,6 +206,61 @@ class ModelSelectionConfig(BaseModel):
     )
 
 
+class LoggingConfig(BaseModel):
+    """日誌配置"""
+    level: str = Field("INFO", description="日誌級別")
+    format: str = Field("%(asctime)s - %(name)s - %(levelname)s - %(message)s", description="日誌格式")
+    file_path: Optional[str] = Field("./logs/chinese_graphrag.log", description="日誌檔案路徑")
+    max_file_size: int = Field(10 * 1024 * 1024, description="最大檔案大小（位元組）")
+    backup_count: int = Field(5, description="備份檔案數量")
+    enable_console: bool = Field(True, description="是否啟用控制台輸出")
+    enable_file: bool = Field(True, description="是否啟用檔案輸出")
+    enable_json: bool = Field(False, description="是否啟用 JSON 格式輸出")
+
+
+class MonitoringConfig(BaseModel):
+    """監控配置"""
+    enable_metrics: bool = Field(True, description="是否啟用指標收集")
+    metrics_port: int = Field(8000, description="指標服務端口")
+    enable_health_check: bool = Field(True, description="是否啟用健康檢查")
+    health_check_endpoint: str = Field("/health", description="健康檢查端點")
+    enable_performance_tracking: bool = Field(True, description="是否啟用效能追蹤")
+    slow_query_threshold: float = Field(30.0, description="慢查詢閾值（秒）")
+    enable_error_tracking: bool = Field(True, description="是否啟用錯誤追蹤")
+    error_sample_rate: float = Field(1.0, description="錯誤採樣率")
+
+
+class PerformanceConfig(BaseModel):
+    """效能配置"""
+    enable_caching: bool = Field(True, description="是否啟用快取")
+    cache_ttl: int = Field(3600, description="快取過期時間（秒）")
+    memory_limit_mb: int = Field(4096, description="記憶體限制（MB）")
+    enable_gpu_acceleration: bool = Field(False, description="是否啟用 GPU 加速")
+    gpu_memory_fraction: float = Field(0.8, description="GPU 記憶體使用比例")
+
+
+class SecurityConfig(BaseModel):
+    """安全配置"""
+    enable_api_key_validation: bool = Field(True, description="是否啟用 API 金鑰驗證")
+    rate_limit_requests_per_minute: int = Field(100, description="每分鐘請求限制")
+    enable_request_logging: bool = Field(True, description="是否啟用請求日誌")
+    sanitize_input: bool = Field(True, description="是否清理輸入")
+
+
+class ExperimentalConfig(BaseModel):
+    """實驗性功能配置"""
+    enable_advanced_rag: bool = Field(False, description="是否啟用進階 RAG")
+    enable_multi_modal: bool = Field(False, description="是否啟用多模態")
+    enable_real_time_updates: bool = Field(False, description="是否啟用即時更新")
+
+
+class DebugConfig(BaseModel):
+    """除錯配置"""
+    enable_debug_mode: bool = Field(False, description="是否啟用除錯模式")
+    save_intermediate_results: bool = Field(False, description="是否儲存中間結果")
+    verbose_logging: bool = Field(False, description="是否啟用詳細日誌")
+    profiling_enabled: bool = Field(False, description="是否啟用效能分析")
+
 class GraphRAGConfig(BaseModel):
     """GraphRAG 主配置類別"""
     # 模型配置
@@ -255,11 +311,50 @@ class GraphRAGConfig(BaseModel):
         description="模型選擇配置"
     )
     
+    # 日誌配置
+    logging: LoggingConfig = Field(
+        default_factory=LoggingConfig,
+        description="日誌配置"
+    )
+    
+    # 監控配置
+    monitoring: MonitoringConfig = Field(
+        default_factory=MonitoringConfig,
+        description="監控配置"
+    )
+    
+    # 效能配置
+    performance: PerformanceConfig = Field(
+        default_factory=PerformanceConfig,
+        description="效能配置"
+    )
+    
+    # 安全配置
+    security: SecurityConfig = Field(
+        default_factory=SecurityConfig,
+        description="安全配置"
+    )
+    
+    # 實驗性功能配置
+    experimental: ExperimentalConfig = Field(
+        default_factory=ExperimentalConfig,
+        description="實驗性功能配置"
+    )
+    
+    # 除錯配置
+    debug: DebugConfig = Field(
+        default_factory=DebugConfig,
+        description="除錯配置"
+    )
+    
     # 編碼模型
     encoding_model: str = Field("cl100k_base", description="編碼模型")
     
     # 跳過的工作流程
     skip_workflows: List[str] = Field(default_factory=list, description="跳過的工作流程")
+    
+    # 自訂提示詞
+    prompts: Dict[str, str] = Field(default_factory=dict, description="自訂提示詞")
 
     model_config = {
         "use_enum_values": True,

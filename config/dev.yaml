@@ -1,0 +1,80 @@
+# Chinese GraphRAG 開發環境配置
+# 適用於本地開發和測試
+
+encoding_model: "cl100k_base"
+
+models:
+  # 開發用 LLM 模型
+  dev_llm:
+    type: "openai_chat"
+    model: "gpt-4o-mini"
+    api_key: "${GRAPHRAG_API_KEY}"
+    max_tokens: 2000
+    temperature: 0.0
+
+  # 本地 Embedding 模型
+  local_embedding:
+    type: "bge_m3"
+    model: "BAAI/bge-m3"
+    device: "cpu"
+    batch_size: 16
+    normalize_embeddings: true
+
+vector_store:
+  type: "lancedb"
+  uri: "./dev_data/lancedb"
+  container_name: "dev_graphrag"
+  overwrite: true
+
+chinese_processing:
+  tokenizer: "jieba"
+  enable_traditional_chinese: true
+
+input:
+  base_dir: "dev_input"
+  supported_formats: ["txt", "md"]
+  recursive: true
+
+chunks:
+  size: 500
+  overlap: 100
+
+indexing:
+  enable_entity_extraction: true
+  enable_relationship_extraction: true
+  enable_community_detection: true
+  min_community_size: 2
+  max_community_size: 20
+
+query:
+  enable_global_search: true
+  enable_local_search: true
+  top_k: 5
+
+storage:
+  base_dir: "./dev_output"
+  cache_dir: "./dev_cache"
+  logs_dir: "./dev_logs"
+
+parallelization:
+  num_threads: 2
+  batch_size: 5
+
+model_selection:
+  default_llm: "dev_llm"
+  default_embedding: "local_embedding"
+  cost_optimization: true
+
+logging:
+  level: "DEBUG"
+  enable_console: true
+  enable_file: true
+
+monitoring:
+  enable_metrics: true
+  enable_performance_tracking: true
+
+debug:
+  enable_debug_mode: true
+  save_intermediate_results: true
+  verbose_logging: true

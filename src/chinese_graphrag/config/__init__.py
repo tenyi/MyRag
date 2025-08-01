@@ -1,42 +1,126 @@
-from enum import Enum, auto
-from typing import Dict, Any, Optional, List, Union
-from pydantic import BaseModel, Field
+"""中文 GraphRAG 系統配置管理模組。
 
+本模組提供完整的配置管理功能，包括：
+- 系統配置模型定義
+- YAML 配置解析
+- 環境變數管理
+- 配置驗證和預設值處理
+"""
 
-class VectorStoreType(str, Enum):
-    """向量存儲類型"""
-    LANCEDB = "lancedb"
-    FAISS = "faiss"
-    MILVUS = "milvus"
-    WEAVIATE = "weaviate"
-
-
-class VectorStoreConfig(BaseModel):
-    """向量存儲配置"""
-    type: VectorStoreType = Field(description="向量存儲類型")
-    uri: str = Field(description="向量存儲URI")
-    collection_prefix: str = Field(default="graphrag_", description="集合名稱前綴")
-    connection_args: Optional[Dict[str, Any]] = Field(default=None, description="連接參數")
-
-
-class GraphRAGConfig(BaseModel):
-    """GraphRAG 配置"""
-    models: Dict[str, Dict[str, Any]] = Field(description="模型配置")
-    vector_store: VectorStoreConfig = Field(description="向量存儲配置")
+# 從 models 模組匯入所有配置類別
+from .models import (
+    # 枚舉類型
+    LLMType,
+    EmbeddingType, 
+    VectorStoreType,
+    DeviceType,
     
-    # 文本處理配置
-    chunk_size: int = Field(default=512, description="文本塊大小")
-    chunk_overlap: int = Field(default=128, description="文本塊重疊大小")
+    # 配置模型
+    LLMConfig,
+    EmbeddingConfig,
+    VectorStoreConfig,
+    ChineseProcessingConfig,
+    InputConfig,
+    ChunkConfig,
+    IndexingConfig,
+    QueryConfig,
+    StorageConfig,
+    ParallelizationConfig,
+    ModelSelectionConfig,
+    GraphRAGConfig,
+)
+
+# 從 loader 模組匯入配置載入功能
+from .loader import (
+    ConfigurationError,
+    ConfigLoader,
+    load_config,
+    create_default_config,
+)
+
+# 從 strategy 模組匯入模型選擇策略
+from .strategy import (
+    TaskType,
+    ModelPerformanceMetrics,
+    ModelSelectionStrategy,
+    DefaultModelSelectionStrategy,
+    CostOptimizedSelectionStrategy,
+    AdaptiveSelectionStrategy,
+    ModelSelector,
+)
+
+# 從 env 模組匯入環境變數管理功能
+from .env import (
+    EnvVarError,
+    EnvVarConfig,
+    EnvironmentManager,
+    SYSTEM_ENV_VARS,
+    env_manager,
+    get_env_var,
+    validate_system_env_vars,
+)
+
+# 從 validation 模組匯入配置驗證功能
+from .validation import (
+    ConfigValidationError,
+    ConfigValidationWarning,
+    ConfigValidator,
+    DefaultConfigProvider,
+    validate_config,
+    apply_default_values,
+)
+
+# 匯出所有公開的類別和函數
+__all__ = [
+    # 枚舉類型
+    "LLMType",
+    "EmbeddingType",
+    "VectorStoreType", 
+    "DeviceType",
+    "TaskType",
     
-    # 實體和關係提取配置
-    entity_extraction_model: Optional[str] = Field(default=None, description="實體提取模型名稱")
-    relationship_extraction_model: Optional[str] = Field(default=None, description="關係提取模型名稱")
+    # 配置模型
+    "LLMConfig",
+    "EmbeddingConfig",
+    "VectorStoreConfig",
+    "ChineseProcessingConfig",
+    "InputConfig",
+    "ChunkConfig",
+    "IndexingConfig",
+    "QueryConfig",
+    "StorageConfig",
+    "ParallelizationConfig",
+    "ModelSelectionConfig",
+    "GraphRAGConfig",
     
-    # 嵌入配置
-    embedding_model: Optional[str] = Field(default=None, description="嵌入模型名稱")
-    embedding_dimension: int = Field(default=768, description="嵌入維度")
+    # 配置載入功能
+    "ConfigurationError",
+    "ConfigLoader",
+    "load_config",
+    "create_default_config",
     
-    # 社群檢測配置
-    community_detection_algorithm: str = Field(default="louvain", description="社群檢測演算法")
-    community_min_size: int = Field(default=3, description="最小社群大小")
-    community_resolution: float = Field(default=1.0, description="社群解析度參數")
+    # 模型選擇策略
+    "ModelPerformanceMetrics",
+    "ModelSelectionStrategy",
+    "DefaultModelSelectionStrategy",
+    "CostOptimizedSelectionStrategy",
+    "AdaptiveSelectionStrategy",
+    "ModelSelector",
+    
+    # 環境變數管理
+    "EnvVarError",
+    "EnvVarConfig", 
+    "EnvironmentManager",
+    "SYSTEM_ENV_VARS",
+    "env_manager",
+    "get_env_var",
+    "validate_system_env_vars",
+    
+    # 配置驗證和預設值
+    "ConfigValidationError",
+    "ConfigValidationWarning",
+    "ConfigValidator", 
+    "DefaultConfigProvider",
+    "validate_config",
+    "apply_default_values",
+]
