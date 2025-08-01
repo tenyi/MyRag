@@ -1,0 +1,102 @@
+{
+  "test_documents": [
+    {
+      "id": "doc_ai_001",
+      "title": "人工智慧概述",
+      "content": "人工智慧是電腦科學的一個分支，致力於創建能夠模擬人類智慧的機器。",
+      "metadata": {
+        "author": "張三",
+        "category": "技術",
+        "date": "2024-01-15",
+        "tags": ["AI", "技術", "概述"]
+      }
+    },
+    {
+      "id": "doc_ml_001", 
+      "title": "機器學習基礎",
+      "content": "機器學習是AI的重要分支，專注於演算法設計，使電腦能從資料中學習。",
+      "metadata": {
+        "author": "李四",
+        "category": "教育",
+        "date": "2024-01-16",
+        "tags": ["機器學習", "演算法", "資料科學"]
+      }
+    },
+    {
+      "id": "doc_dl_001",
+      "title": "深度學習應用",
+      "content": "深度學習使用神經網路處理複雜資料，在圖像識別和NLP領域表現出色。",
+      "metadata": {
+        "author": "王五",
+        "category": "研究",
+        "date": "2024-01-17", 
+        "tags": ["深度學習", "神經網路", "應用"]
+      }
+    }
+  ],
+  "test_entities": [
+    {
+      "id": "entity_ai",
+      "name": "人工智慧",
+      "type": "概念",
+      "description": "模擬人類智慧的技術和理論",
+      "attributes": {
+        "domain": "電腦科學",
+        "complexity": "高"
+      }
+    },
+    {
+      "id": "entity_ml",
+      "name": "機器學習",
+      "type": "技術", 
+      "description": "讓機器從資料中學習的方法",
+      "attributes": {
+        "parent": "人工智慧",
+        "approach": "統計學習"
+      }
+    },
+    {
+      "id": "entity_dl",
+      "name": "深度學習",
+      "type": "技術",
+      "description": "使用多層神經網路的學習方法",
+      "attributes": {
+        "parent": "機器學習",
+        "architecture": "神經網路"
+      }
+    }
+  ],
+  "test_relationships": [
+    {
+      "id": "rel_001",
+      "source": "entity_ml",
+      "target": "entity_ai",
+      "type": "子領域",
+      "description": "機器學習是人工智慧的子領域",
+      "weight": 0.9,
+      "properties": {
+        "strength": "強",
+        "direction": "包含"
+      }
+    },
+    {
+      "id": "rel_002", 
+      "source": "entity_dl",
+      "target": "entity_ml",
+      "type": "子集",
+      "description": "深度學習是機器學習的子集", 
+      "weight": 0.8,
+      "properties": {
+        "strength": "強", 
+        "direction": "包含"
+      }
+    }
+  ],
+  "test_config": {
+    "embedding_dimension": 768,
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "max_tokens": 4096,
+    "temperature": 0.7
+  }
+}

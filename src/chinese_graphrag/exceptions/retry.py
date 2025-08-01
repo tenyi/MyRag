@@ -11,7 +11,7 @@ import random
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Callable, List, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 from datetime import datetime, timedelta
 
 from .base import ChineseGraphRAGError, NetworkError, ResourceError
