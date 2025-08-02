@@ -1,28 +1,23 @@
 """
-索引用文件處理器
+文件處理器
 
-為索引引擎提供統一的文件處理介面
+負責處理各種格式的文件，進行預處理和分塊
 """
 
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 
-from chinese_graphrag.config import GraphRAGConfig
 from chinese_graphrag.models import Document
-# from chinese_graphrag.processors import DocumentProcessorManager, create_default_processor_manager
-# from chinese_graphrag.processors.chinese_text_processor import ChineseTextProcessor
+from chinese_graphrag.config import GraphRAGConfig
 
 logger = logging.getLogger(__name__)
 
 
 class DocumentProcessor:
-    """
-    索引用文件處理器
+    """文件處理器"""
     
-    整合各種文件處理器，為索引引擎提供統一介面
-    """
-
     def __init__(self, config: GraphRAGConfig):
         """
         初始化文件處理器
@@ -31,102 +26,77 @@ class DocumentProcessor:
             config: GraphRAG 配置
         """
         self.config = config
+        self.supported_extensions = {'.txt', '.md', '.json', '.csv'}
         
-        # 建立處理器管理器（暫時簡化）
-        self.processor_manager = None
-        logger.info("文件處理器管理器已暫時禁用")
-        
-        # 建立中文文本處理器（暫時禁用以避免初始化問題）
-        self.chinese_processor = None
-        logger.info("中文文本處理器已暫時禁用")
-
     def process_document(self, file_path: Path) -> Document:
         """
-        處理單一文件
+        處理單個文件
         
         Args:
             file_path: 文件路徑
             
         Returns:
-            Document: 處理後的文件物件
+            Document: 處理後的文件對象
         """
-        logger.info(f"處理文件: {file_path}")
-        
         try:
-            # 使用處理器管理器處理文件（暫時簡化）
-            # document = self.processor_manager.process_file(str(file_path))
-            # 暫時建立一個簡單的文件物件
-            import uuid
-            from datetime import datetime
+            # 讀取文件內容
+            content = self._read_file(file_path)
             
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
+            # 創建文件對象
             document = Document(
-                id=str(uuid.uuid4()),
-                title=file_path.name,
+                id=str(file_path),
+                title=file_path.stem,
                 content=content,
                 file_path=file_path,
                 created_at=datetime.now(),
-                metadata={}
+                metadata={
+                    "file_size": file_path.stat().st_size,
+                    "file_extension": file_path.suffix,
+                    "language": "zh"
+                }
             )
             
-            # 使用中文處理器進行文本預處理（暫時跳過）
-            if document.content:
-                # processed_content = self.chinese_processor.preprocess_text(document.content)
-                # document.content = processed_content
-                pass
-            
-            # 設定語言標記
-            document.metadata["language"] = "zh"
-            document.metadata["processed_by"] = "chinese_graphrag"
-            
-            logger.info(f"成功處理文件: {file_path}, 內容長度: {len(document.content)}")
+            logger.info(f"成功處理文件: {file_path}")
             return document
             
         except Exception as e:
-            logger.error(f"處理文件失敗 {file_path}: {e}")
+            logger.error(f"處理文件 {file_path} 失敗: {e}")
             raise
-
-    def batch_process(self, directory: Path) -> List[Document]:
+    
+    def batch_process(self, input_path: Path) -> List[Document]:
         """
-        批次處理目錄中的所有文件
+        批次處理文件
         
         Args:
-            directory: 目錄路徑
+            input_path: 輸入路徑（文件或目錄）
             
         Returns:
             List[Document]: 處理後的文件列表
         """
-        logger.info(f"批次處理目錄: {directory}")
-        
-        if not directory.exists():
-            raise FileNotFoundError(f"目錄不存在: {directory}")
-        
         documents = []
-        supported_formats = self.config.input.supported_formats
         
-        # 遞迴搜尋文件
-        if self.config.input.recursive:
-            pattern = "**/*"
+        if input_path.is_file():
+            # 處理單個文件
+            if input_path.suffix in self.supported_extensions:
+                documents.append(self.process_document(input_path))
         else:
-            pattern = "*"
-        
-        for file_path in directory.glob(pattern):
-            if file_path.is_file():
-                # 檢查檔案格式
-                if file_path.suffix.lower().lstrip('.') in supported_formats:
+            # 處理目錄中的所有文件
+            for file_path in input_path.rglob('*'):
+                if file_path.is_file() and file_path.suffix in self.supported_extensions:
                     try:
-                        document = self.process_document(file_path)
-                        documents.append(document)
+                        documents.append(self.process_document(file_path))
                     except Exception as e:
                         logger.warning(f"跳過文件 {file_path}: {e}")
-                        continue
         
         logger.info(f"批次處理完成，共處理 {len(documents)} 個文件")
         return documents
-
-    def split_text(self, text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
+    
+    def split_text(
+        self, 
+        text: str, 
+        chunk_size: int = 1000, 
+        overlap: int = 200
+    ) -> List[str]:
         """
         分割文本為塊
         
@@ -138,7 +108,6 @@ class DocumentProcessor:
         Returns:
             List[str]: 分割後的文本塊
         """
-        # 暫時使用簡單的分割方法
         if not text:
             return []
         
@@ -148,11 +117,65 @@ class DocumentProcessor:
         while start < len(text):
             end = start + chunk_size
             chunk = text[start:end]
-            chunks.append(chunk)
             
-            if end >= len(text):
+            # 如果不是最後一塊，嘗試在句號處分割
+            if end < len(text):
+                last_period = chunk.rfind('。')
+                if last_period > chunk_size // 2:  # 確保塊不會太小
+                    chunk = chunk[:last_period + 1]
+                    end = start + last_period + 1
+            
+            if chunk.strip():
+                chunks.append(chunk.strip())
+            
+            # 計算下一個開始位置，考慮重疊
+            start = max(start + 1, end - overlap)
+            
+            # 避免無限循環
+            if start >= len(text):
                 break
-                
-            start = end - overlap
         
         return chunks
+    
+    def _read_file(self, file_path: Path) -> str:
+        """
+        讀取文件內容
+        
+        Args:
+            file_path: 文件路徑
+            
+        Returns:
+            str: 文件內容
+        """
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except UnicodeDecodeError:
+            # 嘗試其他編碼
+            try:
+                with open(file_path, 'r', encoding='gbk') as f:
+                    return f.read()
+            except UnicodeDecodeError:
+                with open(file_path, 'r', encoding='latin-1') as f:
+                    return f.read()
+    
+    def extract_metadata(self, file_path: Path) -> Dict[str, Any]:
+        """
+        提取文件元資料
+        
+        Args:
+            file_path: 文件路徑
+            
+        Returns:
+            Dict[str, Any]: 元資料字典
+        """
+        stat = file_path.stat()
+        
+        return {
+            "file_name": file_path.name,
+            "file_size": stat.st_size,
+            "file_extension": file_path.suffix,
+            "created_time": datetime.fromtimestamp(stat.st_ctime),
+            "modified_time": datetime.fromtimestamp(stat.st_mtime),
+            "language": "zh"  # 預設為中文
+        }

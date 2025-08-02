@@ -59,10 +59,15 @@ class RetryPolicy(ABC):
         """計算延遲時間"""
         pass
     
-    def should_retry(self, attempt: int, exception: Exception) -> bool:
+    def should_retry(self, attempt: int, exception: Optional[Exception] = None) -> bool:
         """判斷是否應該重試"""
-        if attempt >= self.max_attempts:
+        # 檢查是否超過最大嘗試次數（attempt 從 1 開始計數）
+        if attempt > self.max_attempts:
             return False
+        
+        # 如果沒有提供異常，只檢查嘗試次數
+        if exception is None:
+            return True
         
         return any(
             isinstance(exception, exc_type) 
@@ -90,13 +95,21 @@ class FixedDelayPolicy(RetryPolicy):
 class LinearBackoffPolicy(RetryPolicy):
     """線性退避重試策略"""
     
-    def __init__(self, base_delay: float = 1.0, increment: float = 1.0, **kwargs):
+    def __init__(
+        self, 
+        base_delay: float = 1.0, 
+        increment: float = 1.0, 
+        max_delay: float = 60.0,
+        **kwargs
+    ):
         super().__init__(**kwargs)
         self.base_delay = base_delay
         self.increment = increment
+        self.max_delay = max_delay
     
     def get_delay(self, attempt: int) -> float:
-        return self.base_delay + (attempt - 1) * self.increment
+        delay = self.base_delay + (attempt - 1) * self.increment
+        return min(delay, self.max_delay)
 
 
 class ExponentialBackoffPolicy(RetryPolicy):

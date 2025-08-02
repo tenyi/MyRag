@@ -114,6 +114,7 @@ class FileCheckpointStorage(CheckpointStorage):
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self.metadata_file = self.storage_path / "metadata.json"
+        self.metadata = {}  # 初始化 metadata 屬性
         self._load_metadata()
     
     def _load_metadata(self):
@@ -131,6 +132,8 @@ class FileCheckpointStorage(CheckpointStorage):
                 self.metadata = {}
         else:
             self.metadata = {}
+            # 創建空的元資料檔案
+            self._save_metadata()
     
     def _save_metadata(self):
         """儲存元資料"""

@@ -276,7 +276,7 @@ class TestMetricsCollector:
         
         timer_stats = summary["timers"][timer_key]
         assert timer_stats["count"] == 3
-        assert timer_stats["avg_time"] == 0.15  # (0.1 + 0.2 + 0.15) / 3
+        assert abs(timer_stats["avg_time"] - 0.15) < 1e-10  # (0.1 + 0.2 + 0.15) / 3
         assert timer_stats["min_time"] == 0.1
         assert timer_stats["max_time"] == 0.2
     
@@ -383,7 +383,7 @@ class TestSystemMonitor:
         assert len(process_stats) <= 5
         if len(process_stats) > 0:
             proc = process_stats[0]
-            assert proc.pid > 0
+            assert proc.pid >= 0  # PID 可以是 0（如 kernel_task）
             assert proc.name is not None
             assert proc.cpu_percent >= 0
     

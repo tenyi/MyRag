@@ -217,7 +217,7 @@ class LanceDBStore(VectorStore):
             # 取得表格統計資訊
             count = table.count_rows()
             
-            # 取得向量維度（從第一筆資料推斷）
+            # 取得向量維度（從第一筆資料推斷，或從 schema 推斷）
             dimension = 0
             if count > 0:
                 sample = table.head(1).to_pandas()
@@ -227,6 +227,19 @@ class LanceDBStore(VectorStore):
                         dimension = len(vector_data)
                     elif hasattr(vector_data, '__len__'):
                         dimension = len(vector_data)
+            else:
+                # 嘗試從 schema 推斷維度
+                try:
+                    schema = table.schema
+                    for field in schema:
+                        if field.name == 'vector':
+                            # 對於空表格，我們無法直接獲取維度
+                            # 但可以嘗試從表格的元資料中獲取
+                            # 這裡我們暫時設為 0，表示未知
+                            dimension = 0
+                            break
+                except:
+                    dimension = 0
             
             # 取得元資料結構
             schema = table.schema
@@ -292,6 +305,9 @@ class LanceDBStore(VectorStore):
             logger.info(f"成功插入 {len(ids)} 個向量到集合 {collection_name}")
             return True
             
+        except CollectionError:
+            # 重新拋出 CollectionError
+            raise
         except Exception as e:
             logger.error(f"插入向量到集合 {collection_name} 失敗: {e}")
             raise VectorOperationError(f"無法插入向量: {e}")
@@ -683,10 +699,21 @@ class LanceDBStore(VectorStore):
             # 查詢資料 - 使用 filter 而不是 search().where()
             try:
                 results = table.to_pandas().query(f"id == '{vector_id}'")
-            except Exception:
-                # 如果 query 失敗，嘗試使用 search 方法
-                dummy_vector = np.zeros(1, dtype=np.float32)  # 創建一個假的查詢向量
-                results = table.search(dummy_vector).where(f"id = '{vector_id}'").limit(1).to_pandas()
+            except Exception as e:
+                logger.debug(f"使用 pandas query 失敗: {e}")
+                try:
+                    # 如果 query 失敗，嘗試使用 search 方法
+                    dummy_vector = np.zeros(1, dtype=np.float32)  # 創建一個假的查詢向量
+                    results = table.search(dummy_vector).where(f"id = '{vector_id}'").limit(1).to_pandas()
+                except Exception as e2:
+                    logger.debug(f"使用 search 方法也失敗: {e2}")
+                    # 最後嘗試直接掃描表格
+                    try:
+                        all_data = table.to_pandas()
+                        results = all_data[all_data['id'] == vector_id]
+                    except Exception as e3:
+                        logger.error(f"所有查詢方法都失敗: {e3}")
+                        return None
             
             if len(results) == 0:
                 return None
@@ -837,3 +864,25 @@ class LanceDBStore(VectorStore):
         if name not in self._tables_cache:
             self._tables_cache[name] = self.db.open_table(name)
         return self._tables_cache[name]
+    
+    def _validate_ids_and_vectors(self, ids: List[str], vectors: Union[List[np.ndarray], np.ndarray]) -> tuple:
+        """驗證 ID 和向量的輸入格式"""
+        # 確保 vectors 是列表格式
+        if isinstance(vectors, np.ndarray):
+            if vectors.ndim == 1:
+                vectors = [vectors]
+            else:
+                vectors = [vectors[i] for i in range(vectors.shape[0])]
+        
+        # 檢查長度匹配
+        if len(ids) != len(vectors):
+            raise ValueError(f"ID 數量 ({len(ids)}) 與向量數量 ({len(vectors)}) 不匹配")
+        
+        # 確保所有向量都是 numpy 陣列
+        validated_vectors = []
+        for i, vector in enumerate(vectors):
+            if not isinstance(vector, np.ndarray):
+                vector = np.array(vector)
+            validated_vectors.append(vector)
+        
+        return ids, validated_vectors

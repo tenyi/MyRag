@@ -556,7 +556,7 @@ class BenchmarkRunner:
         else:
             return test_func(**test_params)
     
-    def run_comparative_benchmark(self,
+    async def run_comparative_benchmark(self,
                                 test_configs: List[Dict[str, Any]],
                                 iterations: int = 10) -> Dict[str, BenchmarkResult]:
         """執行比較基準測試
@@ -575,12 +575,12 @@ class BenchmarkRunner:
             test_func = config["func"]
             test_params = config.get("params", {})
             
-            result = asyncio.run(self.run_benchmark(
+            result = await self.run_benchmark(
                 test_name=test_name,
                 test_func=test_func,
                 test_params=test_params,
                 iterations=iterations
-            ))
+            )
             
             results[test_name] = result
         

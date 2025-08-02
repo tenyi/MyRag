@@ -36,9 +36,11 @@ class TestEmbeddingCache:
         """測試快取項目"""
         return CacheEntry(
             key="test_key",
-            embedding=np.random.rand(384).astype(np.float32),
-            metadata={"text": "測試文本", "model": "test_model"},
-            size_bytes=1536  # 384 * 4 bytes
+            embeddings=np.random.rand(384).astype(np.float32),
+            texts=["測試文本"],
+            model_name="test_model",
+            timestamp=time.time(),
+            metadata={}
         )
     
     @pytest.mark.asyncio
@@ -54,7 +56,7 @@ class TestEmbeddingCache:
         retrieved = await cache.get("test_key")
         assert retrieved is not None
         assert retrieved.key == cache_entry.key
-        assert np.array_equal(retrieved.embedding, cache_entry.embedding)
+        assert np.array_equal(retrieved.embeddings, cache_entry.embeddings)
         
         # 測試統計
         stats = await cache.get_stats()
@@ -79,9 +81,11 @@ class TestEmbeddingCache:
         for i in range(10):
             entry = CacheEntry(
                 key=f"key_{i}",
-                embedding=np.random.rand(100).astype(np.float32),
-                metadata={"index": i},
-                size_bytes=400
+                embeddings=np.random.rand(100).astype(np.float32),
+                texts=[f"text_{i}"],
+                model_name="test_model",
+                timestamp=time.time(),
+                metadata={"index": i}
             )
             entries.append(entry)
             await cache.put(f"key_{i}", entry)
@@ -103,9 +107,11 @@ class TestEmbeddingCache:
         for i in range(5):
             entry = CacheEntry(
                 key=f"key_{i}",
-                embedding=np.random.rand(100).astype(np.float32),
-                metadata={"index": i},
-                size_bytes=400
+                embeddings=np.random.rand(100).astype(np.float32),
+                texts=[f"text_{i}"],
+                model_name="test_model",
+                timestamp=time.time(),
+                metadata={"index": i}
             )
             await cache.put(f"key_{i}", entry)
         
@@ -117,9 +123,11 @@ class TestEmbeddingCache:
         for i in range(5, 10):
             entry = CacheEntry(
                 key=f"key_{i}",
-                embedding=np.random.rand(100).astype(np.float32),
-                metadata={"index": i},
-                size_bytes=400
+                embeddings=np.random.rand(100).astype(np.float32),
+                texts=[f"text_{i}"],
+                model_name="test_model",
+                timestamp=time.time(),
+                metadata={"index": i}
             )
             await cache.put(f"key_{i}", entry)
         
@@ -141,7 +149,7 @@ class TestEmbeddingCache:
             retrieved = await cache.get("test_key")
             assert retrieved is not None
             assert retrieved.key == cache_entry.key
-            assert np.array_equal(retrieved.embedding, cache_entry.embedding)
+            assert np.array_equal(retrieved.embeddings, cache_entry.embeddings)
             
             # 檢查檔案是否存在
             cache_files = list(Path(temp_dir).rglob("*.pkl"))
@@ -163,7 +171,7 @@ class TestEmbeddingCache:
             retrieved = await cache2.get("test_key")
             assert retrieved is not None
             assert retrieved.key == cache_entry.key
-            assert np.array_equal(retrieved.embedding, cache_entry.embedding)
+            assert np.array_equal(retrieved.embeddings, cache_entry.embeddings)
     
     @pytest.mark.asyncio
     async def test_multi_level_cache(self, cache_entry):
@@ -201,11 +209,13 @@ class TestEmbeddingCache:
             # 存入多個項目，超過記憶體快取大小
             for i in range(5):
                 entry = CacheEntry(
-                    key=f"key_{i}",
-                    embedding=np.random.rand(100).astype(np.float32),
-                    metadata={"index": i},
-                    size_bytes=400
-                )
+                key=f"key_{i}",
+                embeddings=np.random.rand(100).astype(np.float32),
+                texts=[f"text_{i}"],
+                model_name="test_model",
+                timestamp=time.time(),
+                metadata={"index": i}
+            )
                 await cache.put(f"key_{i}", entry)
             
             # 存取較舊的項目，應該從磁碟快取提升到記憶體快取

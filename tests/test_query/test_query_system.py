@@ -504,6 +504,7 @@ class TestIntegration:
             assert result.analysis is not None
             assert result.analysis.original_query == query
             
+            from loguru import logger
             logger.info(f"查詢: {query}")
             logger.info(f"搜尋類型: {result.search_type}")
             logger.info(f"信心度: {result.confidence:.2f}")

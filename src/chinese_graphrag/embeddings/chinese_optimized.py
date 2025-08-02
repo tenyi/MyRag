@@ -602,9 +602,11 @@ class ChineseOptimizedEmbeddingService(EmbeddingService):
         # 向量範數統計
         norms = np.linalg.norm(embeddings, axis=1)
         
-        # 向量相似度統計
+        # 向量相似度統計（使用正規化的餘弦相似度）
         if len(embeddings) > 1:
-            similarity_matrix = np.dot(embeddings, embeddings.T)
+            # 正規化 embeddings
+            normalized_embeddings = embeddings / (norms[:, np.newaxis] + 1e-8)
+            similarity_matrix = np.dot(normalized_embeddings, normalized_embeddings.T)
             # 排除對角線（自相似度）
             mask = ~np.eye(similarity_matrix.shape[0], dtype=bool)
             similarities = similarity_matrix[mask]
@@ -722,7 +724,7 @@ class ChineseOptimizedEmbeddingService(EmbeddingService):
         
         # 文本品質分數 (0-1)
         if text_quality_scores:
-            scores['text_quality'] = np.mean(text_quality_scores)
+            scores['text_quality'] = max(0.0, min(1.0, np.mean(text_quality_scores)))
         else:
             scores['text_quality'] = 0.5
         
@@ -734,11 +736,13 @@ class ChineseOptimizedEmbeddingService(EmbeddingService):
             # 基於維度利用率
             dim_utilization = embedding_metrics.get('dimension_utilization', 0.5)
             
-            # 基於相似度分佈的合理性
+            # 基於相似度分佈的合理性（餘弦相似度應該在 -1 到 1 之間）
             sim_mean = embedding_metrics.get('similarity_mean', 0.0)
+            # 確保相似度在合理範圍內，並轉換為品質分數
+            sim_mean = max(-1.0, min(1.0, sim_mean))
             sim_reasonableness = 1.0 - abs(sim_mean)  # 相似度不應該太高或太低
             
-            scores['embedding_quality'] = (norm_stability + dim_utilization + sim_reasonableness) / 3
+            scores['embedding_quality'] = max(0.0, min(1.0, (norm_stability + dim_utilization + sim_reasonableness) / 3))
         else:
             scores['embedding_quality'] = 0.5
         
@@ -748,12 +752,13 @@ class ChineseOptimizedEmbeddingService(EmbeddingService):
             chinese_coherence = chinese_metrics.get('chinese_similarity_coherence', 0.0)
             
             # 中文比例分數
-            chinese_ratio_score = min(chinese_ratio / self.config.min_chinese_ratio, 1.0)
+            chinese_ratio_score = min(chinese_ratio / max(self.config.min_chinese_ratio, 0.1), 1.0)
             
-            # 中文語義連貫性分數
+            # 中文語義連貫性分數（假設 coherence 在 -1 到 1 之間）
+            chinese_coherence = max(-1.0, min(1.0, chinese_coherence))
             chinese_coherence_score = (chinese_coherence + 1.0) / 2.0  # 轉換到 0-1 範圍
             
-            scores['chinese_quality'] = (chinese_ratio_score + chinese_coherence_score) / 2
+            scores['chinese_quality'] = max(0.0, min(1.0, (chinese_ratio_score + chinese_coherence_score) / 2))
         else:
             scores['chinese_quality'] = 0.5
         
@@ -765,7 +770,7 @@ class ChineseOptimizedEmbeddingService(EmbeddingService):
         }
         
         overall_score = sum(scores[key] * weights[key] for key in scores.keys())
-        scores['overall'] = overall_score
+        scores['overall'] = max(0.0, min(1.0, overall_score))
         
         return scores
     

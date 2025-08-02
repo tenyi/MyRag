@@ -21,6 +21,7 @@ from .handlers import (
     GlobalErrorHandler,
     RetryHandler,
     FallbackHandler,
+    HandlingStrategy,
     get_error_handler,
 )
 
@@ -73,6 +74,7 @@ __all__ = [
     "GlobalErrorHandler", 
     "RetryHandler",
     "FallbackHandler",
+    "HandlingStrategy",
     "get_error_handler",
     
     # 恢復機制

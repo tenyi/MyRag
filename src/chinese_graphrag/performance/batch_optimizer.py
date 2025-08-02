@@ -139,8 +139,12 @@ class BatchOptimizer:
         self.device_manager = get_device_manager()
         
         # 批次大小管理
+        self.default_batch_size = self.config.initial_batch_size
         self.current_batch_size = self.config.initial_batch_size
         self._batch_size_lock = threading.Lock()
+        
+        # 並行工作者管理
+        self.parallel_workers = self.config.max_workers
         
         # 執行器管理
         self._thread_executor: Optional[ThreadPoolExecutor] = None

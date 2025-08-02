@@ -266,13 +266,18 @@ class OptimizerManager:
         # 根據不同指標採取相應措施
         if metric_name == "memory_usage" and self.batch_optimizer:
             # 記憶體使用過高，減少批次大小
-            await self.batch_optimizer.adjust_batch_size(factor=0.8)
-            logger.info("已調整批次大小以降低記憶體使用")
+            with self.batch_optimizer._batch_size_lock:
+                self.batch_optimizer.current_batch_size = max(
+                    self.batch_optimizer.config.min_batch_size,
+                    int(self.batch_optimizer.current_batch_size * 0.8)
+                )
+            logger.info(f"已調整批次大小以降低記憶體使用: {self.batch_optimizer.current_batch_size}")
         
         elif metric_name == "cpu_usage" and self.batch_optimizer:
             # CPU 使用過高，減少並行工作者
             current_workers = self.batch_optimizer.parallel_workers
             new_workers = max(1, int(current_workers * 0.8))
+            self.batch_optimizer.config.max_workers = new_workers
             self.batch_optimizer.parallel_workers = new_workers
             logger.info(f"已調整並行工作者數量: {current_workers} -> {new_workers}")
     
@@ -295,7 +300,28 @@ class OptimizerManager:
             logger.warning("批次優化器未啟用，使用預設處理")
             return [await process_func(item, **kwargs) for item in items]
         
-        result = await self.batch_optimizer.process_batch(items, process_func, **kwargs)
+        # 包裝處理函數以適配批次處理
+        async def batch_process_func(batch_items):
+            """將單項處理函數包裝為批次處理函數"""
+            results = []
+            for item in batch_items:
+                try:
+                    if asyncio.iscoroutinefunction(process_func):
+                        result = await process_func(item, **kwargs)
+                    else:
+                        result = process_func(item, **kwargs)
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"處理項目失敗: {e}")
+                    results.append(None)  # 或者根據需要處理錯誤
+            return results
+        
+        # 使用異步批次處理
+        result = await self.batch_optimizer.process_in_batches_async(
+            items=items, 
+            process_func=batch_process_func,
+            **kwargs
+        )
         self._optimization_stats["batch_optimizations"] += 1
         
         return result
@@ -319,16 +345,19 @@ class OptimizerManager:
             logger.warning("查詢優化器未啟用，使用預設處理")
             return await query_func(query, **kwargs)
         
-        # 嘗試從快取取得結果
-        cached_result = await self.query_optimizer.get_cached_result(query, **kwargs)
-        if cached_result is not None:
-            self._optimization_stats["cache_hits"] += 1
-            return cached_result
+        # 使用查詢優化器的 optimize_query 方法
+        result = await self.query_optimizer.optimize_query(
+            query=query,
+            query_func=query_func,
+            context=kwargs
+        )
         
-        # 執行查詢並快取結果
-        result = await query_func(query, **kwargs)
-        await self.query_optimizer.cache_result(query, result, **kwargs)
-        self._optimization_stats["cache_misses"] += 1
+        # 更新統計資料
+        if hasattr(self.query_optimizer, 'stats'):
+            if self.query_optimizer.stats.cache_hits > 0:
+                self._optimization_stats["cache_hits"] += 1
+            else:
+                self._optimization_stats["cache_misses"] += 1
         
         return result
     
@@ -350,19 +379,42 @@ class OptimizerManager:
         if not self.cost_optimizer:
             return {"recommendation": "cost_optimizer_disabled"}
         
-        # 記錄使用情況
-        await self.cost_optimizer.track_usage(
-            model_name=model_name,
-            input_tokens=input_tokens,
-            output_tokens=0,  # 將在實際使用後更新
-            operation_type=operation_type
-        )
+        # 記錄使用情況 - 使用正確的方法名稱和參數
+        if hasattr(self.cost_optimizer, 'usage_tracker') and self.cost_optimizer.usage_tracker:
+            from .cost_optimizer import ModelType, TaskType
+            task_type = TaskType.EMBEDDING if operation_type == "embedding" else TaskType.QUERY
+            
+            self.cost_optimizer.usage_tracker.record_usage(
+                model_name=model_name,
+                model_type=ModelType.LLM,  # 預設類型
+                task_type=task_type,
+                input_tokens=input_tokens,
+                output_tokens=0,  # 將在實際使用後更新
+                cost=0.0,  # 將根據實際使用計算
+                latency_ms=0.0,  # 將在實際使用後更新
+                quality_score=0.0,  # 將在實際使用後更新
+                success=True
+            )
         
-        # 取得優化建議
-        recommendation = await self.cost_optimizer.get_model_recommendation(
-            operation_type=operation_type,
-            expected_tokens=input_tokens
-        )
+        # 取得優化建議 - 使用實際存在的方法
+        from .cost_optimizer import TaskType
+        task_type = TaskType.EMBEDDING if operation_type == "embedding" else TaskType.QUERY
+        
+        try:
+            optimal_model = self.cost_optimizer.select_optimal_model(
+                task_type=task_type,
+                input_size=input_tokens
+            )
+            recommendation = {
+                "recommended_model": optimal_model,
+                "reason": "cost_optimization"
+            }
+        except Exception as e:
+            logger.warning(f"成本優化建議生成失敗: {e}")
+            recommendation = {
+                "recommended_model": model_name,
+                "reason": "fallback_to_original"
+            }
         
         return recommendation
     
@@ -411,7 +463,12 @@ class OptimizerManager:
         
         # 添加成本統計
         if self.cost_optimizer:
-            cost_stats = self.cost_optimizer.get_usage_stats(duration_minutes)
+            if hasattr(self.cost_optimizer, 'usage_tracker') and self.cost_optimizer.usage_tracker:
+                cost_stats = self.cost_optimizer.usage_tracker.get_usage_stats(
+                    period="today"
+                )
+            else:
+                cost_stats = self.cost_optimizer.get_cost_analysis("today")
             report["cost"] = cost_stats
         
         # 添加快取統計
@@ -437,7 +494,7 @@ class OptimizerManager:
         if not self.benchmark_runner:
             raise RuntimeError("基準測試執行器未初始化")
         
-        results = self.benchmark_runner.run_comparative_benchmark(test_configs, iterations)
+        results = await self.benchmark_runner.run_comparative_benchmark(test_configs, iterations)
         
         # 記錄效能改進
         for test_name, result in results.items():
@@ -489,18 +546,7 @@ class OptimizerManager:
         
         return cls(config)
     
-    def _handle_alert(self, metric_name: str, value: float, threshold: float):
-        """處理效能警報
-        
-        Args:
-            metric_name: 指標名稱
-            value: 當前值
-            threshold: 閾值
-        """
-        logger.warning(f"效能警報: {metric_name} = {value:.2f} > {threshold:.2f}")
-        
-        # 可以在這裡添加更多的警報處理邏輯
-        # 例如：自動調整批次大小、清理快取等
+
         
     async def __aenter__(self):
         """異步上下文管理器進入"""

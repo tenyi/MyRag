@@ -450,8 +450,23 @@ class QueryOptimizer:
             # 查詢路由
             optimized_query_func = self._route_query(query, query_func)
             
-            # 執行查詢
-            result = await optimized_query_func(query, context)
+            # 執行查詢 - 適應不同的函數簽名
+            import inspect
+            sig = inspect.signature(optimized_query_func)
+            
+            # 根據參數數量調用函數
+            if len(sig.parameters) == 1:
+                # 只接受 query 參數
+                if asyncio.iscoroutinefunction(optimized_query_func):
+                    result = await optimized_query_func(query)
+                else:
+                    result = optimized_query_func(query)
+            else:
+                # 接受 query 和 context 參數
+                if asyncio.iscoroutinefunction(optimized_query_func):
+                    result = await optimized_query_func(query, context)
+                else:
+                    result = optimized_query_func(query, context)
             
             # 存入快取
             if use_cache:

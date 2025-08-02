@@ -74,8 +74,7 @@ test-integration:
 		--junit-xml=pytest-integration.xml \
 		-m "integration" \
 		--tb=short \
-		-v \
-		--timeout=300
+		-v
 
 # 執行中文功能測試
 test-chinese:

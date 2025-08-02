@@ -188,11 +188,39 @@ class EscalationHandler(ErrorHandler):
 class GlobalErrorHandler:
     """全域錯誤處理器"""
     
+    # 添加 HandlingStrategy 作為類別屬性，以便測試可以訪問
+    HandlingStrategy = HandlingStrategy
+    
     def __init__(self):
         self.handlers: List[ErrorHandler] = []
         self.error_counts: Dict[str, int] = {}
         self.last_errors: Dict[str, datetime] = {}
         self._lock = threading.RLock()
+        
+        # 添加預設的錯誤處理器
+        self._setup_default_handlers()
+    
+    def _setup_default_handlers(self):
+        """設置預設的錯誤處理器"""
+        # 添加重試處理器
+        retry_handler = RetryHandler(
+            name="default_retry",
+            max_attempts=3,
+            delay=1.0,
+            retryable_errors=[
+                ConnectionError,
+                TimeoutError,
+                # 可以添加更多可重試的錯誤類型
+            ]
+        )
+        self.add_handler(retry_handler)
+        
+        # 添加降級處理器
+        fallback_handler = FallbackHandler(
+            name="default_fallback",
+            fallback_errors=[Exception]  # 處理所有異常
+        )
+        self.add_handler(fallback_handler)
     
     def add_handler(self, handler: ErrorHandler):
         """添加錯誤處理器"""
@@ -224,6 +252,39 @@ class GlobalErrorHandler:
         # 根據策略選擇處理方式
         if strategy == HandlingStrategy.IGNORE:
             return None
+        elif strategy == HandlingStrategy.LOG:
+            # 直接記錄錯誤
+            if isinstance(error, ChineseGraphRAGError):
+                error_info = error.to_dict()
+                logger.error(f"系統錯誤: {error_info}")
+            else:
+                logger.error(f"未分類錯誤: {error}", exc_info=True)
+            
+            if context:
+                logger.error(f"錯誤上下文: {context}")
+            return None
+        elif strategy == HandlingStrategy.RETRY:
+            # 使用重試處理器
+            for handler in self.handlers:
+                if isinstance(handler, RetryHandler) and handler.can_handle(error):
+                    try:
+                        result = handler.handle(error, context)
+                        handler.on_handled(error, result)
+                        return result
+                    except Exception as handler_error:
+                        logger.error(f"重試處理器失敗: {handler_error}")
+                        break
+        elif strategy == HandlingStrategy.FALLBACK:
+            # 使用降級處理器
+            for handler in self.handlers:
+                if isinstance(handler, FallbackHandler) and handler.can_handle(error):
+                    try:
+                        result = handler.handle(error, context)
+                        handler.on_handled(error, result)
+                        return result
+                    except Exception as handler_error:
+                        logger.error(f"降級處理器失敗: {handler_error}")
+                        break
         
         # 找到合適的處理器處理錯誤
         for handler in self.handlers:
@@ -247,6 +308,12 @@ class GlobalErrorHandler:
         
         logger.error(f"無法處理的錯誤: {error}", exc_info=True)
         return None
+    
+    def _execute_fallback(self, error: Exception, context: Optional[Dict[str, Any]] = None):
+        """執行降級處理"""
+        logger.info(f"執行降級處理: {error}")
+        # 這裡可以實現具體的降級邏輯
+        return {"fallback_executed": True, "error": str(error)}
     
     def get_error_statistics(self) -> Dict[str, Any]:
         """獲取錯誤統計資訊"""

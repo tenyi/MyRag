@@ -50,17 +50,18 @@ class MockEmbeddingService(EmbeddingService):
             raise Exception("模型未載入")
         
         # 生成模擬向量
-        embeddings = np.random.rand(len(texts), self.dimensions)
+        embeddings = np.random.rand(len(texts), self.dimensions).astype(np.float32)
         if normalize:
             norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-            embeddings = embeddings / norms
+            embeddings = embeddings / (norms + 1e-8)  # 避免除零
         
         return EmbeddingResult(
             embeddings=embeddings,
             texts=texts,
             model_name=self.model_name,
             dimensions=self.dimensions,
-            processing_time=0.1
+            processing_time=0.1,
+            metadata={}
         )
 
 

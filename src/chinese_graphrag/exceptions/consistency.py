@@ -270,7 +270,31 @@ class VectorStoreChecker(ConsistencyChecker):
         
         try:
             # 獲取向量儲存中的所有文件 ID
-            stored_ids = set(vector_store.list_document_ids())
+            # 使用適配的方法來獲取文件 ID 列表
+            stored_ids = set()
+            if hasattr(vector_store, 'list_document_ids'):
+                stored_ids = set(vector_store.list_document_ids())
+            elif hasattr(vector_store, 'get_all_ids'):
+                stored_ids = set(vector_store.get_all_ids())
+            else:
+                # 如果沒有直接的方法，嘗試從集合中獲取
+                try:
+                    if hasattr(vector_store, 'list_collections'):
+                        # 如果是異步方法，需要在異步上下文中調用
+                        import asyncio
+                        try:
+                            collections = asyncio.run(vector_store.list_collections())
+                        except:
+                            collections = []
+                    else:
+                        collections = []
+                    
+                    for collection in collections:
+                        if hasattr(collection, 'get_all_ids'):
+                            stored_ids.update(collection.get_all_ids())
+                except:
+                    pass
+            
             indexed_ids = set(index_registry.keys())
             
             # 檢查缺失的向量
@@ -306,7 +330,18 @@ class VectorStoreChecker(ConsistencyChecker):
             # 檢查向量維度一致性
             for doc_id in stored_ids.intersection(indexed_ids):
                 try:
-                    vector = vector_store.get_vector(doc_id)
+                    vector = None
+                    if hasattr(vector_store, 'get_vector'):
+                        vector = vector_store.get_vector(doc_id)
+                    elif hasattr(vector_store, 'get_vector_by_id'):
+                        import asyncio
+                        try:
+                            result = asyncio.run(vector_store.get_vector_by_id("default", doc_id, include_embedding=True))
+                            if result and 'vector' in result:
+                                vector = result['vector']
+                        except:
+                            vector = None
+                    
                     if vector is not None:
                         expected_dim = context.get('expected_vector_dimension', 1024)
                         if len(vector) != expected_dim:

@@ -353,27 +353,35 @@ class SystemMonitor:
         """
         processes = []
         
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent', 'memory_info', 'status', 'create_time']):
-            try:
-                info = proc.info
-                if info['memory_info']:
-                    memory_mb = info['memory_info'].rss / (1024**2)
-                else:
-                    memory_mb = 0
-                
-                create_time = datetime.fromtimestamp(info['create_time']) if info['create_time'] else datetime.now()
-                
-                processes.append(ProcessStats(
-                    pid=info['pid'],
-                    name=info['name'] or 'Unknown',
-                    cpu_percent=info['cpu_percent'] or 0,
-                    memory_percent=info['memory_percent'] or 0,
-                    memory_mb=memory_mb,
-                    status=info['status'] or 'unknown',
-                    create_time=create_time
-                ))
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
+        try:
+            for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent', 'memory_info', 'status', 'create_time']):
+                try:
+                    info = proc.info
+                    if info['memory_info']:
+                        memory_mb = info['memory_info'].rss / (1024**2)
+                    else:
+                        memory_mb = 0
+                    
+                    create_time = datetime.fromtimestamp(info['create_time']) if info['create_time'] else datetime.now()
+                    
+                    processes.append(ProcessStats(
+                        pid=info['pid'],
+                        name=info['name'] or 'Unknown',
+                        cpu_percent=info['cpu_percent'] or 0,
+                        memory_percent=info['memory_percent'] or 0,
+                        memory_mb=memory_mb,
+                        status=info['status'] or 'unknown',
+                        create_time=create_time
+                    ))
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+                except Exception as e:
+                    # 記錄但不中斷整個過程
+                    logger.debug(f"獲取程序資訊時發生錯誤: {e}")
+                    continue
+        except Exception as e:
+            logger.error(f"獲取程序列表時發生錯誤: {e}")
+            return []
         
         # 按 CPU 使用率排序
         processes.sort(key=lambda x: x.cpu_percent, reverse=True)
