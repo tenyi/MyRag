@@ -107,7 +107,7 @@ jobs:
         fail_ci_if_error: false
         
     - name: 上傳測試結果
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: unit-test-results-${{ matrix.python-version }}
@@ -160,7 +160,7 @@ jobs:
           --timeout=300
           
     - name: 上傳整合測試結果
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: integration-test-results
@@ -205,7 +205,7 @@ jobs:
           -v
           
     - name: 上傳中文測試結果
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: chinese-test-results
@@ -249,7 +249,7 @@ jobs:
           -v
           
     - name: 上傳效能測試結果
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: performance-test-results
@@ -300,7 +300,7 @@ jobs:
           --include-performance
           
     - name: 上傳測試報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-reports
         path: test-reports/
@@ -392,7 +392,7 @@ jobs:
         bandit -r src/ -f txt
         
     - name: 上傳安全掃描報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-scan-results
