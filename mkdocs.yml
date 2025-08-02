@@ -1,0 +1,51 @@
+site_name: Chinese GraphRAG
+site_description: '中文 GraphRAG 系統 - 基於 Microsoft GraphRAG 的中文知識圖譜檢索增強生成系統'
+site_author: 'Chinese GraphRAG Team'
+
+theme:
+  name: material
+  language: zh
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: 切換到深色模式
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: 切換到淺色模式
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+repo_url: https://github.com/your-org/chinese-graphrag
+repo_name: your-org/chinese-graphrag
+
+nav:
+  - '首頁': 'index.md'
+  - '入門指南': 'getting_started.md'
+  - '安裝與設定': 'installation_guide.md'
+  - '使用指南':
+    - 'API 使用指南': 'api_usage_guide.md'
+    - '範例與教學': 'examples_and_tutorials.md'
+    - '疑難排解': 'troubleshooting_guide.md'
+  - '設計與原理':
+    - '架構設計': 'architecture_design.md'
+    - 'API 索引': 'api_index.md'
+    - 'API 資料模型': 'api_models_reference.md'
+  - '效能與部署':
+    - '效能優化': 'performance_optimization.md'
+    - '部署指南': 'performance_deployment_guide.md'
+  - '開發與貢獻':
+    - '貢獻指南': 'contributing_guide.md'
+    - '測試自動化': 'test_automation.md'
+  - '專案報告':
+    - '文件驗證報告': 'documentation_validation_report.md'
+    - '任務 12 完成報告': 'task_12_completion_report.md'
+
+docs_dir: 'docs/'
