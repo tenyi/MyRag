@@ -36,7 +36,8 @@
         "read_memory",
         "get_symbols_overview",
         "find_symbol",
-        "replace_regex"
+        "replace_regex",
+        "search_for_pattern"
       ]
     },
     "time": {
@@ -45,6 +46,9 @@
         "-m",
         "mcp_server_time",
         "--local-timezone=Asia/Taipei"
+      ],
+      "alwaysAllow": [
+        "get_current_time"
       ]
     }
   }

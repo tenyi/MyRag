@@ -218,7 +218,7 @@ class ConfigLoader:
             "encoding_model": "cl100k_base",
             "models": {
                 "default_chat_model": {
-                    "api_key": "${GRAPHRAG_API_KEY}",
+                    "api_key": "${GRAPHRAG_API_KEY:your-openai-api-key-here}",
                     "type": "openai_chat",
                     "model": "gpt-4o",
                     "model_supports_json": True,
@@ -226,7 +226,7 @@ class ConfigLoader:
                     "temperature": 0.0
                 },
                 "default_embedding_model": {
-                    "api_key": "${GRAPHRAG_API_KEY}",
+                    "api_key": "${GRAPHRAG_API_KEY:your-openai-api-key-here}",
                     "type": "openai_embedding",
                     "model": "text-embedding-3-small"
                 },

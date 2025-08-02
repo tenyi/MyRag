@@ -130,7 +130,7 @@ class EmbeddingCache(ABC):
     
     def __init__(
         self,
-        max_size_mb: int = 1024,
+        max_size_mb: float = 1024,
         strategy: CacheStrategy = None,
         enable_compression: bool = True
     ):
@@ -246,7 +246,7 @@ class MemoryCache(EmbeddingCache):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._cache: OrderedDict[str, CacheEntry] = OrderedDict()
-        logger.info(f"初始化記憶體快取，最大大小: {self.max_size_bytes // 1024 // 1024} MB")
+        logger.info(f"初始化記憶體快取，最大大小: {self.max_size_bytes / 1024 / 1024:.3f} MB")
     
     async def get(self, key: str) -> Optional[CacheEntry]:
         """取得快取條目"""
@@ -335,6 +335,7 @@ class MemoryCache(EmbeddingCache):
         """根據需要淘汰條目"""
         # 檢查是否需要淘汰
         projected_size = self.stats['total_size_bytes'] + new_entry_size
+        
         
         if projected_size <= self.max_size_bytes:
             return
@@ -735,6 +736,8 @@ class MultiLevelCache:
             'total_requests': total_requests,
             'total_hits': total_hits,
             'total_misses': total_misses,
+            'memory_entries': memory_stats['entry_count'],
+            'disk_entries': disk_stats['entry_count'],
             'memory_cache': memory_stats,
             'disk_cache': disk_stats
         }

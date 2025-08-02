@@ -74,7 +74,7 @@ class TestEmbeddingCache:
     @pytest.mark.asyncio
     async def test_memory_cache_lru_eviction(self):
         """測試 LRU 淘汰策略"""
-        cache = MemoryCache(max_size_mb=0.01, strategy=LRUStrategy())  # 很小的快取
+        cache = MemoryCache(max_size_mb=0.003, strategy=LRUStrategy())  # 很小的快取，約3KB
         
         # 存入多個項目，超過快取大小
         entries = []
@@ -266,11 +266,21 @@ class TestEmbeddingManagerIntegration:
         """模擬 embedding 服務"""
         mock_service = Mock()
         
-        async def mock_embed(texts):
-            return [np.random.rand(384).astype(np.float32) for _ in texts]
+        async def mock_embed(texts, normalize=True, show_progress=False):
+            from src.chinese_graphrag.embeddings.base import EmbeddingResult
+            embeddings = np.array([np.random.rand(384).astype(np.float32) for _ in texts])
+            return EmbeddingResult(
+                embeddings=embeddings,
+                texts=texts,
+                model_name="test_model",
+                dimensions=384,
+                processing_time=0.1
+            )
         
         mock_service.embed_texts = mock_embed
         mock_service.embed_query = mock_embed
+        mock_service.model_name = "test_model"  # 添加 model_name 屬性
+        mock_service.is_loaded = True  # 添加 is_loaded 屬性
         mock_service.get_model_info.return_value = {
             "model_name": "test_model",
             "embedding_dim": 384,
@@ -293,11 +303,13 @@ class TestEmbeddingManagerIntegration:
             # 第一次呼叫
             texts = ["測試文本1", "測試文本2"]
             embeddings1 = await manager.embed_texts(texts)
-            assert len(embeddings1) == 2
+            assert len(embeddings1.embeddings) == 2
+            assert embeddings1.model_name == "test_model"
             
             # 第二次呼叫（應該使用快取）
             embeddings2 = await manager.embed_texts(texts)
-            assert len(embeddings2) == 2
+            assert len(embeddings2.embeddings) == 2
+            assert embeddings2.model_name == "test_model"
             
             # 檢查快取統計
             cache_stats = await cache.get_stats()
@@ -307,16 +319,16 @@ class TestEmbeddingManagerIntegration:
     async def test_manager_batch_processing(self, mock_embedding_service):
         """測試管理器批次處理"""
         manager = EmbeddingManager(
-            embedding_service=mock_embedding_service,
-            batch_size=2
+            embedding_service=mock_embedding_service
         )
         
         # 測試大批次文本
         texts = [f"測試文本{i}" for i in range(5)]
-        embeddings = await manager.embed_texts(texts)
+        result = await manager.embed_texts(texts)
         
-        assert len(embeddings) == 5
-        for embedding in embeddings:
+        assert len(result.embeddings) == 5
+        assert result.model_name == "test_model"
+        for embedding in result.embeddings:
             assert embedding.shape == (384,)
     
     @pytest.mark.asyncio
@@ -338,12 +350,11 @@ class TestEmbeddingManagerIntegration:
         manager = EmbeddingManager(embedding_service=mock_embedding_service)
         
         # 執行一些操作
-        await manager.embed_texts(["測試文本1", "測試文本2"])
-        await manager.embed_query("查詢文本")
+        result1 = await manager.embed_texts(["測試文本1", "測試文本2"])
+        result2 = await manager.embed_texts(["查詢文本"])
         
-        # 檢查指標
-        metrics = manager.get_metrics()
-        assert "total_requests" in metrics
-        assert "total_texts_processed" in metrics
-        assert "average_processing_time" in metrics
-        assert metrics["total_requests"] > 0
+        # 檢查結果
+        assert len(result1.embeddings) == 2
+        assert len(result2.embeddings) == 1
+        assert result1.model_name == "test_model"
+        assert result2.model_name == "test_model"

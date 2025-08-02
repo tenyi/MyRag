@@ -20,7 +20,7 @@ from .base import (
     ModelMetrics,
     EmbeddingServiceError
 )
-from .cache import MultiLevelCache, create_embedding_cache
+from .cache import MultiLevelCache, create_embedding_cache, EmbeddingCache
 from .gpu_acceleration import (
     get_device_manager, 
     get_memory_optimizer, 
@@ -71,7 +71,9 @@ class EmbeddingManager:
         enable_cache: bool = True,
         cache_config: Optional[Dict[str, Any]] = None,
         enable_gpu_acceleration: bool = True,
-        enable_monitoring: bool = True
+        enable_monitoring: bool = True,
+        embedding_service: Optional[EmbeddingService] = None,
+        cache: Optional[EmbeddingCache] = None
     ):
         """初始化 Embedding 管理器
         
@@ -91,10 +93,16 @@ class EmbeddingManager:
         self._semaphore = asyncio.Semaphore(max_concurrent_requests)
         self._last_health_check = {}
         
-        # 快取系統（暫時禁用以避免異步初始化問題）
-        self.enable_cache = False  # 暫時禁用
-        self.cache = None
-        logger.info("Embedding 快取系統已禁用")
+        # 快取系統
+        if cache is not None:
+            self.enable_cache = True
+            self.cache = cache
+            logger.info("使用外部提供的快取系統")
+        else:
+            # 暫時禁用以避免異步初始化問題
+            self.enable_cache = False
+            self.cache = None
+            logger.info("Embedding 快取系統已禁用")
         
         # GPU 加速和記憶體優化（暫時禁用）
         self.enable_gpu_acceleration = False  # 暫時禁用
@@ -108,7 +116,15 @@ class EmbeddingManager:
         self.usage_monitor = None
         logger.info("使用量監控已禁用")
         
-        logger.info(f"初始化 Embedding 管理器，預設模型: {default_model}")
+        # 如果提供了 embedding_service，將其註冊為預設服務
+        if embedding_service is not None:
+            service_name = "test_service"  # 測試用的服務名稱
+            self.services[service_name] = embedding_service
+            if default_model is None:
+                self.default_model = service_name
+            logger.info(f"註冊外部提供的 embedding 服務: {service_name}")
+        
+        logger.info(f"初始化 Embedding 管理器，預設模型: {self.default_model}")
     
     def register_service(
         self, 
