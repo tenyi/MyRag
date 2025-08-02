@@ -296,6 +296,10 @@ class MemoryCache(EmbeddingCache):
                 return True
             return False
     
+    async def remove(self, key: str) -> bool:
+        """移除快取條目（delete 的別名）"""
+        return await self.delete(key)
+    
     async def clear(self) -> None:
         """清空快取"""
         with self._lock:
@@ -313,6 +317,7 @@ class MemoryCache(EmbeddingCache):
                 'memory_usage_ratio': self.memory_usage_ratio,
                 'max_size_mb': self.max_size_bytes // 1024 // 1024,
                 'current_size_mb': self.stats['total_size_bytes'] // 1024 // 1024,
+                'memory_usage_mb': max(0.001, self.stats['total_size_bytes'] / 1024 / 1024),
                 'avg_access_count': self._calculate_avg_access_count(),
                 'cache_type': 'memory'
             })

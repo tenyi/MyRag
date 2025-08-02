@@ -473,7 +473,7 @@ class OptimizerManager:
         
         # 添加快取統計
         if self.query_optimizer:
-            cache_stats = self.query_optimizer.get_cache_stats()
+            cache_stats = self.query_optimizer.get_optimization_stats()
             report["cache"] = cache_stats
         
         return report

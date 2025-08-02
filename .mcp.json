@@ -30,6 +30,13 @@
         "ide-assistant",
         "--project",
         "MyRag"
+      ],
+      "alwaysAllow": [
+        "check_onboarding_performed",
+        "read_memory",
+        "get_symbols_overview",
+        "find_symbol",
+        "replace_regex"
       ]
     },
     "time": {
