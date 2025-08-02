@@ -65,7 +65,7 @@ class EmbeddingManager:
     
     def __init__(
         self,
-        default_model: Optional[str] = None,
+        config_or_model: Union[Any, str, None] = None,  # 可以是配置對象或模型名稱
         enable_fallback: bool = True,
         max_concurrent_requests: int = 10,
         enable_cache: bool = True,
@@ -78,7 +78,7 @@ class EmbeddingManager:
         """初始化 Embedding 管理器
         
         Args:
-            default_model: 預設使用的模型名稱
+            config_or_model: GraphRAG 配置對象或模型名稱
             enable_fallback: 是否啟用降級處理
             max_concurrent_requests: 最大並發請求數
             enable_cache: 是否啟用快取
@@ -87,7 +87,7 @@ class EmbeddingManager:
             enable_monitoring: 是否啟用使用量監控
         """
         self.services: Dict[str, EmbeddingService] = {}
-        self.default_model = default_model
+        self.default_model = None
         self.enable_fallback = enable_fallback
         self.max_concurrent_requests = max_concurrent_requests
         self._semaphore = asyncio.Semaphore(max_concurrent_requests)
@@ -120,11 +120,150 @@ class EmbeddingManager:
         if embedding_service is not None:
             service_name = "test_service"  # 測試用的服務名稱
             self.services[service_name] = embedding_service
-            if default_model is None:
+            if self.default_model is None:
                 self.default_model = service_name
             logger.info(f"註冊外部提供的 embedding 服務: {service_name}")
         
+        # 處理配置對象
+        if config_or_model is not None:
+            self._setup_services_from_config(config_or_model)
+        
         logger.info(f"初始化 Embedding 管理器，預設模型: {self.default_model}")
+    
+    def _setup_services_from_config(self, config_or_model):
+        """根據配置設置服務"""
+        try:
+            # 如果是字符串，作為模型名稱處理
+            if isinstance(config_or_model, str):
+                self.default_model = config_or_model
+                logger.info(f"使用指定的預設模型: {config_or_model}")
+                return
+            
+            # 如果是配置對象，提取 embedding 相關配置
+            if hasattr(config_or_model, 'models') and hasattr(config_or_model, 'model_selection'):
+                config = config_or_model
+                models = config.models
+                model_selection = config.model_selection
+                
+                logger.info(f"從配置載入 Embedding 服務，模型配置: {list(models.keys())}")
+                
+                # 設置預設模型
+                self.default_model = model_selection.default_embedding
+                
+                # 註冊各種 embedding 服務
+                for model_key, model_config in models.items():
+                    if hasattr(model_config, 'type') and 'embedding' in str(model_config.type).lower():
+                        self._register_service_from_config(model_key, model_config)
+                
+                # 確保預設服務存在
+                if self.default_model and self.default_model not in self.services:
+                    logger.warning(f"預設 embedding 服務 '{self.default_model}' 不存在，嘗試創建")
+                    self._create_fallback_service(self.default_model)
+                
+            else:
+                logger.warning("無法識別的配置格式，使用預設設置")
+                
+        except Exception as e:
+            logger.error(f"設置 embedding 服務時發生錯誤: {e}")
+            self._create_fallback_service()
+    
+    def _register_service_from_config(self, service_name: str, config):
+        """根據配置註冊服務"""
+        try:
+            service_type = config.type
+            
+            # 處理枚舉類型
+            if hasattr(service_type, 'value'):
+                type_str = service_type.value
+            else:
+                type_str = str(service_type).lower()
+            
+            logger.info(f"創建 embedding 服務: {service_name} (類型: {type_str})")
+            
+            if type_str == 'openai_embedding':
+                service = self._create_openai_service(config)
+            elif type_str == 'bge_m3':
+                service = self._create_bge_m3_service(config)
+            elif type_str == 'ollama':
+                service = self._create_ollama_service(config)
+            else:
+                logger.warning(f"不支援的 embedding 服務類型: {type_str}")
+                return
+            
+            self.register_service(service_name, service)
+            
+        except Exception as e:
+            logger.error(f"註冊服務 {service_name} 失敗: {e}")
+    
+    def _create_openai_service(self, config):
+        """創建 OpenAI embedding 服務"""
+        from .openai_service import create_openai_service
+        
+        return create_openai_service(
+            model_name=config.model,
+            api_key=config.api_key,
+            api_base=config.api_base,
+            organization=config.organization
+        )
+    
+    def _create_bge_m3_service(self, config):
+        """創建 BGE-M3 embedding 服務"""
+        from .bge_m3 import create_bge_m3_service
+        
+        return create_bge_m3_service(
+            model_name=config.model,
+            device=getattr(config.device, 'value', str(config.device)) if hasattr(config, 'device') else 'auto'
+        )
+    
+    def _create_ollama_service(self, config):
+        """創建 Ollama embedding 服務"""
+        from .ollama_service import create_ollama_service
+        
+        return create_ollama_service(
+            model_name=config.model,
+            base_url=getattr(config, 'api_base', 'http://localhost:11434')
+        )
+    
+    def _create_fallback_service(self, service_name: str = None):
+        """創建降級服務"""
+        try:
+            # 優先嘗試創建 OpenAI 服務（如果有 API key）
+            import os
+            openai_key = os.getenv('OPENAI_API_KEY')
+            if openai_key:
+                from .openai_service import create_openai_service
+                service = create_openai_service(api_key=openai_key)
+                fallback_name = service_name or "openai_fallback"
+                self.register_service(fallback_name, service, set_as_default=True)
+                logger.info(f"創建 OpenAI 降級服務: {fallback_name}")
+                return
+            
+            # 嘗試 Ollama 服務
+            try:
+                from .ollama_service import create_ollama_service
+                service = create_ollama_service(model_name="bge-m3")
+                fallback_name = service_name or "ollama_fallback"
+                self.register_service(fallback_name, service, set_as_default=True)
+                logger.info(f"創建 Ollama 降級服務: {fallback_name}")
+                return
+            except Exception:
+                pass
+            
+            # 最後嘗試本地 BGE-M3 服務
+            try:
+                from .bge_m3 import create_bge_m3_service
+                service = create_bge_m3_service()
+                fallback_name = service_name or "bge_m3_fallback"
+                self.register_service(fallback_name, service, set_as_default=True)
+                logger.info(f"創建 BGE-M3 降級服務: {fallback_name}")
+                return
+            except Exception:
+                pass
+            
+            logger.error("無法創建任何降級 embedding 服務")
+            
+        except Exception as e:
+            logger.error(f"創建降級服務失敗: {e}")
     
     def register_service(
         self, 
@@ -303,6 +442,16 @@ class EmbeddingManager:
         # 選擇服務
         primary_service_name = service_name or self.default_model
         service = self.get_service(primary_service_name)
+        
+        # 確保服務已載入
+        if not service.is_loaded:
+            logger.info(f"自動載入 embedding 服務: {primary_service_name}")
+            try:
+                await service.load_model()
+            except Exception as e:
+                logger.warning(f"自動載入 {primary_service_name} 失敗: {e}，將嘗試降級處理")
+                if not fallback_on_error:
+                    raise
         
         # 檢查快取
         cache_key = None

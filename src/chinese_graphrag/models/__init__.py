@@ -46,6 +46,7 @@ class Relationship(BaseModel):
     description: str = Field(description="關係描述")
     text_units: List[str] = Field(default_factory=list, description="相關文本單元ID列表")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="關係元數據")
+    weight: Optional[float] = Field(default=1.0, description="關係權重")
 
 
 class Community(BaseModel):
@@ -58,6 +59,7 @@ class Community(BaseModel):
     summary: Optional[str] = Field(default=None, description="社群摘要")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="社群元數據")
     embedding: Optional[List[float]] = Field(default=None, description="社群嵌入向量")
+    rank: Optional[float] = Field(default=0.0, description="社群排名")
 
 
 class QueryResult(BaseModel):

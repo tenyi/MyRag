@@ -149,8 +149,8 @@ class OpenAIAdapter(LLMAdapter):
         
         try:
             # 根據任務類型調整參數
-            max_tokens = kwargs.get("max_tokens", self.config.max_tokens)
-            temperature = kwargs.get("temperature", self.config.temperature)
+            max_tokens = kwargs.pop("max_tokens", self.config.max_tokens)
+            temperature = kwargs.pop("temperature", self.config.temperature)
             
             # 針對不同任務類型優化 prompt
             optimized_prompt = self._optimize_prompt_for_task(prompt, task_type)

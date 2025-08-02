@@ -220,13 +220,40 @@ class TestGraphRAGIndexer:
         ]
         
         # 模擬 embed_texts 方法
+        from chinese_graphrag.embeddings.base import EmbeddingResult
+        
         mock_text_embeddings = np.random.rand(len(text_units), 768)  # 文本單元嵌入
         mock_entity_embeddings = np.random.rand(len(entities), 768)  # 實體嵌入
         mock_community_embeddings = np.random.rand(len(communities), 768)  # 社群嵌入
         
+        # 建立 EmbeddingResult 對象
+        text_result = EmbeddingResult(
+            embeddings=mock_text_embeddings,
+            texts=[unit.text for unit in text_units],
+            model_name="test_model",
+            dimensions=768,
+            processing_time=0.1
+        )
+        
+        entity_result = EmbeddingResult(
+            embeddings=mock_entity_embeddings,
+            texts=[f"{entity.name}: {entity.description}" for entity in entities],
+            model_name="test_model",
+            dimensions=768,
+            processing_time=0.1
+        )
+        
+        community_result = EmbeddingResult(
+            embeddings=mock_community_embeddings,
+            texts=[community.summary for community in communities],
+            model_name="test_model",
+            dimensions=768,
+            processing_time=0.1
+        )
+        
         # 建立 AsyncMock 來模擬 embed_texts 方法
         mock_embed_texts = mocker.AsyncMock()
-        mock_embed_texts.side_effect = [mock_text_embeddings, mock_entity_embeddings, mock_community_embeddings]
+        mock_embed_texts.side_effect = [text_result, entity_result, community_result]
         
         # model_selector 已被移除，不需要模擬
         
@@ -254,15 +281,15 @@ class TestGraphRAGIndexer:
         # 驗證文本單元和實體的嵌入已設置
         for i, unit in enumerate(text_units):
             assert unit.embedding is not None
-            np.testing.assert_array_equal(unit.embedding, mock_text_embeddings[i])
+            np.testing.assert_array_equal(unit.embedding, text_result.embeddings[i])
             
         for i, entity in enumerate(entities):
             assert entity.embedding is not None
-            np.testing.assert_array_equal(entity.embedding, mock_entity_embeddings[i])
+            np.testing.assert_array_equal(entity.embedding, entity_result.embeddings[i])
             
         for i, community in enumerate(communities):
             assert community.embedding is not None
-            np.testing.assert_array_equal(community.embedding, mock_community_embeddings[i])
+            np.testing.assert_array_equal(community.embedding, community_result.embeddings[i])
             
         # 驗證向量存儲方法被呼叫
         assert mock_store_text_unit.call_count == len(text_units)

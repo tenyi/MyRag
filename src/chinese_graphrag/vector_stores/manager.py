@@ -627,9 +627,15 @@ class VectorStoreManager:
             collection_names = [col.name for col in collections]
             
             if collection_name not in collection_names:
+                # 動態獲取embedding維度
+                if text_unit.embedding is not None:
+                    embedding_dim = len(text_unit.embedding)
+                else:
+                    embedding_dim = 1536  # OpenAI text-embedding-3-small 預設維度
+                
                 await self.create_collection(
                     collection_name,
-                    dimension=768,  # 假設使用 768 維向量
+                    dimension=embedding_dim,
                     metadata_schema={"text": "str", "document_id": "str", "chunk_index": "int"}
                 )
             
@@ -675,9 +681,15 @@ class VectorStoreManager:
             collection_names = [col.name for col in collections]
             
             if collection_name not in collection_names:
+                # 動態獲取embedding維度
+                if entity.embedding is not None:
+                    embedding_dim = len(entity.embedding)
+                else:
+                    embedding_dim = 1536  # OpenAI text-embedding-3-small 預設維度
+                
                 await self.create_collection(
                     collection_name,
-                    dimension=768,
+                    dimension=embedding_dim,
                     metadata_schema={"name": "str", "type": "str", "description": "str", "rank": "float"}
                 )
             
@@ -693,7 +705,7 @@ class VectorStoreManager:
                         "type": entity.type,
                         "description": entity.description,
                         "text_units": entity.text_units,
-                        "rank": entity.rank
+                        "rank": getattr(entity, 'rank', 1.0)
                     }]
                 )
                 return True
@@ -724,9 +736,15 @@ class VectorStoreManager:
             collection_names = [col.name for col in collections]
             
             if collection_name not in collection_names:
+                # 動態獲取embedding維度
+                if community.embedding is not None:
+                    embedding_dim = len(community.embedding)
+                else:
+                    embedding_dim = 1536  # OpenAI text-embedding-3-small 預設維度
+                
                 await self.create_collection(
                     collection_name,
-                    dimension=768,
+                    dimension=embedding_dim,
                     metadata_schema={"title": "str", "level": "int", "summary": "str", "rank": "float"}
                 )
             
@@ -743,7 +761,7 @@ class VectorStoreManager:
                         "entities": community.entities,
                         "relationships": community.relationships,
                         "summary": community.summary,
-                        "rank": community.rank
+                        "rank": getattr(community, 'rank', 1.0)
                     }]
                 )
                 return True

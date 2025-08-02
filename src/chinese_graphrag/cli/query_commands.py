@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional, List
 
 import click
+from loguru import logger
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -67,6 +68,11 @@ logger = get_logger(__name__)
     is_flag=True,
     help="進入互動模式"
 )
+@click.option(
+    "--enable-global-search",
+    is_flag=True,
+    help="啟用全域搜尋（預設關閉，僅使用本地搜尋）"
+)
 @click.pass_context
 def query(
     ctx: click.Context,
@@ -78,19 +84,24 @@ def query(
     output_format: str,
     show_sources: bool,
     show_reasoning: bool,
-    interactive: bool
+    interactive: bool,
+    enable_global_search: bool
 ):
     """執行中文問答查詢。
     
     使用範例:
     
     \b
-    # 基本查詢
+    # 基本查詢（僅本地搜尋）
     chinese-graphrag query "什麼是人工智慧？"
     
     \b
+    # 啟用全域搜尋
+    chinese-graphrag query "介紹機器學習的應用" --enable-global-search
+    
+    \b
     # 指定搜尋類型
-    chinese-graphrag query "介紹機器學習的應用" --search-type global
+    chinese-graphrag query "深度學習的歷史" --search-type local
     
     \b
     # 顯示資料來源
@@ -115,8 +126,83 @@ def query(
         if response_type:
             config.query.response_type = response_type
         
+        # 根據 CLI 選項覆蓋全域搜尋設定
+        if enable_global_search:
+            config.query.enable_global_search = True
+        else:
+            config.query.enable_global_search = False
+        
         # 建立查詢引擎
-        query_engine = QueryEngine(config)
+        from ..indexing import GraphRAGIndexer
+        from ..vector_stores import VectorStoreManager
+        from ..config.models import VectorStoreType
+        
+        # 初始化索引器
+        indexer = GraphRAGIndexer(config)
+        
+        # 初始化向量存儲
+        vector_store_type = config.vector_store.type
+        if isinstance(vector_store_type, str):
+            vector_store_type = VectorStoreType(vector_store_type)
+        vector_store = VectorStoreManager(vector_store_type)
+        
+        # 創建 QueryEngineConfig
+        from ..query.engine import QueryEngineConfig
+        from ..query.manager import LLMConfig, LLMProvider
+        
+        # 從主配置中獲取 LLM 配置
+        llm_configs = []
+        for model_name, model_config in config.models.items():
+            if hasattr(model_config, 'type') and 'chat' in str(model_config.type).lower():
+                # 檢查是否有 API 金鑰
+                api_key = getattr(model_config, 'api_key', None)
+                if not api_key:
+                    logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
+                    continue
+                
+                # 映射模型類型到 LLMProvider
+                if 'openai' in str(model_config.type).lower():
+                    provider = LLMProvider.OPENAI
+                elif 'ollama' in str(model_config.type).lower():
+                    provider = LLMProvider.OLLAMA
+                else:
+                    provider = LLMProvider.MOCK
+                
+                llm_config = LLMConfig(
+                    provider=provider,
+                    model=model_config.model,
+                    config={
+                        'api_key': api_key,
+                        'base_url': getattr(model_config, 'api_base', None),
+                        'temperature': getattr(model_config, 'temperature', 0.7)
+                    },
+                    max_tokens=getattr(model_config, 'max_tokens', 4000),
+                    temperature=getattr(model_config, 'temperature', 0.7)
+                )
+                llm_configs.append(llm_config)
+        
+        # 如果沒有找到 LLM 配置，創建一個默認的
+        if not llm_configs:
+            default_llm_config = LLMConfig(
+                provider=LLMProvider.MOCK,
+                model="test_model",
+                config={},
+                max_tokens=4000,
+                temperature=0.7
+            )
+            llm_configs.append(default_llm_config)
+        
+        query_engine_config = QueryEngineConfig(
+            llm_configs=llm_configs,
+            enable_global_search=getattr(config.query, 'enable_global_search', False),
+            enable_local_search=getattr(config.query, 'enable_local_search', True),
+            enable_drift_search=getattr(config.query, 'enable_drift_search', False),
+            max_global_communities=getattr(config.query, 'max_global_communities', 5),
+            max_local_entities=getattr(config.query, 'max_local_entities', 10),
+            max_text_units=getattr(config.query, 'max_text_units', 20)
+        )
+        
+        query_engine = QueryEngine(query_engine_config, config, indexer, vector_store)
         
         # 互動模式
         if interactive or not question.strip():
@@ -132,7 +218,8 @@ def query(
     except Exception as e:
         # 記錄錯誤
         error_tracker = get_error_tracker()
-        error_tracker.track_error(e, category="query", severity="high")
+        from ..monitoring.error_tracker import ErrorCategory, ErrorSeverity
+        error_tracker.track_error(e, category=ErrorCategory.PROCESSING, severity=ErrorSeverity.HIGH)
         
         logger.error(f"查詢失敗: {e}")
         if not ctx.obj['quiet']:
@@ -156,9 +243,17 @@ def _execute_single_query(
         console.print(f"\n[bold blue]🤔 問題: {question}[/bold blue]")
         
         with console.status("[bold green]正在思考..."):
-            result = asyncio.run(query_engine.query(question, search_type=search_type))
+            unified_result = asyncio.run(query_engine.query(question, search_type=search_type))
+        result = unified_result.to_dict()
+        # 添加 CLI 期望的字段映射
+        result["response"] = unified_result.answer
+        result["reasoning"] = unified_result.reasoning_path
     else:
-        result = asyncio.run(query_engine.query(question, search_type=search_type))
+        unified_result = asyncio.run(query_engine.query(question, search_type=search_type))
+        result = unified_result.to_dict()
+        # 添加 CLI 期望的字段映射
+        result["response"] = unified_result.answer
+        result["reasoning"] = unified_result.reasoning_path
     
     elapsed_time = time.time() - start_time
     
@@ -169,7 +264,7 @@ def _execute_single_query(
     metrics_collector = get_metrics_collector()
     metrics_collector.record_counter("query.completed", 1)
     metrics_collector.record_timer("query.response_time", elapsed_time)
-    metrics_collector.record_gauge("query.search_type", 1, tags={"type": result.get("search_type", "unknown")})
+    metrics_collector.record_gauge("query.search_type", 1, labels={"type": result.get("search_type", "unknown")})
     
     logger.info(f"查詢完成，耗時 {elapsed_time:.2f} 秒，搜尋類型: {result.get('search_type', 'unknown')}")
 
@@ -387,7 +482,76 @@ def batch_query(
             return
         
         config = ctx.obj['config']
-        query_engine = QueryEngine(config)
+        from ..indexing import GraphRAGIndexer
+        from ..vector_stores import VectorStoreManager
+        from ..config.models import VectorStoreType
+        
+        # 初始化索引器
+        indexer = GraphRAGIndexer(config)
+        
+        # 初始化向量存儲
+        vector_store_type = config.vector_store.type
+        if isinstance(vector_store_type, str):
+            vector_store_type = VectorStoreType(vector_store_type)
+        vector_store = VectorStoreManager(vector_store_type)
+        
+        # 創建 QueryEngineConfig
+        from ..query.engine import QueryEngineConfig
+        from ..query.manager import LLMConfig, LLMProvider
+        
+        # 從主配置中獲取 LLM 配置
+        llm_configs = []
+        for model_name, model_config in config.models.items():
+            if hasattr(model_config, 'type') and 'chat' in str(model_config.type).lower():
+                # 檢查是否有 API 金鑰
+                api_key = getattr(model_config, 'api_key', None)
+                if not api_key:
+                    logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
+                    continue
+                
+                # 映射模型類型到 LLMProvider
+                if 'openai' in str(model_config.type).lower():
+                    provider = LLMProvider.OPENAI
+                elif 'ollama' in str(model_config.type).lower():
+                    provider = LLMProvider.OLLAMA
+                else:
+                    provider = LLMProvider.MOCK
+                
+                llm_config = LLMConfig(
+                    provider=provider,
+                    model=model_config.model,
+                    config={
+                        'api_key': api_key,
+                        'base_url': getattr(model_config, 'api_base', None),
+                        'temperature': getattr(model_config, 'temperature', 0.7)
+                    },
+                    max_tokens=getattr(model_config, 'max_tokens', 4000),
+                    temperature=getattr(model_config, 'temperature', 0.7)
+                )
+                llm_configs.append(llm_config)
+        
+        # 如果沒有找到 LLM 配置，創建一個默認的
+        if not llm_configs:
+            default_llm_config = LLMConfig(
+                provider=LLMProvider.MOCK,
+                model="test_model",
+                config={},
+                max_tokens=4000,
+                temperature=0.7
+            )
+            llm_configs.append(default_llm_config)
+        
+        query_engine_config = QueryEngineConfig(
+            llm_configs=llm_configs,
+            enable_global_search=getattr(config.query, 'enable_global_search', False),
+            enable_local_search=getattr(config.query, 'enable_local_search', True),
+            enable_drift_search=getattr(config.query, 'enable_drift_search', False),
+            max_global_communities=getattr(config.query, 'max_global_communities', 5),
+            max_local_entities=getattr(config.query, 'max_local_entities', 10),
+            max_text_units=getattr(config.query, 'max_text_units', 20)
+        )
+        
+        query_engine = QueryEngine(query_engine_config, config, indexer, vector_store)
         
         results = []
         
@@ -400,7 +564,12 @@ def batch_query(
                 console.print(f"\n[cyan]{i}/{len(questions)}[/cyan] {question}")
             
             start_time = time.time()
-            result = asyncio.run(query_engine.query(question, search_type=search_type))
+            unified_result = asyncio.run(query_engine.query(question, search_type=search_type))
+            result = unified_result.to_dict()
+            # 添加 CLI 期望的字段映射
+            result["response"] = unified_result.answer
+            result["reasoning"] = unified_result.reasoning_path
+            
             elapsed_time = time.time() - start_time
             
             result["question"] = question

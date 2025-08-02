@@ -2,6 +2,43 @@
 
 本檔案記錄 Chinese GraphRAG 系統的所有重要變更。
 
+## [0.2.3] - 2025/08/02 18:34
+
+### Added
+
+- **GraphRAG API 整合** - 完整整合 Microsoft GraphRAG 官方 API
+  - 新增 `_create_graphrag_pipeline_config()` 方法，創建 GraphRAG Pipeline 配置
+  - 新增 `_run_graphrag_pipeline()` 方法，使用官方 pipeline 執行索引
+  - 新增 `_process_graphrag_results()` 方法，處理 GraphRAG pipeline 結果
+  - 新增 `_read_graphrag_output_stats()` 方法，從輸出文件讀取統計資訊
+  - 新增 `_run_custom_pipeline()` 方法，作為自定義流程的回退選項
+
+- **GraphRAG Workflow 函數整合** - 使用官方 workflow 函數進行各個處理步驟
+  - 新增 `_create_text_units_with_graphrag()` 使用 `create_base_text_units`
+  - 新增 `_extract_entities_and_relationships_with_graphrag()` 使用多個實體關係提取 workflows
+  - 新增 `_detect_communities_with_graphrag()` 使用社群檢測 workflows
+  - 新增資料轉換方法：`_convert_graphrag_entities_to_models()`, `_convert_graphrag_relationships_to_models()`, `_convert_graphrag_communities_to_models()`
+  - 新增 `_extract_community_reports()` 方法提取社群報告資訊
+
+### Changed
+
+- **索引流程優化** - 重構 `index_documents()` 方法
+  - 優先使用 GraphRAG 官方 pipeline，不可用時回退到自定義流程
+  - 改進錯誤處理和日誌記錄
+  - 支援 GraphRAG 和自定義流程的無縫切換
+
+- **API 使用改進** - 正確使用之前引用但未使用的 GraphRAG API
+  - 使用 `create_pipeline_config` 創建管道配置
+  - 使用 `run_pipeline_with_config` 執行完整索引流程
+  - 使用所有 workflow 函數：`create_base_text_units`, `create_base_extracted_entities`, `create_summarized_entities`, `create_base_entity_graph`, `create_final_entities`, `create_final_relationships`, `create_final_communities`, `create_final_community_reports`
+
+### Technical
+
+- **架構改進** - 增強 GraphRAGIndexer 類別的功能和可擴展性
+- **相容性提升** - 確保與 Microsoft GraphRAG 框架的完全相容
+- **效能優化** - 利用 GraphRAG 官方實現提升處理效率
+- **錯誤恢復** - 實現優雅的回退機制，確保系統穩定性
+
 ## [0.2.2] - 2025/08/02 14:59
 
 ### Fixed

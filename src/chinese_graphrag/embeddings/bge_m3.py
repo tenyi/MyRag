@@ -73,7 +73,7 @@ class BGEM3EmbeddingService(EmbeddingService):
         model_name = model_name or self.DEFAULT_MODEL_NAME
         
         # 自動偵測裝置
-        if device is None:
+        if device is None or device == "auto":
             if TORCH_AVAILABLE and torch.cuda.is_available():
                 device = "cuda"
             elif TORCH_AVAILABLE and hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():

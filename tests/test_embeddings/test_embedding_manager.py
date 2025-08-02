@@ -70,7 +70,7 @@ class TestEmbeddingManager:
     
     def test_init(self):
         """測試初始化"""
-        manager = EmbeddingManager(default_model="test_model")
+        manager = EmbeddingManager(config_or_model="test_model")
         assert manager.default_model == "test_model"
         assert manager.enable_fallback is True
         assert len(manager.services) == 0

@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional, Union
 
 import yaml
 from pydantic import ValidationError
+from dotenv import load_dotenv
 
 from .models import (
     EmbeddingConfig,
@@ -36,6 +37,9 @@ class ConfigLoader:
         Args:
             config_path: 配置檔案路徑，預設為 settings.yaml
         """
+        # 載入 .env 檔案
+        load_dotenv()
+        
         if config_path is None:
             self.config_path = Path("settings.yaml")
         elif isinstance(config_path, str):

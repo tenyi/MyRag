@@ -303,7 +303,7 @@ class CommunityDetector:
                 # 如果社群太大，可以考慮分割（這裡簡化處理）
                 logger.warning(f"社群 {community.id} 太大 ({len(community.entities)} 個實體)，已跳過")
         
-        # 按排名排序
-        filtered_communities.sort(key=lambda x: x.rank, reverse=True)
+        # 按排名排序，處理 None 值
+        filtered_communities.sort(key=lambda x: x.rank if x.rank is not None else 0.0, reverse=True)
         
         return filtered_communities

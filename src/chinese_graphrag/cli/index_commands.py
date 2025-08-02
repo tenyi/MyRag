@@ -207,12 +207,18 @@ def index(
         
     except Exception as e:
         # 記錄錯誤
+        import traceback
+        full_traceback = traceback.format_exc()
         error_tracker = get_error_tracker()
-        error_tracker.track_error(e, category="indexing", severity="high")
+        from ..monitoring.error_tracker import ErrorCategory, ErrorSeverity
+        error_tracker.track_error(e, category=ErrorCategory.PROCESSING, severity=ErrorSeverity.HIGH)
         
         logger.error(f"索引失敗: {e}")
+        logger.error(f"完整錯誤追踪: {full_traceback}")
         if not ctx.obj['quiet']:
             console.print(f"[red]索引失敗: {e}[/red]")
+            console.print(f"[red]完整錯誤追踪:[/red]")
+            console.print(full_traceback)
         sys.exit(1)
 
 

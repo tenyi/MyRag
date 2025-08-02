@@ -67,7 +67,7 @@ class GraphRAGIndexer:
         
         self.embedding_manager = EmbeddingManager(config)
         # 確保 vector_store_type 是正確的枚舉類型
-        from chinese_graphrag.config.models import VectorStoreType
+        from chinese_graphrag.vector_stores.base import VectorStoreType
         vector_store_type = config.vector_store.type
         if isinstance(vector_store_type, str):
             vector_store_type = VectorStoreType(vector_store_type)
@@ -141,6 +141,91 @@ class GraphRAGIndexer:
                 
         except Exception as e:
             logger.error(f"索引過程中發生錯誤: {e}")
+            raise
+
+    async def process_documents(
+        self,
+        files_to_process: List[Path],
+        progress_callback=None,
+        resume: bool = False,
+        incremental: bool = False
+    ) -> Dict[str, Any]:
+        """
+        處理文件列表並執行索引
+        
+        Args:
+            files_to_process: 要處理的文件路徑列表
+            progress_callback: 進度回調函數，接收 (current_file, file_progress, overall_progress)
+            resume: 是否恢復中斷的索引
+            incremental: 是否增量索引
+            
+        Returns:
+            Dict: 索引結果統計
+        """
+        logger.info(f"開始處理 {len(files_to_process)} 個文件")
+        
+        try:
+            # 如果只有一個文件，使用文件路徑；否則創建臨時目錄處理
+            if len(files_to_process) == 1:
+                input_path = files_to_process[0]
+            else:
+                # 對於多個文件，使用第一個文件的父目錄作為輸入路徑
+                input_path = files_to_process[0].parent
+            
+            # 使用現有的索引方法
+            total_files = len(files_to_process)
+            
+            for i, file_path in enumerate(files_to_process):
+                # 更新進度
+                if progress_callback:
+                    file_progress = 0.0
+                    overall_progress = i
+                    progress_callback(str(file_path), file_progress, overall_progress)
+                
+                # 處理單個文件
+                try:
+                    # 執行文件索引（使用現有的索引邏輯）
+                    file_stats = await self.index_documents(file_path)
+                    
+                    # 更新文件完成進度
+                    if progress_callback:
+                        file_progress = 100.0
+                        overall_progress = i + 1
+                        progress_callback(str(file_path), file_progress, overall_progress)
+                    
+                    logger.info(f"文件 {file_path.name} 處理完成")
+                    
+                except Exception as e:
+                    logger.error(f"處理文件 {file_path} 時發生錯誤: {e}")
+                    if not incremental:
+                        # 如果不是增量模式，傳播錯誤
+                        raise
+                    # 增量模式下跳過失敗的文件
+                    continue
+            
+            # 生成總體統計
+            stats = self.get_statistics()
+            
+            # 轉換為期望的結果格式
+            result = {
+                "documents_processed": stats.get("documents", 0),
+                "chunks_created": stats.get("text_units", 0),
+                "entities_extracted": stats.get("entities", 0),
+                "relationships_found": stats.get("relationships", 0),
+                "communities_detected": stats.get("communities", 0),
+                "output_files": {
+                    "entities": f"{self.config.storage.base_dir}/entities.json",
+                    "relationships": f"{self.config.storage.base_dir}/relationships.json",
+                    "communities": f"{self.config.storage.base_dir}/communities.json",
+                    "documents": f"{self.config.storage.base_dir}/documents.json"
+                }
+            }
+            
+            logger.info(f"所有文件處理完成: {result}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"文件處理過程中發生錯誤: {e}")
             raise
 
     async def _run_graphrag_pipeline(
@@ -589,7 +674,7 @@ class GraphRAGIndexer:
                     "source": rel.source_entity_id,
                     "target": rel.target_entity_id,
                     "description": rel.description,
-                    "weight": rel.weight
+                    "weight": rel.weight if rel.weight is not None else 1.0
                 })
             
             entities_df = pd.DataFrame(entities_data)
@@ -925,7 +1010,15 @@ class GraphRAGIndexer:
         if llm_type == "openai_chat":
             llm_type = "openai"
         
-        llm: LLM = create_llm(llm_type, llm_config)
+        # 將 LLMConfig 對象轉換為字典
+        if hasattr(llm_config, 'model_dump'):
+            config_dict = llm_config.model_dump()
+        elif hasattr(llm_config, 'dict'):
+            config_dict = llm_config.dict()
+        else:
+            config_dict = llm_config
+        
+        llm: LLM = create_llm(llm_type, config_dict)
 
         # 建構 prompt
         prompt = self._build_extraction_prompt(text_units)
@@ -933,7 +1026,16 @@ class GraphRAGIndexer:
         # 呼叫 LLM
         try:
             response = await llm.async_generate(prompt)
-            output = json.loads(response)
+            
+            # 清理回應，移除可能的 markdown 標籤
+            cleaned_response = response.strip()
+            if cleaned_response.startswith("```json"):
+                cleaned_response = cleaned_response[7:]  # 移除 ```json
+            if cleaned_response.endswith("```"):
+                cleaned_response = cleaned_response[:-3]  # 移除 ```
+            cleaned_response = cleaned_response.strip()
+            
+            output = json.loads(cleaned_response)
         except (json.JSONDecodeError, TypeError) as e:
             logger.error(f"無法解析 LLM 回應: {e}. 回應內容: {response}")
             return [], []
@@ -1065,21 +1167,23 @@ class GraphRAGIndexer:
         """建立向量嵌入"""
         logger.info("建立向量嵌入")
         
-        # 使用預設的 Embedding 模型
+        # 使用預設的 Embedding 服務
         default_embedding_name = self.config.model_selection.default_embedding
         embedding_config = self.config.get_embedding_config(default_embedding_name)
         
-        if embedding_config:
-            embedding_name = embedding_config.model
-        else:
-            embedding_name = "bge-m3"  # 預設值
+        # 使用服務名稱而不是模型名稱
+        service_name = default_embedding_name  # 使用配置中的服務名稱
         
-        logger.info(f"使用 Embedding 模型: {embedding_name}")
+        if embedding_config:
+            logger.info(f"使用 Embedding 服務: {service_name} (模型: {embedding_config.model})")
+        else:
+            logger.info(f"使用預設 Embedding 服務: {service_name}")
         
         # 為文本單元建立嵌入
         if text_units:
             texts = [unit.text for unit in text_units]
-            embeddings = await self.embedding_manager.embed_texts(texts, embedding_name)
+            embedding_result = await self.embedding_manager.embed_texts(texts, service_name)
+            embeddings = embedding_result.embeddings
             
             for unit, embedding in zip(text_units, embeddings):
                 unit.embedding = embedding
@@ -1089,7 +1193,8 @@ class GraphRAGIndexer:
         # 為實體建立嵌入
         if entities:
             entity_texts = [f"{entity.name}: {entity.description}" for entity in entities]
-            entity_embeddings = await self.embedding_manager.embed_texts(entity_texts, embedding_name)
+            entity_embedding_result = await self.embedding_manager.embed_texts(entity_texts, service_name)
+            entity_embeddings = entity_embedding_result.embeddings
             
             for entity, embedding in zip(entities, entity_embeddings):
                 entity.embedding = embedding
@@ -1099,7 +1204,8 @@ class GraphRAGIndexer:
         # 為社群建立嵌入
         if communities:
             community_texts = [community.summary for community in communities]
-            community_embeddings = await self.embedding_manager.embed_texts(community_texts, embedding_name)
+            community_embedding_result = await self.embedding_manager.embed_texts(community_texts, service_name)
+            community_embeddings = community_embedding_result.embeddings
             
             for community, embedding in zip(communities, community_embeddings):
                 community.embedding = embedding
@@ -1157,7 +1263,7 @@ class GraphRAGIndexer:
                 "target_entity_id": rel.target_entity_id,
                 "relationship_type": rel.relationship_type,
                 "description": rel.description,
-                "weight": rel.weight,
+                "weight": rel.weight if rel.weight is not None else 1.0,
                 "text_units": rel.text_units
             }
             for rel_id, rel in self.relationships.items()

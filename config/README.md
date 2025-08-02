@@ -120,6 +120,7 @@ model_config:
 - `bge_m3` - BGE-M3 中文優化模型
 - `openai_embedding` - OpenAI Embedding 模型
 - `azure_openai_embedding` - Azure OpenAI Embedding 模型
+- `ollama` - Ollama Embedding 模型
 
 ### 向量資料庫配置 (vector_store)
 
@@ -236,6 +237,24 @@ chunks:
 
 performance:
   memory_limit_mb: 2048  # 設定記憶體限制
+```
+
+### Q: 如何設定 Ollama Embedding 模型？
+
+A: 首先確保 Ollama 服務正在運行，然後配置 embedding 模型：
+
+```yaml
+models:
+  ollama_embedding_model:
+    type: ollama
+    model: nomic-embed-text    # 或其他支援的 embedding 模型
+    api_base: http://localhost:11434
+    batch_size: 32
+    max_length: 512
+    normalize_embeddings: true
+
+model_selection:
+  default_embedding: ollama_embedding_model
 ```
 
 ### Q: 如何啟用 GPU 加速？

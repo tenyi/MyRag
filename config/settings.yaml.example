@@ -10,7 +10,7 @@ models:
   default_chat_model:
     api_key: ${GRAPHRAG_API_KEY}
     type: openai_chat
-    model: gpt-4o
+    model: gpt-4.1
     model_supports_json: true
     max_tokens: 2000
     temperature: 0.0
@@ -30,6 +30,16 @@ models:
     type: bge_m3
     model: BAAI/bge-m3
     device: auto  # auto, cpu, cuda, mps
+    batch_size: 32
+    max_length: 512
+    normalize_embeddings: true
+    cache_enabled: true
+  
+  # Ollama Embedding 模型
+  ollama_embedding_model:
+    type: ollama
+    model: bge-m3
+    api_base: http://localhost:11434
     batch_size: 32
     max_length: 512
     normalize_embeddings: true
@@ -97,7 +107,7 @@ indexing:
 
 # 查詢配置
 query:
-  enable_global_search: true
+  enable_global_search: false
   enable_local_search: true
   enable_drift_search: false
   max_tokens: 2000
@@ -122,7 +132,7 @@ parallelization:
 # 模型選擇策略配置
 model_selection:
   default_llm: default_chat_model
-  default_embedding: chinese_embedding_model
+  default_embedding: default_embedding_model
   cost_optimization: true
   quality_threshold: 0.8
   fallback_models:

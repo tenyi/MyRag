@@ -358,7 +358,11 @@ def main():
         console.print("\n[yellow]操作已取消[/yellow]")
         sys.exit(1)
     except Exception as e:
+        import traceback
+        full_traceback = traceback.format_exc()
         console.print(f"[red]發生未預期的錯誤: {e}[/red]")
+        console.print(f"[red]完整錯誤追踪:[/red]")
+        console.print(full_traceback)
         sys.exit(1)
 
 # 匯入 CLI 工具模組

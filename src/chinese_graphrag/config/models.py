@@ -24,13 +24,11 @@ class EmbeddingType(str, Enum):
     AZURE_OPENAI_EMBEDDING = "azure_openai_embedding"
     BGE_M3 = "bge_m3"
     LOCAL_EMBEDDING = "local_embedding"
+    OLLAMA = "ollama"
 
 
-class VectorStoreType(str, Enum):
-    """向量資料庫類型枚舉"""
-    LANCEDB = "lancedb"
-    CHROMA = "chroma"
-    FAISS = "faiss"
+# 導入向量儲存類型，避免重複定義
+from ..vector_stores.base import VectorStoreType
 
 
 class DeviceType(str, Enum):
