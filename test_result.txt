@@ -1,0 +1,729 @@
+🧪 執行所有測試...
+uv run pytest tests/ \
+		--cov=src/chinese_graphrag \
+		--cov-report=xml \
+		--cov-report=html \
+		--cov-report=term-missing \
+		--junit-xml=pytest-all.xml \
+		--tb=short \
+		-v
+============================= test session starts ==============================
+platform darwin -- Python 3.11.3, pytest-8.4.1, pluggy-1.6.0 -- /Users/tenyi/Projects/MyRag/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/tenyi/Projects/MyRag
+configfile: pyproject.toml
+plugins: anyio-4.9.0, asyncio-1.1.0, devtools-0.12.2, cov-6.2.1, mock-3.14.1
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 472 items
+
+tests/integration/test_chinese_features.py::TestChineseTextProcessing::test_chinese_tokenization SKIPPED [  0%]
+tests/integration/test_chinese_features.py::TestChineseTextProcessing::test_chinese_encoding_handling SKIPPED [  0%]
+tests/integration/test_chinese_features.py::TestChineseTextProcessing::test_traditional_simplified_conversion SKIPPED [  0%]
+tests/integration/test_chinese_features.py::TestChineseTextProcessing::test_chinese_punctuation_handling SKIPPED [  0%]
+tests/integration/test_chinese_features.py::TestChineseTextProcessing::test_chinese_number_extraction SKIPPED [  1%]
+tests/integration/test_chinese_features.py::TestChineseTextProcessing::test_chinese_semantic_understanding SKIPPED [  1%]
+tests/integration/test_chinese_features.py::TestChineseTextProcessing::test_chinese_text_chunking SKIPPED [  1%]
+tests/integration/test_chinese_features.py::TestChineseQueryProcessing::test_chinese_query_intent_classification SKIPPED [  1%]
+tests/integration/test_chinese_features.py::TestChineseQueryProcessing::test_chinese_entity_extraction SKIPPED [  1%]
+tests/integration/test_chinese_features.py::TestChineseQueryProcessing::test_chinese_query_expansion SKIPPED [  2%]
+tests/integration/test_chinese_features.py::TestChineseQueryProcessing::test_chinese_answer_generation SKIPPED [  2%]
+tests/integration/test_chinese_features.py::TestChineseKnowledgeGraph::test_chinese_entity_recognition SKIPPED [  2%]
+tests/integration/test_chinese_features.py::TestChineseKnowledgeGraph::test_chinese_relation_extraction SKIPPED [  2%]
+tests/integration/test_chinese_features.py::TestChineseKnowledgeGraph::test_chinese_knowledge_graph_construction SKIPPED [  2%]
+tests/integration/test_end_to_end.py::TestEndToEndIndexing::test_document_processing_pipeline SKIPPED [  3%]
+tests/integration/test_end_to_end.py::TestEndToEndIndexing::test_embedding_generation SKIPPED [  3%]
+tests/integration/test_end_to_end.py::TestEndToEndIndexing::test_vector_store_operations SKIPPED [  3%]
+tests/integration/test_end_to_end.py::TestEndToEndIndexing::test_full_indexing_pipeline SKIPPED [  3%]
+tests/integration/test_end_to_end.py::TestEndToEndQuerying::test_chinese_query_processing SKIPPED [  4%]
+tests/integration/test_end_to_end.py::TestEndToEndQuerying::test_semantic_search SKIPPED [  4%]
+tests/integration/test_end_to_end.py::TestEndToEndQuerying::test_local_search_query SKIPPED [  4%]
+tests/integration/test_end_to_end.py::TestEndToEndQuerying::test_global_search_query SKIPPED [  4%]
+tests/integration/test_end_to_end.py::TestEndToEndQuerying::test_full_query_pipeline SKIPPED [  4%]
+tests/integration/test_end_to_end.py::TestSystemIntegration::test_indexing_and_querying_integration SKIPPED [  5%]
+tests/integration/test_end_to_end.py::TestSystemIntegration::test_error_handling_integration SKIPPED [  5%]
+tests/integration/test_end_to_end.py::TestSystemIntegration::test_configuration_integration SKIPPED [  5%]
+tests/integration/test_performance.py::TestPerformanceBenchmarks::test_document_processing_performance SKIPPED [  5%]
+tests/integration/test_performance.py::TestPerformanceBenchmarks::test_embedding_generation_performance SKIPPED [  5%]
+tests/integration/test_performance.py::TestPerformanceBenchmarks::test_vector_search_performance SKIPPED [  6%]
+tests/integration/test_performance.py::TestPerformanceBenchmarks::test_concurrent_processing_performance SKIPPED [  6%]
+tests/integration/test_performance.py::TestPerformanceBenchmarks::test_memory_usage_performance SKIPPED [  6%]
+tests/integration/test_performance.py::TestPerformanceBenchmarks::test_async_processing_performance SKIPPED [  6%]
+tests/integration/test_performance.py::TestPerformanceBenchmarks::test_end_to_end_performance SKIPPED [  6%]
+tests/integration/test_performance.py::TestStressTests::test_high_concurrency_stress SKIPPED [  7%]
+tests/integration/test_performance.py::TestStressTests::test_memory_stress SKIPPED [  7%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_optimizer_manager_initialization PASSED [  7%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_batch_processing_optimization PASSED [  7%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_query_optimization PASSED [  8%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_cost_optimization PASSED [  8%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_performance_monitoring PASSED [  8%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_benchmark_execution PASSED [  8%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_optimization_report PASSED [  8%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_config_persistence PASSED [  9%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_context_manager PASSED [  9%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_alert_handling PASSED [  9%]
+tests/performance/test_performance_integration.py::TestPerformanceIntegration::test_error_handling PASSED [  9%]
+tests/test_config/test_loader.py::TestConfigLoader::test_load_valid_config PASSED [  9%]
+tests/test_config/test_loader.py::TestConfigLoader::test_env_var_substitution PASSED [ 10%]
+tests/test_config/test_loader.py::TestConfigLoader::test_env_var_with_default PASSED [ 10%]
+tests/test_config/test_loader.py::TestConfigLoader::test_missing_env_var_error PASSED [ 10%]
+tests/test_config/test_loader.py::TestConfigLoader::test_invalid_model_type_error PASSED [ 10%]
+tests/test_config/test_loader.py::TestConfigLoader::test_missing_default_model_error PASSED [ 11%]
+tests/test_config/test_loader.py::TestConfigLoader::test_create_default_config PASSED [ 11%]
+tests/test_config/test_loader.py::TestConfigLoader::test_nonexistent_config_file PASSED [ 11%]
+tests/test_config/test_loader.py::TestConfigLoader::test_invalid_yaml_syntax PASSED [ 11%]
+tests/test_config/test_models.py::TestLLMConfig::test_valid_llm_config PASSED [ 11%]
+tests/test_config/test_models.py::TestLLMConfig::test_invalid_temperature PASSED [ 12%]
+tests/test_config/test_models.py::TestLLMConfig::test_azure_openai_config PASSED [ 12%]
+tests/test_config/test_models.py::TestEmbeddingConfig::test_openai_embedding_config PASSED [ 12%]
+tests/test_config/test_models.py::TestEmbeddingConfig::test_bge_m3_config PASSED [ 12%]
+tests/test_config/test_models.py::TestEmbeddingConfig::test_invalid_batch_size PASSED [ 12%]
+tests/test_config/test_models.py::TestVectorStoreConfig::test_lancedb_config PASSED [ 13%]
+tests/test_config/test_models.py::TestGraphRAGConfig::test_minimal_config PASSED [ 13%]
+tests/test_config/test_models.py::TestGraphRAGConfig::test_get_llm_config PASSED [ 13%]
+tests/test_config/test_models.py::TestGraphRAGConfig::test_get_embedding_config PASSED [ 13%]
+tests/test_config/test_models.py::TestGraphRAGConfig::test_default_model_configs PASSED [ 13%]
+tests/test_config/test_strategy.py::TestModelPerformanceMetrics::test_record_and_retrieve_metrics PASSED [ 14%]
+tests/test_config/test_strategy.py::TestDefaultModelSelectionStrategy::test_select_default_models PASSED [ 14%]
+tests/test_config/test_strategy.py::TestCostOptimizedSelectionStrategy::test_cost_optimization_disabled PASSED [ 14%]
+tests/test_config/test_strategy.py::TestCostOptimizedSelectionStrategy::test_cost_optimization_enabled PASSED [ 14%]
+tests/test_config/test_strategy.py::TestCostOptimizedSelectionStrategy::test_chinese_embedding_preference PASSED [ 15%]
+tests/test_config/test_strategy.py::TestAdaptiveSelectionStrategy::test_task_based_model_selection PASSED [ 15%]
+tests/test_config/test_strategy.py::TestAdaptiveSelectionStrategy::test_chinese_context_preference PASSED [ 15%]
+tests/test_config/test_strategy.py::TestModelSelector::test_select_llm_model PASSED [ 15%]
+tests/test_config/test_strategy.py::TestModelSelector::test_select_embedding_model PASSED [ 15%]
+tests/test_config/test_strategy.py::TestModelSelector::test_fallback_model_selection PASSED [ 16%]
+tests/test_config/test_strategy.py::TestModelSelector::test_record_model_performance PASSED [ 16%]
+tests/test_config_system.py::TestConfigLoader::test_load_valid_config PASSED [ 16%]
+tests/test_config_system.py::TestConfigLoader::test_load_config_with_env_vars PASSED [ 16%]
+tests/test_config_system.py::TestConfigLoader::test_load_nonexistent_config PASSED [ 16%]
+tests/test_config_system.py::TestConfigLoader::test_create_default_config PASSED [ 17%]
+tests/test_config_system.py::TestEnvironmentManager::test_get_env_var_with_default PASSED [ 17%]
+tests/test_config_system.py::TestEnvironmentManager::test_get_env_var_required_missing PASSED [ 17%]
+tests/test_config_system.py::TestEnvironmentManager::test_type_conversion PASSED [ 17%]
+tests/test_config_system.py::TestEnvironmentManager::test_load_env_file PASSED [ 18%]
+tests/test_config_system.py::TestConfigValidator::test_validate_valid_config PASSED [ 18%]
+tests/test_config_system.py::TestConfigValidator::test_validate_invalid_chunk_config PASSED [ 18%]
+tests/test_config_system.py::TestConfigValidator::test_validate_missing_default_models PASSED [ 18%]
+tests/test_config_system.py::TestConfigIntegration::test_full_config_workflow PASSED [ 18%]
+tests/test_config_system.py::TestConfigIntegration::test_config_with_validation_warnings PASSED [ 19%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseEmbeddingConfig::test_default_config PASSED [ 19%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseEmbeddingConfig::test_custom_config PASSED [ 19%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_init PASSED [ 19%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_build_chinese_char_weights PASSED [ 19%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_calculate_chinese_weight PASSED [ 20%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_preprocess_texts PASSED [ 20%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_postprocess_embeddings PASSED [ 20%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_embed_texts_success PASSED [ 20%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_embed_texts_fallback PASSED [ 20%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_embed_texts_all_fail PASSED [ 21%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_evaluate_chinese_quality PASSED [ 21%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_is_chinese_dominant PASSED [ 21%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedEmbeddingService::test_get_model_info PASSED [ 21%]
+tests/test_embeddings/test_chinese_optimized.py::TestCreateChineseOptimizedService::test_create_chinese_optimized_service PASSED [ 22%]
+tests/test_embeddings/test_chinese_optimized.py::TestCreateChineseOptimizedService::test_create_with_default_params PASSED [ 22%]
+tests/test_embeddings/test_chinese_optimized.py::TestChineseOptimizedIntegration::test_real_model_integration SKIPPED [ 22%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_init PASSED [ 22%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_register_service PASSED [ 22%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_unregister_service PASSED [ 23%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_get_service_not_found PASSED [ 23%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_list_services PASSED [ 23%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_load_all_models PASSED [ 23%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_embed_texts_success PASSED [ 23%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_embed_texts_fallback PASSED [ 24%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_embed_texts_no_fallback PASSED [ 24%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_smart_route_request_fastest PASSED [ 24%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_smart_route_request_least_loaded PASSED [ 24%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_health_check_all PASSED [ 25%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_get_metrics_summary PASSED [ 25%]
+tests/test_embeddings/test_embedding_manager.py::TestEmbeddingManager::test_context_manager PASSED [ 25%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingCache::test_memory_cache_basic PASSED [ 25%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingCache::test_memory_cache_lru_eviction PASSED [ 25%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingCache::test_memory_cache_lfu_eviction PASSED [ 26%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingCache::test_disk_cache_basic PASSED [ 26%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingCache::test_disk_cache_persistence PASSED [ 26%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingCache::test_multi_level_cache PASSED [ 26%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingCache::test_multi_level_cache_promotion PASSED [ 26%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingCache::test_cache_factory PASSED [ 27%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingManagerIntegration::test_manager_with_cache PASSED [ 27%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingManagerIntegration::test_manager_batch_processing PASSED [ 27%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingManagerIntegration::test_manager_error_handling PASSED [ 27%]
+tests/test_embeddings/test_performance_optimization.py::TestEmbeddingManagerIntegration::test_manager_metrics PASSED [ 27%]
+tests/test_exception_handling.py::TestChineseGraphRAGError::test_basic_error_creation PASSED [ 28%]
+tests/test_exception_handling.py::TestChineseGraphRAGError::test_error_with_full_metadata PASSED [ 28%]
+tests/test_exception_handling.py::TestChineseGraphRAGError::test_error_serialization PASSED [ 28%]
+tests/test_exception_handling.py::TestSpecificErrors::test_system_error PASSED [ 28%]
+tests/test_exception_handling.py::TestSpecificErrors::test_configuration_error PASSED [ 29%]
+tests/test_exception_handling.py::TestSpecificErrors::test_validation_error PASSED [ 29%]
+tests/test_exception_handling.py::TestSpecificErrors::test_processing_error PASSED [ 29%]
+tests/test_exception_handling.py::TestSpecificErrors::test_resource_error PASSED [ 29%]
+tests/test_exception_handling.py::TestSpecificErrors::test_network_error PASSED [ 29%]
+tests/test_exception_handling.py::TestSpecificErrors::test_security_error PASSED [ 30%]
+tests/test_exception_handling.py::TestGlobalErrorHandler::test_handler_creation PASSED [ 30%]
+tests/test_exception_handling.py::TestGlobalErrorHandler::test_error_handling_strategies PASSED [ 30%]
+tests/test_exception_handling.py::TestGlobalErrorHandler::test_retry_strategy PASSED [ 30%]
+tests/test_exception_handling.py::TestRetryPolicies::test_exponential_backoff_policy PASSED [ 30%]
+tests/test_exception_handling.py::TestRetryPolicies::test_linear_backoff_policy PASSED [ 31%]
+tests/test_exception_handling.py::TestRetryPolicies::test_fixed_delay_policy PASSED [ 31%]
+tests/test_exception_handling.py::TestRetryPolicies::test_retry_decorator PASSED [ 31%]
+tests/test_exception_handling.py::TestRetryPolicies::test_retry_decorator_failure PASSED [ 31%]
+tests/test_exception_handling.py::TestRetryPolicies::test_async_retry_decorator PASSED [ 31%]
+tests/test_exception_handling.py::TestErrorHandlerRegistry::test_get_error_handler PASSED [ 32%]
+tests/test_exception_handling.py::TestErrorHandlerRegistry::test_singleton_pattern PASSED [ 32%]
+tests/test_exception_handling.py::TestThreadSafety::test_concurrent_error_handling PASSED [ 32%]
+tests/test_exception_handling.py::TestErrorHandlingIntegration::test_real_world_error_scenario SKIPPED [ 32%]
+tests/test_exception_handling.py::TestErrorHandlingIntegration::test_error_recovery_flow SKIPPED [ 33%]
+tests/test_exceptions/test_consistency.py::TestConsistencyIssue::test_issue_creation PASSED [ 33%]
+tests/test_exceptions/test_consistency.py::TestConsistencyIssue::test_issue_serialization PASSED [ 33%]
+tests/test_exceptions/test_consistency.py::TestConsistencyReport::test_report_creation PASSED [ 33%]
+tests/test_exceptions/test_consistency.py::TestConsistencyReport::test_report_serialization PASSED [ 33%]
+tests/test_exceptions/test_consistency.py::TestFileSystemChecker::test_checker_creation PASSED [ 34%]
+tests/test_exceptions/test_consistency.py::TestFileSystemChecker::test_check_existing_files PASSED [ 34%]
+tests/test_exceptions/test_consistency.py::TestFileSystemChecker::test_check_missing_files PASSED [ 34%]
+tests/test_exceptions/test_consistency.py::TestFileSystemChecker::test_check_size_mismatch PASSED [ 34%]
+tests/test_exceptions/test_consistency.py::TestFileSystemChecker::test_check_hash_mismatch PASSED [ 34%]
+tests/test_exceptions/test_consistency.py::TestIndexChecker::test_checker_creation PASSED [ 35%]
+tests/test_exceptions/test_consistency.py::TestIndexChecker::test_check_missing_index PASSED [ 35%]
+tests/test_exceptions/test_consistency.py::TestIndexChecker::test_check_orphaned_index PASSED [ 35%]
+tests/test_exceptions/test_consistency.py::TestVectorStoreChecker::test_checker_creation PASSED [ 35%]
+tests/test_exceptions/test_consistency.py::TestVectorStoreChecker::test_check_no_vector_store PASSED [ 36%]
+tests/test_exceptions/test_consistency.py::TestVectorStoreChecker::test_check_missing_vectors PASSED [ 36%]
+tests/test_exceptions/test_consistency.py::TestVectorStoreChecker::test_check_orphaned_vectors PASSED [ 36%]
+tests/test_exceptions/test_consistency.py::TestVectorStoreChecker::test_check_vector_dimension PASSED [ 36%]
+tests/test_exceptions/test_consistency.py::TestMetadataChecker::test_checker_creation PASSED [ 36%]
+tests/test_exceptions/test_consistency.py::TestMetadataChecker::test_check_missing_fields PASSED [ 37%]
+tests/test_exceptions/test_consistency.py::TestMetadataChecker::test_check_invalid_timestamp PASSED [ 37%]
+tests/test_exceptions/test_consistency.py::TestDataConsistencyManager::test_manager_creation PASSED [ 37%]
+tests/test_exceptions/test_consistency.py::TestDataConsistencyManager::test_register_checker PASSED [ 37%]
+tests/test_exceptions/test_consistency.py::TestDataConsistencyManager::test_run_consistency_check PASSED [ 37%]
+tests/test_exceptions/test_consistency.py::TestDataConsistencyManager::test_check_with_filters PASSED [ 38%]
+tests/test_exceptions/test_consistency.py::TestDataConsistencyManager::test_checker_error_handling PASSED [ 38%]
+tests/test_exceptions/test_consistency.py::TestDataConsistencyManager::test_auto_fix_issues PASSED [ 38%]
+tests/test_exceptions/test_consistency.py::TestDataConsistencyManager::test_report_history_management PASSED [ 38%]
+tests/test_exceptions/test_consistency.py::TestDataConsistencyManager::test_export_report PASSED [ 38%]
+tests/test_exceptions/test_consistency.py::TestGlobalConsistencyManager::test_get_consistency_manager PASSED [ 39%]
+tests/test_exceptions/test_consistency.py::TestConsistencyIntegration::test_full_consistency_workflow SKIPPED [ 39%]
+tests/test_exceptions/test_consistency.py::TestConsistencyIntegration::test_concurrent_consistency_checks SKIPPED [ 39%]
+tests/test_exceptions/test_incremental.py::TestFileMetadata::test_metadata_creation PASSED [ 39%]
+tests/test_exceptions/test_incremental.py::TestFileMetadata::test_metadata_serialization PASSED [ 40%]
+tests/test_exceptions/test_incremental.py::TestChangeRecord::test_change_record_creation PASSED [ 40%]
+tests/test_exceptions/test_incremental.py::TestChangeRecord::test_change_record_serialization PASSED [ 40%]
+tests/test_exceptions/test_incremental.py::TestFileWatcher::test_watcher_creation PASSED [ 40%]
+tests/test_exceptions/test_incremental.py::TestFileWatcher::test_add_change_listener PASSED [ 40%]
+tests/test_exceptions/test_incremental.py::TestFileWatcher::test_calculate_file_hash PASSED [ 41%]
+tests/test_exceptions/test_incremental.py::TestFileWatcher::test_detect_encoding PASSED [ 41%]
+tests/test_exceptions/test_incremental.py::TestFileWatcher::test_create_file_metadata PASSED [ 41%]
+tests/test_exceptions/test_incremental.py::TestFileWatcher::test_scan_changes_new_files PASSED [ 41%]
+tests/test_exceptions/test_incremental.py::TestFileWatcher::test_scan_changes_modified_files PASSED [ 41%]
+tests/test_exceptions/test_incremental.py::TestFileWatcher::test_scan_changes_deleted_files PASSED [ 42%]
+tests/test_exceptions/test_incremental.py::TestFileWatcher::test_change_listener_notification PASSED [ 42%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexStorage::test_storage_initialization PASSED [ 42%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexStorage::test_save_and_get_file_metadata PASSED [ 42%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexStorage::test_save_and_get_change_record PASSED [ 43%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexStorage::test_mark_change_processed PASSED [ 43%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexStorage::test_pending_changes_limit PASSED [ 43%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexManager::test_manager_creation PASSED [ 43%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexManager::test_scan_for_changes PASSED [ 43%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexManager::test_process_pending_changes PASSED [ 44%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexManager::test_processing_concurrency_protection PASSED [ 44%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexManager::test_file_change_handling PASSED [ 44%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexManager::test_get_index_statistics PASSED [ 44%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexManager::test_cleanup_old_records PASSED [ 44%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexingIntegration::test_full_incremental_workflow SKIPPED [ 45%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexingIntegration::test_concurrent_file_operations SKIPPED [ 45%]
+tests/test_exceptions/test_incremental.py::TestIncrementalIndexingIntegration::test_error_handling_in_processing SKIPPED [ 45%]
+tests/test_exceptions/test_recovery.py::TestCheckpointMetadata::test_metadata_creation PASSED [ 45%]
+tests/test_exceptions/test_recovery.py::TestCheckpointMetadata::test_metadata_serialization PASSED [ 45%]
+tests/test_exceptions/test_recovery.py::TestSystemState::test_state_creation PASSED [ 46%]
+tests/test_exceptions/test_recovery.py::TestSystemState::test_state_serialization PASSED [ 46%]
+tests/test_exceptions/test_recovery.py::TestFileCheckpointStorage::test_storage_initialization PASSED [ 46%]
+tests/test_exceptions/test_recovery.py::TestFileCheckpointStorage::test_save_and_load_checkpoint PASSED [ 46%]
+tests/test_exceptions/test_recovery.py::TestFileCheckpointStorage::test_list_checkpoints PASSED [ 47%]
+tests/test_exceptions/test_recovery.py::TestFileCheckpointStorage::test_delete_checkpoint PASSED [ 47%]
+tests/test_exceptions/test_recovery.py::TestFileCheckpointStorage::test_checksum_validation PASSED [ 47%]
+tests/test_exceptions/test_recovery.py::TestCheckpointManager::test_manager_creation PASSED [ 47%]
+tests/test_exceptions/test_recovery.py::TestCheckpointManager::test_create_checkpoint PASSED [ 47%]
+tests/test_exceptions/test_recovery.py::TestCheckpointManager::test_list_checkpoints_with_filters PASSED [ 48%]
+tests/test_exceptions/test_recovery.py::TestCheckpointManager::test_cleanup_old_checkpoints PASSED [ 48%]
+tests/test_exceptions/test_recovery.py::TestStateManager::test_state_manager_creation PASSED [ 48%]
+tests/test_exceptions/test_recovery.py::TestStateManager::test_register_component PASSED [ 48%]
+tests/test_exceptions/test_recovery.py::TestStateManager::test_capture_current_state PASSED [ 48%]
+tests/test_exceptions/test_recovery.py::TestStateManager::test_component_error_handling PASSED [ 49%]
+tests/test_exceptions/test_recovery.py::TestStateManager::test_state_history_limit PASSED [ 49%]
+tests/test_exceptions/test_recovery.py::TestStateManager::test_compare_states PASSED [ 49%]
+tests/test_exceptions/test_recovery.py::TestRecoveryManager::test_recovery_manager_creation PASSED [ 49%]
+tests/test_exceptions/test_recovery.py::TestRecoveryManager::test_register_recovery_strategy PASSED [ 50%]
+tests/test_exceptions/test_recovery.py::TestRecoveryManager::test_auto_recover_success PASSED [ 50%]
+tests/test_exceptions/test_recovery.py::TestRecoveryManager::test_auto_recover_no_strategy PASSED [ 50%]
+tests/test_exceptions/test_recovery.py::TestRecoveryManager::test_create_recovery_checkpoint PASSED [ 50%]
+tests/test_exceptions/test_recovery.py::TestRecoveryManager::test_perform_recovery PASSED [ 50%]
+tests/test_exceptions/test_recovery.py::TestGlobalRecoveryManager::test_get_recovery_manager PASSED [ 51%]
+tests/test_exceptions/test_recovery.py::TestRecoveryIntegration::test_full_recovery_scenario SKIPPED [ 51%]
+tests/test_indexing/test_engine.py::TestGraphRAGIndexer::test_indexer_initialization PASSED [ 51%]
+tests/test_indexing/test_engine.py::TestGraphRAGIndexer::test_create_text_units PASSED [ 51%]
+tests/test_indexing/test_engine.py::TestGraphRAGIndexer::test_entity_and_relationship_extraction PASSED [ 51%]
+tests/test_indexing/test_engine.py::TestGraphRAGIndexer::test_detect_communities PASSED [ 52%]
+tests/test_indexing/test_engine.py::TestGraphRAGIndexer::test_create_embeddings PASSED [ 52%]
+tests/test_indexing/test_engine.py::TestGraphRAGIndexer::test_get_statistics PASSED [ 52%]
+tests/test_indexing/test_engine.py::TestGraphRAGIndexer::test_clear_index PASSED [ 52%]
+tests/test_indexing/test_engine.py::TestGraphRAGIndexer::test_full_indexing_workflow PASSED [ 52%]
+tests/test_models/test_base.py::TestBaseModel::test_create_model_with_defaults PASSED [ 53%]
+tests/test_models/test_base.py::TestBaseModel::test_create_model_with_custom_values PASSED [ 53%]
+tests/test_models/test_base.py::TestBaseModel::test_update_timestamp PASSED [ 53%]
+tests/test_models/test_base.py::TestBaseModel::test_to_dict PASSED       [ 53%]
+tests/test_models/test_base.py::TestBaseModel::test_from_dict PASSED     [ 54%]
+tests/test_models/test_base.py::TestBaseModel::test_to_json PASSED       [ 54%]
+tests/test_models/test_base.py::TestBaseModel::test_from_json PASSED     [ 54%]
+tests/test_models/test_base.py::TestBaseModel::test_validation_on_assignment PASSED [ 54%]
+tests/test_models/test_base.py::TestBaseModel::test_exclude_none_in_serialization PASSED [ 54%]
+tests/test_models/test_community.py::TestCommunity::test_create_community_with_required_fields PASSED [ 55%]
+tests/test_models/test_community.py::TestCommunity::test_create_community_with_all_fields PASSED [ 55%]
+tests/test_models/test_community.py::TestCommunity::test_title_validation PASSED [ 55%]
+tests/test_models/test_community.py::TestCommunity::test_level_validation PASSED [ 55%]
+tests/test_models/test_community.py::TestCommunity::test_summary_validation PASSED [ 55%]
+tests/test_models/test_community.py::TestCommunity::test_full_content_validation PASSED [ 56%]
+tests/test_models/test_community.py::TestCommunity::test_entities_validation PASSED [ 56%]
+tests/test_models/test_community.py::TestCommunity::test_relationships_validation PASSED [ 56%]
+tests/test_models/test_community.py::TestCommunity::test_child_communities_validation PASSED [ 56%]
+tests/test_models/test_community.py::TestCommunity::test_embedding_validation PASSED [ 56%]
+tests/test_models/test_community.py::TestCommunity::test_rank_validation PASSED [ 57%]
+tests/test_models/test_community.py::TestCommunity::test_size_validation PASSED [ 57%]
+tests/test_models/test_community.py::TestCommunity::test_density_validation PASSED [ 57%]
+tests/test_models/test_community.py::TestCommunity::test_properties PASSED [ 57%]
+tests/test_models/test_community.py::TestCommunity::test_add_entity PASSED [ 58%]
+tests/test_models/test_community.py::TestCommunity::test_remove_entity PASSED [ 58%]
+tests/test_models/test_community.py::TestCommunity::test_add_relationship PASSED [ 58%]
+tests/test_models/test_community.py::TestCommunity::test_remove_relationship PASSED [ 58%]
+tests/test_models/test_community.py::TestCommunity::test_add_child_community PASSED [ 58%]
+tests/test_models/test_community.py::TestCommunity::test_remove_child_community PASSED [ 59%]
+tests/test_models/test_community.py::TestCommunity::test_update_rank PASSED [ 59%]
+tests/test_models/test_community.py::TestCommunity::test_calculate_size PASSED [ 59%]
+tests/test_models/test_community.py::TestCommunity::test_get_summary_preview PASSED [ 59%]
+tests/test_models/test_community.py::TestCommunity::test_serialization PASSED [ 59%]
+tests/test_models/test_document.py::TestDocument::test_create_document_with_required_fields PASSED [ 60%]
+tests/test_models/test_document.py::TestDocument::test_create_document_with_all_fields PASSED [ 60%]
+tests/test_models/test_document.py::TestDocument::test_title_validation PASSED [ 60%]
+tests/test_models/test_document.py::TestDocument::test_content_validation PASSED [ 60%]
+tests/test_models/test_document.py::TestDocument::test_file_path_validation PASSED [ 61%]
+tests/test_models/test_document.py::TestDocument::test_language_validation PASSED [ 61%]
+tests/test_models/test_document.py::TestDocument::test_file_size_validation PASSED [ 61%]
+tests/test_models/test_document.py::TestDocument::test_file_name_property PASSED [ 61%]
+tests/test_models/test_document.py::TestDocument::test_file_extension_property PASSED [ 61%]
+tests/test_models/test_document.py::TestDocument::test_content_length_property PASSED [ 62%]
+tests/test_models/test_document.py::TestDocument::test_get_summary PASSED [ 62%]
+tests/test_models/test_document.py::TestDocument::test_serialization PASSED [ 62%]
+tests/test_models/test_entity.py::TestEntity::test_create_entity_with_required_fields PASSED [ 62%]
+tests/test_models/test_entity.py::TestEntity::test_create_entity_with_all_fields PASSED [ 62%]
+tests/test_models/test_entity.py::TestEntity::test_name_validation PASSED [ 63%]
+tests/test_models/test_entity.py::TestEntity::test_type_validation PASSED [ 63%]
+tests/test_models/test_entity.py::TestEntity::test_description_validation PASSED [ 63%]
+tests/test_models/test_entity.py::TestEntity::test_text_units_validation PASSED [ 63%]
+tests/test_models/test_entity.py::TestEntity::test_rank_validation PASSED [ 63%]
+tests/test_models/test_entity.py::TestEntity::test_frequency_validation PASSED [ 64%]
+tests/test_models/test_entity.py::TestEntity::test_confidence_validation PASSED [ 64%]
+tests/test_models/test_entity.py::TestEntity::test_embedding_validation PASSED [ 64%]
+tests/test_models/test_entity.py::TestEntity::test_properties PASSED     [ 64%]
+tests/test_models/test_entity.py::TestEntity::test_add_text_unit PASSED  [ 65%]
+tests/test_models/test_entity.py::TestEntity::test_remove_text_unit PASSED [ 65%]
+tests/test_models/test_entity.py::TestEntity::test_update_rank PASSED    [ 65%]
+tests/test_models/test_entity.py::TestEntity::test_serialization PASSED  [ 65%]
+tests/test_models/test_relationship.py::TestRelationship::test_create_relationship_with_required_fields PASSED [ 65%]
+tests/test_models/test_relationship.py::TestRelationship::test_create_relationship_with_all_fields PASSED [ 66%]
+tests/test_models/test_relationship.py::TestRelationship::test_source_entity_id_validation PASSED [ 66%]
+tests/test_models/test_relationship.py::TestRelationship::test_target_entity_id_validation PASSED [ 66%]
+tests/test_models/test_relationship.py::TestRelationship::test_relationship_type_validation PASSED [ 66%]
+tests/test_models/test_relationship.py::TestRelationship::test_description_validation PASSED [ 66%]
+tests/test_models/test_relationship.py::TestRelationship::test_weight_validation PASSED [ 67%]
+tests/test_models/test_relationship.py::TestRelationship::test_text_units_validation PASSED [ 67%]
+tests/test_models/test_relationship.py::TestRelationship::test_confidence_validation PASSED [ 67%]
+tests/test_models/test_relationship.py::TestRelationship::test_frequency_validation PASSED [ 67%]
+tests/test_models/test_relationship.py::TestRelationship::test_properties PASSED [ 68%]
+tests/test_models/test_relationship.py::TestRelationship::test_add_text_unit PASSED [ 68%]
+tests/test_models/test_relationship.py::TestRelationship::test_remove_text_unit PASSED [ 68%]
+tests/test_models/test_relationship.py::TestRelationship::test_update_weight PASSED [ 68%]
+tests/test_models/test_relationship.py::TestRelationship::test_get_reverse_relationship PASSED [ 68%]
+tests/test_models/test_relationship.py::TestRelationship::test_serialization PASSED [ 69%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_create_text_unit_with_required_fields PASSED [ 69%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_create_text_unit_with_all_fields PASSED [ 69%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_text_validation PASSED [ 69%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_document_id_validation PASSED [ 69%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_chunk_index_validation PASSED [ 70%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_position_validation PASSED [ 70%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_embedding_validation PASSED [ 70%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_token_count_validation PASSED [ 70%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_text_length_property PASSED [ 70%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_has_embedding_property PASSED [ 71%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_embedding_dimension_property PASSED [ 71%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_get_text_preview PASSED [ 71%]
+tests/test_models/test_text_unit.py::TestTextUnit::test_serialization PASSED [ 71%]
+tests/test_monitoring_system.py::TestLoggerManager::test_setup_logging_with_default_config PASSED [ 72%]
+tests/test_monitoring_system.py::TestLoggerManager::test_get_logger_with_context PASSED [ 72%]
+tests/test_monitoring_system.py::TestLoggerManager::test_update_log_level PASSED [ 72%]
+tests/test_monitoring_system.py::TestLoggerManager::test_json_logging PASSED [ 72%]
+tests/test_monitoring_system.py::TestErrorTracker::test_track_exception PASSED [ 72%]
+tests/test_monitoring_system.py::TestErrorTracker::test_track_string_error PASSED [ 73%]
+tests/test_monitoring_system.py::TestErrorTracker::test_error_aggregation PASSED [ 73%]
+tests/test_monitoring_system.py::TestErrorTracker::test_error_stats PASSED [ 73%]
+tests/test_monitoring_system.py::TestErrorTracker::test_alert_callback PASSED [ 73%]
+tests/test_monitoring_system.py::TestErrorTracker::test_export_errors PASSED [ 73%]
+tests/test_monitoring_system.py::TestMetricsCollector::test_record_counter PASSED [ 74%]
+tests/test_monitoring_system.py::TestMetricsCollector::test_record_gauge PASSED [ 74%]
+tests/test_monitoring_system.py::TestMetricsCollector::test_record_timer PASSED [ 74%]
+tests/test_monitoring_system.py::TestMetricsCollector::test_timer_context_manager PASSED [ 74%]
+tests/test_monitoring_system.py::TestMetricsCollector::test_system_metrics_collection PASSED [ 75%]
+tests/test_monitoring_system.py::TestMetricsCollector::test_export_metrics PASSED [ 75%]
+tests/test_monitoring_system.py::TestSystemMonitor::test_collect_system_stats PASSED [ 75%]
+tests/test_monitoring_system.py::TestSystemMonitor::test_system_monitoring_lifecycle PASSED [ 75%]
+tests/test_monitoring_system.py::TestSystemMonitor::test_get_process_stats PASSED [ 75%]
+tests/test_monitoring_system.py::TestSystemMonitor::test_health_checks PASSED [ 76%]
+tests/test_monitoring_system.py::TestSystemMonitor::test_alert_system PASSED [ 76%]
+tests/test_monitoring_system.py::TestIntegration::test_monitoring_system_integration PASSED [ 76%]
+tests/test_processors/test_base.py::TestBaseDocumentProcessor::test_can_process_supported_extension PASSED [ 76%]
+tests/test_processors/test_base.py::TestBaseDocumentProcessor::test_validate_file_not_exists PASSED [ 76%]
+tests/test_processors/test_base.py::TestBaseDocumentProcessor::test_validate_file_not_readable PASSED [ 77%]
+tests/test_processors/test_base.py::TestBaseDocumentProcessor::test_detect_encoding_utf8 PASSED [ 77%]
+tests/test_processors/test_base.py::TestBaseDocumentProcessor::test_get_file_info PASSED [ 77%]
+tests/test_processors/test_base.py::TestBaseDocumentProcessor::test_create_document PASSED [ 77%]
+tests/test_processors/test_base.py::TestDocumentProcessorManager::test_register_processor PASSED [ 77%]
+tests/test_processors/test_base.py::TestDocumentProcessorManager::test_get_processor PASSED [ 78%]
+tests/test_processors/test_base.py::TestDocumentProcessorManager::test_can_process PASSED [ 78%]
+tests/test_processors/test_base.py::TestDocumentProcessorManager::test_process_file_unsupported_format PASSED [ 78%]
+tests/test_processors/test_base.py::TestDocumentProcessorManager::test_process_file_success PASSED [ 78%]
+tests/test_processors/test_base.py::TestDocumentProcessorManager::test_batch_process_directory_not_exists PASSED [ 79%]
+tests/test_processors/test_base.py::TestDocumentProcessorManager::test_batch_process_success PASSED [ 79%]
+tests/test_processors/test_base.py::TestDocumentProcessorManager::test_get_supported_extensions PASSED [ 79%]
+tests/test_processors/test_base.py::TestDocumentProcessorManager::test_get_processor_info PASSED [ 79%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_init_default PASSED [ 79%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_init_with_params PASSED [ 80%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_clean_text_basic PASSED [ 80%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_clean_text_special_chars PASSED [ 80%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_clean_text_punctuation_normalization PASSED [ 80%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_clean_text_empty PASSED [ 80%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_segment_text_basic PASSED [ 81%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_segment_text_keep_stopwords PASSED [ 81%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_segment_text_no_pos_filter PASSED [ 81%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_segment_text_empty PASSED [ 81%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_extract_keywords_basic PASSED [ 81%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_extract_keywords_empty PASSED [ 82%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_split_into_sentences PASSED [ 82%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_split_text_into_chunks_basic PASSED [ 82%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_split_text_into_chunks_empty PASSED [ 82%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_split_text_into_chunks_small_text PASSED [ 83%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_split_text_into_chunks_custom_size PASSED [ 83%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_get_text_statistics_comprehensive PASSED [ 83%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_get_text_statistics_empty PASSED [ 83%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_get_text_statistics_chinese_only PASSED [ 83%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_get_text_statistics_english_only PASSED [ 84%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_custom_stopwords_file PASSED [ 84%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_custom_dict_integration PASSED [ 84%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_normalize_punctuation PASSED [ 84%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_integration_with_real_chinese_text PASSED [ 84%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_preprocess_for_entity_recognition_basic PASSED [ 85%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_preprocess_for_entity_recognition_empty PASSED [ 85%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_extract_entity_patterns_comprehensive PASSED [ 85%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_evaluate_text_quality_good_text PASSED [ 85%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_evaluate_text_quality_poor_text PASSED [ 86%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_evaluate_text_quality_empty PASSED [ 86%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_extract_named_entities_candidates_basic PASSED [ 86%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_extract_named_entities_candidates_confidence_threshold PASSED [ 86%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_extract_named_entities_candidates_empty PASSED [ 86%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_entity_recognition_integration PASSED [ 87%]
+tests/test_processors/test_chinese_text_processor.py::TestChineseTextProcessor::test_text_quality_with_entity_patterns PASSED [ 87%]
+tests/test_processors/test_text_processor.py::TestTextProcessor::test_supported_extensions PASSED [ 87%]
+tests/test_processors/test_text_processor.py::TestTextProcessor::test_extract_content_success PASSED [ 87%]
+tests/test_processors/test_text_processor.py::TestTextProcessor::test_extract_content_empty_file PASSED [ 87%]
+tests/test_processors/test_text_processor.py::TestTextProcessor::test_extract_content_whitespace_only PASSED [ 88%]
+tests/test_processors/test_text_processor.py::TestTextProcessor::test_process_file_success PASSED [ 88%]
+tests/test_processors/test_text_processor.py::TestTextProcessor::test_process_file_with_chinese_content PASSED [ 88%]
+tests/test_processors/test_text_processor.py::TestMarkdownProcessor::test_supported_extensions PASSED [ 88%]
+tests/test_processors/test_text_processor.py::TestMarkdownProcessor::test_extract_content_simple_markdown PASSED [ 88%]
+tests/test_processors/test_text_processor.py::TestMarkdownProcessor::test_extract_content_with_code_blocks PASSED [ 89%]
+tests/test_processors/test_text_processor.py::TestMarkdownProcessor::test_extract_raw_content PASSED [ 89%]
+tests/test_processors/test_text_processor.py::TestMarkdownProcessor::test_process_file_success PASSED [ 89%]
+tests/test_processors/test_text_processor.py::TestMarkdownProcessor::test_extract_content_empty_markdown PASSED [ 89%]
+tests/test_query/test_query_system.py::TestLLMManager::test_generate_with_mock_llm PASSED [ 90%]
+tests/test_query/test_query_system.py::TestLLMManager::test_health_check PASSED [ 90%]
+tests/test_query/test_query_system.py::TestLLMManager::test_get_metrics PASSED [ 90%]
+tests/test_query/test_query_system.py::TestLLMManager::test_get_adapter_info PASSED [ 90%]
+tests/test_query/test_query_system.py::TestChineseQueryProcessor::test_process_entity_query PASSED [ 90%]
+tests/test_query/test_query_system.py::TestChineseQueryProcessor::test_process_relationship_query PASSED [ 91%]
+tests/test_query/test_query_system.py::TestChineseQueryProcessor::test_process_global_query PASSED [ 91%]
+tests/test_query/test_query_system.py::TestChineseQueryProcessor::test_extract_keywords PASSED [ 91%]
+tests/test_query/test_query_system.py::TestChineseQueryProcessor::test_suggest_query_enhancement PASSED [ 91%]
+tests/test_query/test_query_system.py::TestGlobalSearchEngine::test_global_search PASSED [ 91%]
+tests/test_query/test_query_system.py::TestGlobalSearchEngine::test_health_check PASSED [ 92%]
+tests/test_query/test_query_system.py::TestGlobalSearchEngine::test_get_available_strategies PASSED [ 92%]
+tests/test_query/test_query_system.py::TestLocalSearchEngine::test_local_search PASSED [ 92%]
+tests/test_query/test_query_system.py::TestQueryEngine::test_simple_query PASSED [ 92%]
+tests/test_query/test_query_system.py::TestQueryEngine::test_global_search_query PASSED [ 93%]
+tests/test_query/test_query_system.py::TestQueryEngine::test_local_search_query PASSED [ 93%]
+tests/test_query/test_query_system.py::TestQueryEngine::test_hybrid_search_query PASSED [ 93%]
+tests/test_query/test_query_system.py::TestQueryEngine::test_batch_query PASSED [ 93%]
+tests/test_query/test_query_system.py::TestQueryEngine::test_get_engine_status PASSED [ 93%]
+tests/test_query/test_query_system.py::TestQueryEngine::test_health_check PASSED [ 94%]
+tests/test_query/test_query_system.py::TestQueryEngine::test_clear_cache PASSED [ 94%]
+tests/test_query/test_query_system.py::TestIntegration::test_end_to_end_query_flow PASSED [ 94%]
+tests/test_query/test_query_system.py::TestIntegration::test_query_result_serialization PASSED [ 94%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_connection PASSED [ 94%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_collection_management PASSED [ 95%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_vector_operations PASSED [ 95%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_vector_search PASSED [ 95%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_vector_update_and_delete PASSED [ 95%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_health_check PASSED [ 95%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_context_manager PASSED [ 96%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_error_handling PASSED [ 96%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_hybrid_search PASSED [ 96%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_sparse_search PASSED [ 96%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_index_optimization PASSED [ 97%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_search_filter PASSED [ 97%]
+tests/test_vector_stores/test_lancedb_store.py::TestLanceDBStore::test_disconnected_operations PASSED [ 97%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_manager_initialization PASSED [ 97%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_create_vector_store_manager PASSED [ 97%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_collection_operations PASSED [ 98%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_vector_operations PASSED [ 98%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_health_check PASSED [ 98%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_statistics PASSED [ 98%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_context_manager PASSED [ 98%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_error_handling PASSED [ 99%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_hybrid_search_manager PASSED [ 99%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_index_optimization_manager PASSED [ 99%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_search_filter_manager PASSED [ 99%]
+tests/test_vector_stores/test_manager.py::TestVectorStoreManager::test_multiple_stores PASSED [100%]
+
+=============================== warnings summary ===============================
+src/chinese_graphrag/models/document.py:29
+src/chinese_graphrag/models/document.py:29
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/document.py:29: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("file_path")
+
+src/chinese_graphrag/models/document.py:36
+src/chinese_graphrag/models/document.py:36
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/document.py:36: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("content")
+
+src/chinese_graphrag/models/document.py:43
+src/chinese_graphrag/models/document.py:43
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/document.py:43: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("title")
+
+.venv/lib/python3.11/site-packages/jieba/_compat.py:18
+  /Users/tenyi/Projects/MyRag/.venv/lib/python3.11/site-packages/jieba/_compat.py:18: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+    import pkg_resources
+
+src/chinese_graphrag/models/text_unit.py:29
+src/chinese_graphrag/models/text_unit.py:29
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/text_unit.py:29: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("text")
+
+src/chinese_graphrag/models/text_unit.py:36
+src/chinese_graphrag/models/text_unit.py:36
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/text_unit.py:36: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("document_id")
+
+src/chinese_graphrag/models/text_unit.py:43
+src/chinese_graphrag/models/text_unit.py:43
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/text_unit.py:43: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("end_position")
+
+src/chinese_graphrag/models/text_unit.py:52
+src/chinese_graphrag/models/text_unit.py:52
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/text_unit.py:52: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("embedding")
+
+tests/test_data_manager.py:20
+  /Users/tenyi/Projects/MyRag/tests/test_data_manager.py:20: PytestCollectionWarning: cannot collect test class 'TestDataInfo' because it has a __init__ constructor (from: tests/test_data_manager.py)
+    @dataclass
+
+tests/test_data_manager.py:34
+  /Users/tenyi/Projects/MyRag/tests/test_data_manager.py:34: PytestCollectionWarning: cannot collect test class 'TestDataManager' because it has a __init__ constructor (from: tests/test_data_manager.py)
+    class TestDataManager:
+
+tests/test_models/test_base.py:14
+  /Users/tenyi/Projects/MyRag/tests/test_models/test_base.py:14: PytestCollectionWarning: cannot collect test class 'TestModel' because it has a __init__ constructor (from: tests/test_models/test_base.py)
+    class TestModel(BaseModel):
+
+src/chinese_graphrag/models/community.py:34
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/community.py:34: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("title")
+
+src/chinese_graphrag/models/community.py:41
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/community.py:41: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("summary")
+
+src/chinese_graphrag/models/community.py:48
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/community.py:48: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("full_content")
+
+src/chinese_graphrag/models/community.py:55
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/community.py:55: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("entities")
+
+src/chinese_graphrag/models/community.py:62
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/community.py:62: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("relationships")
+
+src/chinese_graphrag/models/community.py:69
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/community.py:69: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("child_communities")
+
+src/chinese_graphrag/models/community.py:76
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/community.py:76: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("embedding")
+
+src/chinese_graphrag/models/entity.py:31
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/entity.py:31: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("name")
+
+src/chinese_graphrag/models/entity.py:38
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/entity.py:38: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("type")
+
+src/chinese_graphrag/models/entity.py:45
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/entity.py:45: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("description")
+
+src/chinese_graphrag/models/entity.py:52
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/entity.py:52: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("text_units")
+
+src/chinese_graphrag/models/entity.py:59
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/entity.py:59: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("embedding")
+
+src/chinese_graphrag/models/relationship.py:30
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/relationship.py:30: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("source_entity_id")
+
+src/chinese_graphrag/models/relationship.py:37
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/relationship.py:37: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("target_entity_id")
+
+src/chinese_graphrag/models/relationship.py:50
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/relationship.py:50: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("relationship_type")
+
+src/chinese_graphrag/models/relationship.py:57
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/relationship.py:57: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("description")
+
+src/chinese_graphrag/models/relationship.py:64
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/models/relationship.py:64: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    @validator("text_units")
+
+.venv/lib/python3.11/site-packages/pydantic/_internal/_config.py:323
+  /Users/tenyi/Projects/MyRag/.venv/lib/python3.11/site-packages/pydantic/_internal/_config.py:323: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+.venv/lib/python3.11/site-packages/pydantic/_internal/_generate_schema.py:298
+  /Users/tenyi/Projects/MyRag/.venv/lib/python3.11/site-packages/pydantic/_internal/_generate_schema.py:298: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.11/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warnings.warn(
+
+tests/test_utils.py:173
+  /Users/tenyi/Projects/MyRag/tests/test_utils.py:173: PytestCollectionWarning: cannot collect test class 'TestFileManager' because it has a __init__ constructor (from: tests/test_utils.py)
+    class TestFileManager:
+
+tests/test_config_system.py::TestConfigValidator::test_validate_missing_default_models
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/config/validation.py:80: ConfigValidationWarning: LLM 模型 'existing_model' 缺少 API 金鑰
+    warnings.warn(warning, ConfigValidationWarning)
+
+tests/test_monitoring_system.py: 26 warnings
+  /Users/tenyi/Projects/MyRag/src/chinese_graphrag/monitoring/logger.py:171: PydanticDeprecatedSince20: The `json` method is deprecated; use `model_dump_json` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    return structured_record.json() + "\n"
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+-------- generated xml file: /Users/tenyi/Projects/MyRag/pytest-all.xml --------
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.11.3-final-0 _______________
+
+Name                                                          Stmts   Miss  Cover   Missing
+-------------------------------------------------------------------------------------------
+src/chinese_graphrag/__init__.py                                  1      0   100%
+src/chinese_graphrag/api/__init__.py                              5      5     0%   10-17
+src/chinese_graphrag/api/app.py                                  89     89     0%   10-306
+src/chinese_graphrag/api/docs.py                                 78     78     0%   10-1127
+src/chinese_graphrag/api/manage.py                              112    112     0%   10-311
+src/chinese_graphrag/api/models.py                              116    116     0%   10-258
+src/chinese_graphrag/api/routes/__init__.py                       1      1     0%   10
+src/chinese_graphrag/api/routes/config.py                       114    114     0%   10-485
+src/chinese_graphrag/api/routes/health.py                        92     92     0%   10-302
+src/chinese_graphrag/api/routes/index.py                        175    175     0%   10-527
+src/chinese_graphrag/api/routes/query.py                        164    164     0%   10-561
+src/chinese_graphrag/api/test_integration.py                    165    165     0%   10-285
+src/chinese_graphrag/api/validation.py                          198    198     0%   10-646
+src/chinese_graphrag/cli/__init__.py                              0      0   100%
+src/chinese_graphrag/cli/api_commands.py                        199    199     0%   10-463
+src/chinese_graphrag/cli/index_commands.py                      159    159     0%   6-353
+src/chinese_graphrag/cli/main.py                                177    177     0%   10-355
+src/chinese_graphrag/cli/management_commands.py                 323    323     0%   6-643
+src/chinese_graphrag/cli/query_commands.py                      237    237     0%   6-510
+src/chinese_graphrag/cli/utils.py                               183    183     0%   10-428
+src/chinese_graphrag/config/__init__.py                           6      0   100%
+src/chinese_graphrag/config/env.py                              108     45    58%   50, 63, 80-81, 114-115, 128, 140, 159-191, 199, 208, 216-217, 233-254, 369, 381-384
+src/chinese_graphrag/config/loader.py                           118     17    86%   42, 76, 121, 127, 135-136, 142-143, 163, 169, 172, 179, 181, 334-335, 348-349
+src/chinese_graphrag/config/models.py                           214      1    99%   193
+src/chinese_graphrag/config/strategy.py                         177     27    85%   105, 125, 190, 207, 216, 253, 269-279, 319-321, 355, 371, 400-401, 426-434
+src/chinese_graphrag/config/validation.py                       171     39    77%   90, 102, 107-108, 123, 127, 145-148, 152, 155, 161-162, 166-167, 171, 175, 181, 184, 188, 191, 194, 198, 201, 205, 208, 214-226, 241, 246, 251
+src/chinese_graphrag/embeddings/__init__.py                       7      0   100%
+src/chinese_graphrag/embeddings/base.py                         149     58    61%   43, 46-47, 75, 114, 119, 124, 143, 179-205, 213-214, 232, 258-267, 275-296, 300-304, 308-310, 314-315
+src/chinese_graphrag/embeddings/bge_m3.py                       142    115    19%   18-20, 25-27, 70-98, 102-125, 129-147, 151-171, 175-178, 196-242, 251-268, 272-284, 300, 316-333, 349-366, 384
+src/chinese_graphrag/embeddings/cache.py                        407    127    69%   25, 61, 75, 80, 97, 103, 111-118, 123-125, 159, 164, 169, 174, 179, 215, 225, 284-286, 297, 305-309, 329, 351-352, 362-369, 417-419, 428-429, 455-459, 493-496, 541-543, 547-572, 576-593, 617-648, 699, 713-716, 720-722, 761-816
+src/chinese_graphrag/embeddings/chinese_optimized.py            329     96    71%   21-23, 28-29, 94, 101, 105, 129, 163-183, 187-218, 222-244, 248-271, 275-279, 291, 304, 317-339, 360, 367, 402, 430, 437, 547, 586-588, 600, 614, 646, 654, 729, 747, 763
+src/chinese_graphrag/embeddings/evaluation.py                   423    349    17%   23-25, 30-31, 117-123, 127-135, 143-161, 177-195, 211-250, 258-278, 286-306, 314-331, 351-407, 423-435, 451-525, 541-582, 598-617, 638-695, 708-738, 747-808, 815-884, 894-929, 946-962, 978-1020
+src/chinese_graphrag/embeddings/gpu_acceleration.py             360    233    35%   25-28, 32, 54, 59, 75, 80, 104, 108-112, 125, 129-167, 183-221, 225-250, 254-264, 268-280, 325-327, 331-332, 336-337, 356-362, 375-438, 464-467, 493-503, 520-557, 561-584, 593-603, 626-688, 692-722, 748-751
+src/chinese_graphrag/embeddings/local_models.py                 166    128    23%   20-22, 27-29, 159-216, 220-247, 251-280, 284-304, 308-311, 329-378, 387-404, 408-422, 431-442, 446, 464-467, 489-492, 514
+src/chinese_graphrag/embeddings/manager.py                      307    103    66%   45-56, 162-163, 183, 225-226, 233, 268-269, 315, 337-339, 354-371, 397, 418, 443, 455-470, 493-499, 519-520, 543, 585-587, 606, 615, 630-637, 656-658, 662-666, 675-679, 683-685, 689-701, 705-707, 711-713, 721-723, 733-752, 772-774, 778-807
+src/chinese_graphrag/embeddings/monitoring.py                   334    247    26%   48-49, 54, 59, 79, 84, 89, 94, 130-183, 210-245, 250-269, 274-295, 299-319, 328-343, 363-385, 396-400, 416-471, 508-524, 535-543, 561-609, 619-644, 648-649, 653-660, 664-696, 714-757, 761-768, 778-780, 791-792
+src/chinese_graphrag/embeddings/openai_service.py               169    169     0%   8-415
+src/chinese_graphrag/exceptions/__init__.py                       7      0   100%
+src/chinese_graphrag/exceptions/base.py                         120     20    83%   103-104, 108-109, 117, 193-195, 202-204, 211-213, 220-222, 229-231
+src/chinese_graphrag/exceptions/consistency.py                  274     43    84%   113, 194-195, 277-296, 336-343, 361-374, 543-549, 562-571, 575-576, 580-581
+src/chinese_graphrag/exceptions/handlers.py                     201     81    60%   43, 48, 66, 70-77, 107-118, 143-147, 170-172, 176-185, 233-235, 254, 261, 264, 270-287, 298, 301-310, 314-316, 320-321, 342-345, 378-397
+src/chinese_graphrag/exceptions/incremental.py                  258     29    89%   113-115, 125-126, 147, 150, 205-206, 302, 340, 420, 452-461, 469-474, 490-497, 501-505
+src/chinese_graphrag/exceptions/recovery.py                     293     35    88%   92, 97, 102, 107, 130-132, 144-145, 180-182, 193-194, 215-217, 227-228, 240-242, 278, 285, 326, 354, 406, 410-411, 496-498, 532-534
+src/chinese_graphrag/exceptions/retry.py                        194     77    60%   60, 138-139, 153-158, 161-188, 191, 209, 241, 251-252, 262-263, 267-274, 278, 288-333, 337, 351-360, 371-377, 387-393
+src/chinese_graphrag/indexing/__init__.py                         3      0   100%
+src/chinese_graphrag/indexing/community_detector.py             101     82    19%   53-69, 86-101, 120-147, 166-180, 197-204, 222-236, 256-284, 296-309
+src/chinese_graphrag/indexing/community_report_generator.py     103     46    55%   57, 64-65, 90, 96, 120-161, 204-207, 223-224, 240-241, 266-267, 271-276, 314-321, 345-375
+src/chinese_graphrag/indexing/document_processor.py              66     37    44%   41-64, 76-92, 112, 123-126, 150-160, 172-174
+src/chinese_graphrag/indexing/engine.py                         264     80    70%   20-46, 85-87, 105-107, 181-183, 187-201, 301, 317, 341-346, 512, 552-638, 642-668, 672-688
+src/chinese_graphrag/llm/__init__.py                             74     43    42%   45, 66-67, 105-111, 121-148, 155-157, 167-196, 222-223
+src/chinese_graphrag/models/__init__.py                          51      0   100%
+src/chinese_graphrag/models/base.py                              22      0   100%
+src/chinese_graphrag/models/community.py                        127      2    98%   81, 113
+src/chinese_graphrag/models/document.py                          40      0   100%
+src/chinese_graphrag/models/entity.py                            72      1    99%   64
+src/chinese_graphrag/models/relationship.py                      68      0   100%
+src/chinese_graphrag/models/text_unit.py                         54      1    98%   57
+src/chinese_graphrag/monitoring/__init__.py                       5      0   100%
+src/chinese_graphrag/monitoring/error_tracker.py                181     24    87%   157, 232, 237-244, 254-255, 333-338, 402, 458-466
+src/chinese_graphrag/monitoring/logger.py                       132     16    88%   77, 193, 198, 243-246, 269, 275-276, 282-284, 290-292
+src/chinese_graphrag/monitoring/metrics.py                      218     44    80%   131-133, 137-140, 144-150, 202, 209-210, 248-261, 293, 320-321, 338, 348-350, 354-358, 375-376, 381-382, 387-388, 394-396
+src/chinese_graphrag/monitoring/system_monitor.py               196     41    79%   41, 70, 92, 150, 182, 190-192, 224-225, 253-265, 291, 300, 316-317, 335-340, 376-384, 411-412, 436, 475, 480-481
+src/chinese_graphrag/performance/__init__.py                      7      0   100%
+src/chinese_graphrag/performance/batch_optimizer.py             251    119    53%   89-90, 107-109, 161-162, 166, 170-179, 183-191, 221, 241-257, 276, 314-330, 356-406, 410-424, 428-443, 447-450, 455-469, 480-501
+src/chinese_graphrag/performance/config_loader.py               172    137    20%   37, 59-67, 71-85, 96-124, 128-148, 152-164, 168-222, 226-231, 235-240, 245-272, 277-289, 294-308, 347-367, 371-372, 376-378, 420-424, 438-439
+src/chinese_graphrag/performance/cost_optimizer.py              300    133    56%   110, 115-129, 272-273, 293-297, 303, 306, 333, 354-365, 405-414, 423-424, 433-434, 463-510, 522-528, 539-550, 577-603, 627-637, 641-652, 663-678, 687-703, 708-736
+src/chinese_graphrag/performance/optimizer_manager.py           237     26    89%   162-163, 221-223, 231-232, 242-244, 259-260, 300-301, 312, 345-346, 380, 412-414, 440, 471, 495, 538-539
+src/chinese_graphrag/performance/performance_monitor.py         288     68    76%   24, 129, 196-197, 206, 233-234, 253-261, 265-272, 282, 287-288, 299-300, 309-310, 340, 358, 381, 407-420, 476-478, 505-508, 557, 616-618, 627-656
+src/chinese_graphrag/performance/query_optimizer.py             289    113    61%   22, 109, 111, 113, 115, 157, 166-179, 230-231, 235-244, 250-251, 270-272, 279-287, 304-323, 327-337, 345-363, 372-375, 418-419, 463-469, 501-503, 514-537, 541-546, 555-561, 572-577, 593-596, 600-601
+src/chinese_graphrag/processors/__init__.py                      14      6    57%   48-56
+src/chinese_graphrag/processors/base.py                         108     12    89%   47, 62, 90, 125-128, 133-134, 294, 302, 318-321
+src/chinese_graphrag/processors/chinese_text_processor.py       310     36    88%   82-83, 117-118, 293, 298, 334-335, 372, 708-710, 728-730, 732-734, 736-738, 747-748, 754-755, 765-767, 782-783, 792-794, 816-819
+src/chinese_graphrag/processors/docx_processor.py                77     62    19%   26-27, 42-86, 99-121, 133-141, 152-172, 184-206
+src/chinese_graphrag/processors/exceptions.py                    37      9    76%   21, 37-40, 55-58
+src/chinese_graphrag/processors/pdf_processor.py                 67     53    21%   26-27, 42-95, 109-121, 132-152, 164-186
+src/chinese_graphrag/processors/text_processor.py                70      5    93%   59, 150, 159, 180-181
+src/chinese_graphrag/query/__init__.py                            6      0   100%
+src/chinese_graphrag/query/engine.py                            284     71    75%   84, 87, 127-134, 141-156, 163-171, 230, 237-251, 256-264, 296, 298, 300, 348-358, 408-412, 460, 481-486, 570-571, 591-603, 628, 711-713, 748-749, 813-814
+src/chinese_graphrag/query/global_search.py                     236     25    89%   34, 60, 132, 157, 255, 281-283, 479-481, 499, 528-531, 536, 610, 632-648, 670-671, 693-694
+src/chinese_graphrag/query/local_search.py                      320     48    85%   36, 66, 119, 125, 247-249, 267, 462-464, 628, 648, 656-657, 676-680, 701, 705-709, 713-716, 752-754, 765-766, 841, 861, 883-901, 908, 916, 920, 924-925, 948-949
+src/chinese_graphrag/query/manager.py                           230     79    66%   58, 66, 108, 120-123, 145-177, 181-191, 198-201, 214-240, 244-252, 355, 370-387, 402, 406-408, 434-449, 464-465, 475-477
+src/chinese_graphrag/query/processor.py                         190     18    91%   76, 81, 200-205, 383, 449, 453, 466, 473, 475, 479, 485, 497-508
+src/chinese_graphrag/vector_stores/__init__.py                    4      0   100%
+src/chinese_graphrag/vector_stores/base.py                      306    124    59%   56, 60, 64, 79, 81, 83, 135, 140, 161, 173, 178, 183, 188, 209, 230, 247, 270, 299, 330, 353-361, 376, 382-384, 411, 437, 499, 518, 535-536, 550-564, 588-604, 630-655, 664-728, 741, 757-758, 770-794, 802-821
+src/chinese_graphrag/vector_stores/lancedb_store.py             432    122    72%   65-67, 80-81, 130-133, 147-149, 154, 158-159, 171-173, 191-193, 198, 202-204, 209, 213, 228-229, 241-242, 260-262, 273, 324, 331, 343-345, 354, 358, 369-371, 383, 387, 393, 405-414, 420, 459-461, 474, 478, 483-484, 487, 496, 514-522, 562, 581-589, 641, 643, 666, 691, 695, 702-716, 739-741, 750, 754, 784-793, 800-802, 810, 814, 834-835, 846-848, 855-860, 865, 873, 885
+src/chinese_graphrag/vector_stores/manager.py                   218     95    56%   80-82, 110, 136-138, 373-374, 409-410, 428-429, 461-463, 483-513, 531-550, 565-566, 574, 577, 580, 594-630, 642-679, 691-729
+-------------------------------------------------------------------------------------------
+TOTAL                                                         13752   6404    53%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+================ 428 passed, 44 skipped, 65 warnings in 26.27s =================

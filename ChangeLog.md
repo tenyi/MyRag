@@ -2,6 +2,25 @@
 
 本檔案記錄 Chinese GraphRAG 系統的所有重要變更。
 
+## [0.2.2] - 2025/08/02 14:59
+
+### Fixed
+
+- **索引引擎測試修復** - 修復 4 個 GraphRAG 索引引擎測試失敗問題
+  - 添加 `pytest-mock` 依賴到開發環境，解決 `mocker` fixture 缺失問題
+  - 修復 `test_entity_and_relationship_extraction` 中 `llm_name` 未定義錯誤
+  - 修復 `test_detect_communities` 測試的社群檢測流程
+  - 修復 `test_create_embeddings` 測試的向量嵌入建立流程
+  - 修復 `test_full_indexing_workflow` 測試的完整索引工作流程
+  - 改進索引狀態管理，確保測試時正確更新內部狀態
+
+### Technical
+
+- **測試依賴管理** - 在 `pyproject.toml` 中添加 `pytest-mock>=3.10.0` 依賴
+- **LLM 配置處理** - 改進 LLM 配置訪問的安全性，使用字典 `.get()` 方法
+- **索引狀態同步** - 確保 `index_documents` 方法在使用模擬時也能正確更新索引狀態
+- **錯誤處理改進** - 提高索引引擎在測試環境下的穩定性
+
 ## [0.2.1] - 2025/08/02 14:48
 
 ### Fixed

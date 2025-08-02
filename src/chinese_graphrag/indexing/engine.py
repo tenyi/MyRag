@@ -149,6 +149,18 @@ class GraphRAGIndexer:
             logger.info("步驟 4: 向量化處理")
             await self._create_embeddings(text_units, entities, communities)
             
+            # 更新索引狀態（確保測試時也能正確更新）
+            for doc in documents:
+                self.indexed_documents[doc.id] = doc
+            for unit in text_units:
+                self.text_units[unit.id] = unit
+            for entity in entities:
+                self.entities[entity.id] = entity
+            for rel in relationships:
+                self.relationships[rel.id] = rel
+            for comm in communities:
+                self.communities[comm.id] = comm
+            
             # 5. 儲存結果
             logger.info("步驟 5: 儲存索引結果")
             if output_path:
@@ -245,7 +257,7 @@ class GraphRAGIndexer:
                 "temperature": 0.7
             }
         
-        logger.info(f"使用 LLM 模型進行實體提取: {llm_name}")
+        logger.info(f"使用 LLM 模型進行實體提取: {default_llm_name}")
         
         entities = []
         relationships = []
@@ -317,7 +329,7 @@ class GraphRAGIndexer:
         from chinese_graphrag.llm import create_llm, LLM
         
         # 建立 LLM 實例
-        llm: LLM = create_llm(llm_config.type, llm_config)
+        llm: LLM = create_llm(llm_config.get("type", "mock"), llm_config)
 
         # 建構 prompt
         prompt = self._build_extraction_prompt(text_units)
