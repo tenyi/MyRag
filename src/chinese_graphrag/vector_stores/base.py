@@ -127,7 +127,12 @@ class VectorStore(ABC):
         self.config = kwargs
         self.is_connected = False
         
-        logger.info(f"初始化向量儲存: {store_type.value}")
+        # 安全地獲取類型字符串
+        if hasattr(store_type, 'value'):
+            type_str = store_type.value
+        else:
+            type_str = str(store_type)
+        logger.info(f"初始化向量儲存: {type_str}")
     
     @abstractmethod
     async def connect(self) -> None:
@@ -532,7 +537,12 @@ class VectorStore(ABC):
             bool: 是否優化成功
         """
         # 預設實作：記錄警告並返回 True
-        logger.warning(f"向量儲存 {self.store_type.value} 未實作索引優化功能")
+        # 安全地獲取類型字符串
+        if hasattr(self.store_type, 'value'):
+            type_str = self.store_type.value
+        else:
+            type_str = str(self.store_type)
+        logger.warning(f"向量儲存 {type_str} 未實作索引優化功能")
         return True
     
     async def get_index_stats(
@@ -740,7 +750,7 @@ class VectorStore(ABC):
             if not self.is_connected:
                 return {
                     "status": "disconnected",
-                    "store_type": self.store_type.value,
+                    "store_type": self.store_type.value if hasattr(self.store_type, 'value') else str(self.store_type),
                     "error": "未建立連線"
                 }
             
@@ -749,7 +759,7 @@ class VectorStore(ABC):
             
             return {
                 "status": "healthy",
-                "store_type": self.store_type.value,
+                "store_type": self.store_type.value if hasattr(self.store_type, 'value') else str(self.store_type),
                 "collections_count": len(collections),
                 "is_connected": self.is_connected
             }
@@ -757,7 +767,7 @@ class VectorStore(ABC):
         except Exception as e:
             return {
                 "status": "unhealthy",
-                "store_type": self.store_type.value,
+                "store_type": self.store_type.value if hasattr(self.store_type, 'value') else str(self.store_type),
                 "error": str(e)
             }
     

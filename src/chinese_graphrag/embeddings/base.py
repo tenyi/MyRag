@@ -106,7 +106,12 @@ class EmbeddingService(ABC):
         self.is_loaded = False
         self.metrics = ModelMetrics(model_name)
         
-        logger.info(f"初始化 Embedding 服務: {model_name} ({model_type.value})")
+        # 安全地獲取類型字符串
+        if hasattr(model_type, 'value'):
+            type_str = model_type.value
+        else:
+            type_str = str(model_type)
+        logger.info(f"初始化 Embedding 服務: {model_name} ({type_str})")
     
     @abstractmethod
     async def load_model(self) -> None:
@@ -217,7 +222,7 @@ class EmbeddingService(ABC):
         """取得模型基本資訊"""
         return {
             "model_name": self.model_name,
-            "model_type": self.model_type.value,
+            "model_type": self.model_type.value if hasattr(self.model_type, 'value') else str(self.model_type),
             "max_batch_size": self.max_batch_size,
             "max_sequence_length": self.max_sequence_length,
             "device": self.device,

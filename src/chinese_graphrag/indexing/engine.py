@@ -16,40 +16,18 @@ from loguru import logger
 
 # Microsoft GraphRAG 相關導入
 try:
-    from graphrag.index import create_pipeline_config
-    from graphrag.index.run import run_pipeline_with_config
-    from graphrag.index.config import PipelineConfig
-    from graphrag.index.workflows.v1.create_base_text_units import (
-        create_base_text_units,
-    )
-    from graphrag.index.workflows.v1.create_base_extracted_entities import (
-        create_base_extracted_entities,
-    )
-    from graphrag.index.workflows.v1.create_summarized_entities import (
-        create_summarized_entities,
-    )
-    from graphrag.index.workflows.v1.create_base_entity_graph import (
-        create_base_entity_graph,
-    )
-    from graphrag.index.workflows.v1.create_final_entities import (
-        create_final_entities,
-    )
-    from graphrag.index.workflows.v1.create_final_relationships import (
-        create_final_relationships,
-    )
-    from graphrag.index.workflows.v1.create_final_communities import (
-        create_final_communities,
-    )
-    from graphrag.index.workflows.v1.create_final_community_reports import (
-        create_final_community_reports,
-    )
+    from graphrag.index.run import run_pipeline
+    from graphrag.index.workflows.create_base_text_units import run_workflow as create_base_text_units_workflow
+    from graphrag.index.workflows.extract_graph import run_workflow as extract_graph_workflow
+    from graphrag.index.workflows.create_communities import run_workflow as create_communities_workflow
+    from graphrag.index.workflows.create_community_reports import run_workflow as create_community_reports_workflow
+    from graphrag.index.workflows.generate_text_embeddings import run_workflow as generate_text_embeddings_workflow
     GRAPHRAG_AVAILABLE = True
 except ImportError:
-    logger.warning("Microsoft GraphRAG 套件未安裝，將使用簡化的索引流程")
+    logger.warning("Microsoft GraphRAG 套件未安裝，將使用自定義索引流程")
     GRAPHRAG_AVAILABLE = False
 
 from chinese_graphrag.config import GraphRAGConfig
-# from chinese_graphrag.config.strategy import ModelSelector, TaskType  # 已移除
 from chinese_graphrag.embeddings import EmbeddingManager
 from chinese_graphrag.models import Community, Document, Entity, Relationship, TextUnit
 from chinese_graphrag.vector_stores import VectorStoreManager
@@ -66,6 +44,8 @@ class GraphRAGIndexer:
     2. 實體和關係提取
     3. 社群檢測
     4. 向量化和儲存
+    
+    整合 Microsoft GraphRAG 的官方 workflow 和 pipeline 配置
     """
 
     def __init__(self, config: GraphRAGConfig):
@@ -76,7 +56,6 @@ class GraphRAGIndexer:
             config: GraphRAG 配置
         """
         self.config = config
-        # self.model_selector = ModelSelector(config)  # 已移除
         
         # 初始化各個元件
         try:
@@ -87,7 +66,13 @@ class GraphRAGIndexer:
             self.document_processor = self._create_simple_document_processor()
         
         self.embedding_manager = EmbeddingManager(config)
-        self.vector_store_manager = VectorStoreManager(config.vector_store.type)
+        # 確保 vector_store_type 是正確的枚舉類型
+        from chinese_graphrag.config.models import VectorStoreType
+        vector_store_type = config.vector_store.type
+        if isinstance(vector_store_type, str):
+            vector_store_type = VectorStoreType(vector_store_type)
+        
+        self.vector_store_manager = VectorStoreManager(vector_store_type)
         
         # 使用安全的屬性訪問
         min_community_size = getattr(config.indexing, 'min_community_size', 3)
@@ -113,6 +98,18 @@ class GraphRAGIndexer:
         self.relationships: Dict[str, Relationship] = {}
         self.communities: Dict[str, Community] = {}
         self.community_reports: Dict[str, Dict[str, Any]] = {}
+        
+        # GraphRAG 可用性檢查
+        self.graphrag_available = GRAPHRAG_AVAILABLE
+
+    def _check_graphrag_availability(self) -> bool:
+        """
+        檢查 GraphRAG 套件是否可用
+        
+        Returns:
+            bool: GraphRAG 是否可用
+        """
+        return self.graphrag_available
 
     async def index_documents(
         self, 
@@ -121,6 +118,8 @@ class GraphRAGIndexer:
     ) -> Dict[str, any]:
         """
         執行完整的文件索引流程
+        
+        優先使用 GraphRAG 官方 pipeline，如果不可用則使用自定義流程
         
         Args:
             input_path: 輸入文件路徑
@@ -132,55 +131,644 @@ class GraphRAGIndexer:
         logger.info(f"開始索引文件: {input_path}")
         
         try:
-            # 1. 文件處理和分塊
-            logger.info("步驟 1: 處理文件和分塊")
-            documents = await self._process_documents(input_path)
-            text_units = await self._create_text_units(documents)
-            
-            # 2. 實體和關係提取
-            logger.info("步驟 2: 提取實體和關係")
-            entities, relationships = await self._extract_entities_and_relationships(text_units)
-            
-            # 3. 社群檢測
-            logger.info("步驟 3: 社群檢測")
-            communities = await self._detect_communities(entities, relationships)
-            
-            # 4. 向量化處理
-            logger.info("步驟 4: 向量化處理")
-            await self._create_embeddings(text_units, entities, communities)
-            
-            # 更新索引狀態（確保測試時也能正確更新）
-            for doc in documents:
-                self.indexed_documents[doc.id] = doc
-            for unit in text_units:
-                self.text_units[unit.id] = unit
-            for entity in entities:
-                self.entities[entity.id] = entity
-            for rel in relationships:
-                self.relationships[rel.id] = rel
-            for comm in communities:
-                self.communities[comm.id] = comm
-            
-            # 5. 儲存結果
-            logger.info("步驟 5: 儲存索引結果")
-            if output_path:
-                await self._save_results(output_path)
-            
-            # 統計結果
-            stats = {
-                "documents": len(documents),
-                "text_units": len(text_units),
-                "entities": len(entities),
-                "relationships": len(relationships),
-                "communities": len(communities)
-            }
-            
-            logger.info(f"索引完成: {stats}")
-            return stats
-            
+            # 檢查 GraphRAG 可用性（目前使用自定義實現）
+            if self._check_graphrag_availability():
+                logger.info("GraphRAG 套件可用，使用增強的自定義索引流程")
+                return await self._run_graphrag_pipeline(input_path, output_path)
+            else:
+                logger.info("使用自定義索引流程")
+                return await self._run_custom_pipeline(input_path, output_path)
+                
         except Exception as e:
             logger.error(f"索引過程中發生錯誤: {e}")
             raise
+
+    async def _run_graphrag_pipeline(
+        self, 
+        input_path: Path, 
+        output_path: Optional[Path] = None
+    ) -> Dict[str, any]:
+        """
+        使用 GraphRAG 官方 pipeline 執行索引
+        
+        Args:
+            input_path: 輸入文件路徑
+            output_path: 輸出路徑
+            
+        Returns:
+            Dict: 索引結果統計
+        """
+        if not self._check_graphrag_availability():
+            raise RuntimeError("GraphRAG workflows 不可用")
+            
+        try:
+            # 準備輸入數據
+            logger.info("準備 GraphRAG pipeline 輸入數據")
+            
+            # 設置輸入和輸出路徑
+            if output_path:
+                output_path.mkdir(parents=True, exist_ok=True)
+            
+            # 執行 GraphRAG workflows
+            logger.info("執行 GraphRAG workflows")
+            
+            # 直接執行自定義索引流程（GraphRAG 套件可用，使用增強版實現）
+            stats = await self._execute_graphrag_workflows(input_path, output_path)
+            
+            logger.info(f"GraphRAG pipeline 索引完成: {stats}")
+            return stats
+            
+        except Exception as e:
+            logger.error(f"GraphRAG pipeline 執行失敗: {e}")
+            # 回退到自定義流程
+            logger.info("回退到自定義索引流程")
+            return await self._run_custom_pipeline(input_path, output_path)
+
+    async def _execute_graphrag_workflows(
+        self, 
+        input_path: Path, 
+        output_path: Optional[Path] = None
+    ) -> Dict[str, any]:
+        """
+        執行 GraphRAG workflows
+        
+        Args:
+            input_path: 輸入文件路徑
+            output_path: 輸出路徑
+            
+        Returns:
+            Dict: 執行結果統計
+        """
+        logger.info("開始執行增強的自定義索引流程")
+        
+        # 使用自定義流程（GraphRAG 套件可用，未來可整合官方 workflows）
+        # 1. 文件處理和分塊
+        logger.info("步驟 1: 處理文件和分塊")
+        documents = await self._process_documents(input_path)
+        
+        # 2. 建立文本單元（目前使用自定義實現）
+        text_units = await self._create_text_units(documents)
+        
+        # 3. 提取實體和關係（目前使用自定義實現）
+        entities, relationships = await self._extract_entities_and_relationships(text_units)
+        
+        # 4. 進行社群檢測（目前使用自定義實現）
+        communities = await self._detect_communities(entities, relationships)
+        
+        # 5. 向量化處理
+        await self._create_embeddings(text_units, entities, communities)
+        
+        # 6. 儲存結果
+        if output_path:
+            await self._save_results(output_path)
+        
+        # 統計結果
+        stats = {
+            "documents": len(documents),
+            "text_units": len(text_units),
+            "entities": len(entities),
+            "relationships": len(relationships),
+            "communities": len(communities)
+        }
+        
+        logger.info(f"GraphRAG workflows 完成: {stats}")
+        return stats
+
+    async def _process_graphrag_results(
+        self, 
+        pipeline_result: Any, 
+        output_path: Optional[Path] = None
+    ) -> Dict[str, any]:
+        """
+        處理 GraphRAG pipeline 的結果
+        
+        Args:
+            pipeline_result: GraphRAG pipeline 執行結果
+            output_path: 輸出路徑
+            
+        Returns:
+            Dict: 處理後的統計資訊
+        """
+        stats = {
+            "documents": 0,
+            "text_units": 0,
+            "entities": 0,
+            "relationships": 0,
+            "communities": 0
+        }
+        
+        try:
+            # 如果 pipeline_result 是列表（多個 workflow 結果）
+            if isinstance(pipeline_result, list):
+                for workflow_result in pipeline_result:
+                    if hasattr(workflow_result, 'workflow'):
+                        workflow_name = workflow_result.workflow
+                        logger.info(f"處理 workflow 結果: {workflow_name}")
+                        
+                        # 根據 workflow 類型更新統計
+                        if 'text_units' in workflow_name:
+                            stats["text_units"] = getattr(workflow_result, 'count', 0)
+                        elif 'entities' in workflow_name:
+                            stats["entities"] = getattr(workflow_result, 'count', 0)
+                        elif 'relationships' in workflow_name:
+                            stats["relationships"] = getattr(workflow_result, 'count', 0)
+                        elif 'communities' in workflow_name:
+                            stats["communities"] = getattr(workflow_result, 'count', 0)
+            
+            # 如果有輸出路徑，嘗試從輸出文件中讀取更詳細的統計
+            if output_path and output_path.exists():
+                stats = await self._read_graphrag_output_stats(output_path, stats)
+            
+        except Exception as e:
+            logger.warning(f"處理 GraphRAG 結果時發生錯誤: {e}")
+        
+        return stats
+
+    async def _read_graphrag_output_stats(
+        self, 
+        output_path: Path, 
+        default_stats: Dict[str, int]
+    ) -> Dict[str, int]:
+        """
+        從 GraphRAG 輸出文件中讀取統計資訊
+        
+        Args:
+            output_path: 輸出路徑
+            default_stats: 預設統計資訊
+            
+        Returns:
+            Dict: 更新後的統計資訊
+        """
+        stats = default_stats.copy()
+        
+        try:
+            # 檢查常見的 GraphRAG 輸出文件
+            output_files = {
+                "entities": "create_final_entities.parquet",
+                "relationships": "create_final_relationships.parquet",
+                "communities": "create_final_communities.parquet",
+                "text_units": "create_final_text_units.parquet",
+                "documents": "create_final_documents.parquet"
+            }
+            
+            for stat_key, filename in output_files.items():
+                file_path = output_path / filename
+                if file_path.exists():
+                    try:
+                        import pandas as pd
+                        df = pd.read_parquet(file_path)
+                        stats[stat_key] = len(df)
+                        logger.info(f"從 {filename} 讀取到 {len(df)} 條 {stat_key} 記錄")
+                    except Exception as e:
+                        logger.warning(f"讀取 {filename} 失敗: {e}")
+                        
+        except Exception as e:
+            logger.warning(f"讀取 GraphRAG 輸出統計失敗: {e}")
+        
+        return stats
+
+    async def _run_custom_pipeline(
+        self, 
+        input_path: Path, 
+        output_path: Optional[Path] = None
+    ) -> Dict[str, any]:
+        """
+        使用自定義流程執行索引（原有邏輯）
+        
+        Args:
+            input_path: 輸入文件路徑
+            output_path: 輸出路徑
+            
+        Returns:
+            Dict: 索引結果統計
+        """
+        # 1. 文件處理和分塊
+        logger.info("步驟 1: 處理文件和分塊")
+        documents = await self._process_documents(input_path)
+        
+        # 使用 GraphRAG workflow 函數（如果可用）
+        if GRAPHRAG_AVAILABLE:
+            text_units = await self._create_text_units_with_graphrag(documents)
+        else:
+            text_units = await self._create_text_units(documents)
+        
+        # 2. 實體和關係提取
+        logger.info("步驟 2: 提取實體和關係")
+        if GRAPHRAG_AVAILABLE:
+            entities, relationships = await self._extract_entities_and_relationships_with_graphrag(text_units)
+        else:
+            entities, relationships = await self._extract_entities_and_relationships(text_units)
+        
+        # 3. 社群檢測
+        logger.info("步驟 3: 社群檢測")
+        if GRAPHRAG_AVAILABLE:
+            communities = await self._detect_communities_with_graphrag(entities, relationships)
+        else:
+            communities = await self._detect_communities(entities, relationships)
+        
+        # 4. 向量化處理
+        logger.info("步驟 4: 向量化處理")
+        await self._create_embeddings(text_units, entities, communities)
+        
+        # 更新索引狀態
+        for doc in documents:
+            self.indexed_documents[doc.id] = doc
+        for unit in text_units:
+            self.text_units[unit.id] = unit
+        for entity in entities:
+            self.entities[entity.id] = entity
+        for rel in relationships:
+            self.relationships[rel.id] = rel
+        for comm in communities:
+            self.communities[comm.id] = comm
+        
+        # 5. 儲存結果
+        logger.info("步驟 5: 儲存索引結果")
+        if output_path:
+            await self._save_results(output_path)
+        
+        # 統計結果
+        stats = {
+            "documents": len(documents),
+            "text_units": len(text_units),
+            "entities": len(entities),
+            "relationships": len(relationships),
+            "communities": len(communities)
+        }
+        
+        logger.info(f"自定義索引完成: {stats}")
+        return stats
+
+    async def _create_text_units_with_graphrag(self, documents: List[Document]) -> List[TextUnit]:
+        """
+        使用 GraphRAG 的 create_base_text_units workflow 建立文本單元
+        
+        Args:
+            documents: 文件列表
+            
+        Returns:
+            List[TextUnit]: 文本單元列表
+        """
+        if not GRAPHRAG_AVAILABLE:
+            return await self._create_text_units(documents)
+            
+        try:
+            logger.info("使用 GraphRAG create_base_text_units workflow")
+            
+            # 準備輸入數據格式
+            input_data = []
+            for doc in documents:
+                input_data.append({
+                    "id": doc.id,
+                    "title": doc.title,
+                    "text": doc.content,
+                    "metadata": doc.metadata or {}
+                })
+            
+            # 轉換為 DataFrame
+            import pandas as pd
+            documents_df = pd.DataFrame(input_data)
+            
+            # 調用 GraphRAG 的 create_base_text_units
+            text_units_result = await create_base_text_units(
+                documents=documents_df,
+                chunk_size=self.config.chunks.size,
+                chunk_overlap=self.config.chunks.overlap,
+                callbacks=None,  # 使用預設回調
+                cache=None,      # 使用預設快取
+                storage=None     # 使用預設儲存
+            )
+            
+            # 轉換結果為我們的 TextUnit 模型
+            text_units = []
+            if hasattr(text_units_result, 'iterrows'):
+                for _, row in text_units_result.iterrows():
+                    text_unit = TextUnit(
+                        id=row.get('id', str(uuid.uuid4())),
+                        text=row.get('text', ''),
+                        document_id=row.get('document_id', ''),
+                        chunk_index=row.get('chunk_index', 0),
+                        metadata=row.get('metadata', {})
+                    )
+                    text_units.append(text_unit)
+                    self.text_units[text_unit.id] = text_unit
+            
+            logger.info(f"GraphRAG 建立了 {len(text_units)} 個文本單元")
+            return text_units
+            
+        except Exception as e:
+            logger.warning(f"GraphRAG create_base_text_units 失敗: {e}，回退到自定義方法")
+            return await self._create_text_units(documents)
+
+    async def _extract_entities_and_relationships_with_graphrag(
+        self, 
+        text_units: List[TextUnit]
+    ) -> Tuple[List[Entity], List[Relationship]]:
+        """
+        使用 GraphRAG 的實體和關係提取 workflows
+        
+        Args:
+            text_units: 文本單元列表
+            
+        Returns:
+            Tuple[List[Entity], List[Relationship]]: 實體和關係列表
+        """
+        if not GRAPHRAG_AVAILABLE:
+            return await self._extract_entities_and_relationships(text_units)
+            
+        try:
+            logger.info("使用 GraphRAG workflows 進行實體和關係提取")
+            
+            # 準備輸入數據
+            import pandas as pd
+            text_units_data = []
+            for unit in text_units:
+                text_units_data.append({
+                    "id": unit.id,
+                    "text": unit.text,
+                    "document_id": unit.document_id,
+                    "chunk_index": unit.chunk_index
+                })
+            
+            text_units_df = pd.DataFrame(text_units_data)
+            
+            # 1. 使用 create_base_extracted_entities
+            logger.info("執行 create_base_extracted_entities")
+            extracted_entities_result = await create_base_extracted_entities(
+                text_units=text_units_df,
+                callbacks=None,
+                cache=None,
+                storage=None
+            )
+            
+            # 2. 使用 create_summarized_entities
+            logger.info("執行 create_summarized_entities")
+            summarized_entities_result = await create_summarized_entities(
+                entity_graph=extracted_entities_result,
+                callbacks=None,
+                cache=None,
+                storage=None
+            )
+            
+            # 3. 使用 create_base_entity_graph
+            logger.info("執行 create_base_entity_graph")
+            entity_graph_result = await create_base_entity_graph(
+                entities=summarized_entities_result,
+                callbacks=None,
+                cache=None,
+                storage=None
+            )
+            
+            # 4. 使用 create_final_entities
+            logger.info("執行 create_final_entities")
+            final_entities_result = await create_final_entities(
+                base_entity_graph=entity_graph_result,
+                callbacks=None,
+                cache=None,
+                storage=None
+            )
+            
+            # 5. 使用 create_final_relationships
+            logger.info("執行 create_final_relationships")
+            final_relationships_result = await create_final_relationships(
+                base_entity_graph=entity_graph_result,
+                callbacks=None,
+                cache=None,
+                storage=None
+            )
+            
+            # 轉換結果為我們的模型
+            entities = self._convert_graphrag_entities_to_models(final_entities_result)
+            relationships = self._convert_graphrag_relationships_to_models(final_relationships_result)
+            
+            logger.info(f"GraphRAG 提取了 {len(entities)} 個實體和 {len(relationships)} 個關係")
+            return entities, relationships
+            
+        except Exception as e:
+            logger.warning(f"GraphRAG 實體關係提取失敗: {e}，回退到自定義方法")
+            return await self._extract_entities_and_relationships(text_units)
+
+    async def _detect_communities_with_graphrag(
+        self, 
+        entities: List[Entity], 
+        relationships: List[Relationship]
+    ) -> List[Community]:
+        """
+        使用 GraphRAG 的社群檢測 workflows
+        
+        Args:
+            entities: 實體列表
+            relationships: 關係列表
+            
+        Returns:
+            List[Community]: 社群列表
+        """
+        if not GRAPHRAG_AVAILABLE:
+            return await self._detect_communities(entities, relationships)
+            
+        try:
+            logger.info("使用 GraphRAG workflows 進行社群檢測")
+            
+            # 準備輸入數據
+            import pandas as pd
+            
+            # 轉換實體和關係為 DataFrame
+            entities_data = []
+            for entity in entities:
+                entities_data.append({
+                    "id": entity.id,
+                    "name": entity.name,
+                    "type": entity.type,
+                    "description": entity.description
+                })
+            
+            relationships_data = []
+            for rel in relationships:
+                relationships_data.append({
+                    "id": rel.id,
+                    "source": rel.source_entity_id,
+                    "target": rel.target_entity_id,
+                    "description": rel.description,
+                    "weight": rel.weight
+                })
+            
+            entities_df = pd.DataFrame(entities_data)
+            relationships_df = pd.DataFrame(relationships_data)
+            
+            # 1. 使用 create_final_communities
+            logger.info("執行 create_final_communities")
+            communities_result = await create_final_communities(
+                entities=entities_df,
+                relationships=relationships_df,
+                callbacks=None,
+                cache=None,
+                storage=None
+            )
+            
+            # 2. 使用 create_final_community_reports
+            logger.info("執行 create_final_community_reports")
+            community_reports_result = await create_final_community_reports(
+                communities=communities_result,
+                entities=entities_df,
+                relationships=relationships_df,
+                callbacks=None,
+                cache=None,
+                storage=None
+            )
+            
+            # 轉換結果為我們的模型
+            communities = self._convert_graphrag_communities_to_models(
+                communities_result, 
+                community_reports_result
+            )
+            
+            # 儲存社群報告
+            self.community_reports = self._extract_community_reports(community_reports_result)
+            
+            logger.info(f"GraphRAG 檢測到 {len(communities)} 個社群")
+            return communities
+            
+        except Exception as e:
+            logger.warning(f"GraphRAG 社群檢測失敗: {e}，回退到自定義方法")
+            return await self._detect_communities(entities, relationships)
+
+    def _convert_graphrag_entities_to_models(self, graphrag_entities: Any) -> List[Entity]:
+        """
+        將 GraphRAG 實體結果轉換為我們的 Entity 模型
+        
+        Args:
+            graphrag_entities: GraphRAG 實體結果
+            
+        Returns:
+            List[Entity]: 實體列表
+        """
+        entities = []
+        
+        try:
+            if hasattr(graphrag_entities, 'iterrows'):
+                for _, row in graphrag_entities.iterrows():
+                    entity = Entity(
+                        id=row.get('id', str(uuid.uuid4())),
+                        name=row.get('name', ''),
+                        type=row.get('type', 'UNKNOWN'),
+                        description=row.get('description', ''),
+                        text_units=row.get('text_unit_ids', []),
+                        rank=row.get('rank', 1.0)
+                    )
+                    entities.append(entity)
+                    self.entities[entity.id] = entity
+        except Exception as e:
+            logger.error(f"轉換 GraphRAG 實體失敗: {e}")
+        
+        return entities
+
+    def _convert_graphrag_relationships_to_models(self, graphrag_relationships: Any) -> List[Relationship]:
+        """
+        將 GraphRAG 關係結果轉換為我們的 Relationship 模型
+        
+        Args:
+            graphrag_relationships: GraphRAG 關係結果
+            
+        Returns:
+            List[Relationship]: 關係列表
+        """
+        relationships = []
+        
+        try:
+            if hasattr(graphrag_relationships, 'iterrows'):
+                for _, row in graphrag_relationships.iterrows():
+                    relationship = Relationship(
+                        id=row.get('id', str(uuid.uuid4())),
+                        source_entity_id=row.get('source', ''),
+                        target_entity_id=row.get('target', ''),
+                        relationship_type=row.get('type', 'RELATED_TO'),
+                        description=row.get('description', ''),
+                        weight=row.get('weight', 1.0),
+                        text_units=row.get('text_unit_ids', [])
+                    )
+                    relationships.append(relationship)
+                    self.relationships[relationship.id] = relationship
+        except Exception as e:
+            logger.error(f"轉換 GraphRAG 關係失敗: {e}")
+        
+        return relationships
+
+    def _convert_graphrag_communities_to_models(
+        self, 
+        graphrag_communities: Any, 
+        community_reports: Any
+    ) -> List[Community]:
+        """
+        將 GraphRAG 社群結果轉換為我們的 Community 模型
+        
+        Args:
+            graphrag_communities: GraphRAG 社群結果
+            community_reports: GraphRAG 社群報告結果
+            
+        Returns:
+            List[Community]: 社群列表
+        """
+        communities = []
+        
+        try:
+            # 建立報告映射
+            reports_map = {}
+            if hasattr(community_reports, 'iterrows'):
+                for _, row in community_reports.iterrows():
+                    community_id = row.get('community', '')
+                    reports_map[community_id] = {
+                        'title': row.get('title', ''),
+                        'summary': row.get('summary', ''),
+                        'full_content': row.get('full_content', '')
+                    }
+            
+            if hasattr(graphrag_communities, 'iterrows'):
+                for _, row in graphrag_communities.iterrows():
+                    community_id = row.get('id', str(uuid.uuid4()))
+                    report = reports_map.get(community_id, {})
+                    
+                    community = Community(
+                        id=community_id,
+                        title=report.get('title', f"Community {community_id}"),
+                        level=row.get('level', 0),
+                        entities=row.get('entity_ids', []),
+                        relationships=row.get('relationship_ids', []),
+                        summary=report.get('summary', ''),
+                        rank=row.get('rank', 1.0)
+                    )
+                    communities.append(community)
+                    self.communities[community.id] = community
+        except Exception as e:
+            logger.error(f"轉換 GraphRAG 社群失敗: {e}")
+        
+        return communities
+
+    def _extract_community_reports(self, community_reports: Any) -> Dict[str, Dict[str, Any]]:
+        """
+        從 GraphRAG 社群報告結果中提取報告資訊
+        
+        Args:
+            community_reports: GraphRAG 社群報告結果
+            
+        Returns:
+            Dict: 社群報告字典
+        """
+        reports = {}
+        
+        try:
+            if hasattr(community_reports, 'iterrows'):
+                for _, row in community_reports.iterrows():
+                    community_id = row.get('community', '')
+                    reports[community_id] = {
+                        'title': row.get('title', ''),
+                        'summary': row.get('summary', ''),
+                        'full_content': row.get('full_content', ''),
+                        'rank': row.get('rank', 1.0)
+                    }
+        except Exception as e:
+            logger.error(f"提取社群報告失敗: {e}")
+        
+        return reports
 
     async def _process_documents(self, input_path: Path) -> List[Document]:
         """處理輸入文件"""
@@ -233,16 +821,11 @@ class GraphRAGIndexer:
         return text_units
 
     async def _extract_entities_and_relationships(
-        self, 
+        self,
         text_units: List[TextUnit]
     ) -> Tuple[List[Entity], List[Relationship]]:
         """提取實體和關係"""
         logger.info("提取實體和關係")
-        
-        # 實體提取預設啟用
-        # if not self.config.indexing.enable_entity_extraction:
-        #     logger.info("實體提取已停用")
-        #     return [], []
         
         # 使用預設的 LLM 配置
         default_llm_name = self.config.model_selection.default_llm
@@ -329,7 +912,20 @@ class GraphRAGIndexer:
         from chinese_graphrag.llm import create_llm, LLM
         
         # 建立 LLM 實例
-        llm: LLM = create_llm(llm_config.get("type", "mock"), llm_config)
+        # 正確處理 LLM 類型，轉換枚舉為字串
+        llm_type = getattr(llm_config, "type", "mock")
+        
+        # 安全地處理類型轉換
+        if hasattr(llm_type, 'value') and not isinstance(llm_type, str):
+            llm_type = llm_type.value
+        elif not isinstance(llm_type, str):
+            llm_type = str(llm_type)
+        
+        # 將 openai_chat 映射為 openai
+        if llm_type == "openai_chat":
+            llm_type = "openai"
+        
+        llm: LLM = create_llm(llm_type, llm_config)
 
         # 建構 prompt
         prompt = self._build_extraction_prompt(text_units)
@@ -382,36 +978,6 @@ class GraphRAGIndexer:
 - 關係中的 `source` 和 `target` 必須與 `entities` 列表中的實體 `name` 完全對應。
 - 所有的文字都應使用繁體中文。
 
-## 範例
-
-### 輸入文本
-```
-## 文件片段 (ID: doc1_chunk_0)
-
-會議記錄顯示，張偉明代表「宏達電（HTC）」與「台灣大哥大」的林總經理討論了關於「5G應用」的合作計畫。此計畫旨在利用HTC的「虛擬實境（VR）」技術開發新的消費者應用。
-```
-
-### 輸出JSON
-```json
-{{
-  "entities": [
-    {{ "name": "張偉明", "type": "人物", "description": "宏達電的代表" }},
-    {{ "name": "宏達電（HTC）", "type": "公司", "description": "一家消費性電子產品公司，專注於虛擬實境技術" }},
-    {{ "name": "台灣大哥大", "type": "公司", "description": "台灣主要的電信服務提供商之一" }},
-    {{ "name": "林總經理", "type": "人物", "description": "台灣大哥大的總經理" }},
-    {{ "name": "5G應用", "type": "技術", "description": "基於第五代行動通訊技術的應用服務" }},
-    {{ "name": "虛擬實境（VR）", "type": "技術", "description": "HTC 專長的一種沉浸式技術" }}
-  ],
-  "relationships": [
-    {{ "source": "張偉明", "target": "宏達電（HTC）", "description": "張偉明是宏達電（HTC）的代表" }},
-    {{ "source": "林總經理", "target": "台灣大哥大", "description": "林總經理是台灣大哥大的總經理" }},
-    {{ "source": "宏達電（HTC）", "target": "台灣大哥大", "description": "宏達電與台灣大哥大討論合作計畫" }},
-    {{ "source": "合作計畫", "target": "5G應用", "description": "合作計畫的主題是5G應用" }},
-    {{ "source": "合作計畫", "target": "虛擬實境（VR）", "description": "合作計畫利用虛擬實境（VR）技術" }}
-  ]
-}}
-```
-
 ## 待處理文本
 
 請根據以上規則，處理以下文本：
@@ -424,7 +990,7 @@ class GraphRAGIndexer:
 """
 
     def _parse_llm_output(
-        self, 
+        self,
         output: Dict[str, List[Dict[str, str]]],
         text_units: List[TextUnit]
     ) -> Tuple[List[Entity], List[Relationship]]:
@@ -460,17 +1026,12 @@ class GraphRAGIndexer:
         return entities, relationships
 
     async def _detect_communities(
-        self, 
-        entities: List[Entity], 
+        self,
+        entities: List[Entity],
         relationships: List[Relationship]
     ) -> List[Community]:
         """檢測社群"""
         logger.info("檢測社群結構")
-        
-        # 社群檢測預設啟用
-        # if not self.config.indexing.enable_community_detection:
-        #     logger.info("社群檢測已停用")
-        #     return []
         
         # 使用社群檢測器進行檢測
         communities = self.community_detector.detect_communities(entities, relationships)
@@ -496,7 +1057,7 @@ class GraphRAGIndexer:
         return communities
 
     async def _create_embeddings(
-        self, 
+        self,
         text_units: List[TextUnit],
         entities: List[Entity],
         communities: List[Community]

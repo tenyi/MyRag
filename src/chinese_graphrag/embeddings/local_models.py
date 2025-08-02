@@ -364,7 +364,7 @@ class LocalEmbeddingService(EmbeddingService):
                     'use_fp16': self.use_fp16,
                     'normalize': normalize,
                     'model_path': self.model_path,
-                    'model_type': self.model_type.value,
+                    'model_type': self.model_type.value if hasattr(self.model_type, 'value') else str(self.model_type),
                     'optimized_for_chinese': self.model_config.optimized_for_chinese
                 }
             )

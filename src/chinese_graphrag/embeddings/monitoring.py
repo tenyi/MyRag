@@ -378,7 +378,12 @@ class UsageMonitor:
             AlertLevel.CRITICAL: logger.critical
         }[level]
         
-        log_func(f"[{level.value.upper()}] {model_name}: {message}")
+        # 安全地獲取級別字符串
+        if hasattr(level, 'value'):
+            level_str = level.value.upper()
+        else:
+            level_str = str(level).upper()
+        log_func(f"[{level_str}] {model_name}: {message}")
         
         # 保持警報列表在合理大小
         if len(self.alerts) > 1000:
@@ -684,7 +689,7 @@ class UsageMonitor:
                 alerts_data = []
                 for alert in self.alerts:
                     alert_dict = asdict(alert)
-                    alert_dict['level'] = alert.level.value
+                    alert_dict['level'] = alert.level.value if hasattr(alert.level, 'value') else str(alert.level)
                     alerts_data.append(alert_dict)
                 
                 with open(alerts_file, 'w', encoding='utf-8') as f:

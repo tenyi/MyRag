@@ -11,6 +11,12 @@ CLAUDE.md
 .serena/
 .windsurf/
 .codeium/
+.mcp.json
+coverage.xml
+.agent.md
+.github/
+.codebuddy/
+.coverage.*
 dev_logs/
 dev_cache/
 dev_output/

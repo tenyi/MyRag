@@ -140,7 +140,12 @@ class EmbeddingManager:
             set_as_default: 是否設為預設服務
         """
         self.services[name] = service
-        logger.info(f"註冊 Embedding 服務: {name} ({service.model_type.value})")
+        # 安全地獲取類型字符串
+        if hasattr(service.model_type, 'value'):
+            type_str = service.model_type.value
+        else:
+            type_str = str(service.model_type)
+        logger.info(f"註冊 Embedding 服務: {name} ({type_str})")
         
         if set_as_default or self.default_model is None:
             self.default_model = name
@@ -752,7 +757,7 @@ class EmbeddingManager:
         return [
             {
                 "timestamp": alert.timestamp,
-                "level": alert.level.value,
+                "level": alert.level.value if hasattr(alert.level, 'value') else str(alert.level),
                 "model_name": alert.model_name,
                 "message": alert.message,
                 "details": alert.details,

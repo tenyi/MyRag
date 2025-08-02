@@ -54,7 +54,12 @@ class VectorStoreManager:
         self.stores: Dict[str, VectorStore] = {}  # 儲存實例快取
         self.active_store: Optional[VectorStore] = None
         
-        logger.info(f"初始化向量儲存管理器，預設類型: {default_store_type.value}")
+        # 安全地獲取類型字符串
+        if hasattr(default_store_type, 'value'):
+            type_str = default_store_type.value
+        else:
+            type_str = str(default_store_type)
+        logger.info(f"初始化向量儲存管理器，預設類型: {type_str}")
     
     async def initialize(
         self,
@@ -75,7 +80,12 @@ class VectorStoreManager:
             store = await self.get_store(store_type, **kwargs)
             self.active_store = store
             
-            logger.info(f"成功初始化向量儲存: {store_type.value}")
+            # 安全地獲取類型字符串
+            if hasattr(store_type, 'value'):
+                type_str = store_type.value
+            else:
+                type_str = str(store_type)
+            logger.info(f"成功初始化向量儲存: {type_str}")
             
         except Exception as e:
             logger.error(f"初始化向量儲存失敗: {e}")
@@ -99,7 +109,11 @@ class VectorStoreManager:
         """
         # 生成快取鍵
         if store_id is None:
-            store_id = f"{store_type.value}_default"
+            if hasattr(store_type, 'value'):
+                type_str = store_type.value
+            else:
+                type_str = str(store_type)
+            store_id = f"{type_str}_default"
         
         # 檢查快取
         if store_id in self.stores:
@@ -107,14 +121,22 @@ class VectorStoreManager:
         
         # 檢查是否支援該儲存類型
         if store_type not in self.STORE_CLASSES:
-            raise VectorStoreError(f"不支援的向量儲存類型: {store_type.value}")
+            if hasattr(store_type, 'value'):
+                type_str = store_type.value
+            else:
+                type_str = str(store_type)
+            raise VectorStoreError(f"不支援的向量儲存類型: {type_str}")
         
         try:
             # 建立儲存實例
             store_class = self.STORE_CLASSES[store_type]
             
             # 合併配置參數
-            store_config = self.config.get(store_type.value, {})
+            if hasattr(store_type, 'value'):
+                type_str = store_type.value
+            else:
+                type_str = str(store_type)
+            store_config = self.config.get(type_str, {})
             store_config.update(kwargs)
             
             # 根據儲存類型設定預設參數
@@ -130,7 +152,11 @@ class VectorStoreManager:
             # 快取實例
             self.stores[store_id] = store
             
-            logger.info(f"成功建立向量儲存實例: {store_type.value} ({store_id})")
+            if hasattr(store_type, 'value'):
+                type_str = store_type.value
+            else:
+                type_str = str(store_type)
+            logger.info(f"成功建立向量儲存實例: {type_str} ({store_id})")
             return store
             
         except Exception as e:
@@ -444,7 +470,7 @@ class VectorStoreManager:
             dimensions = list(set(col.dimension for col in collections if col.dimension > 0))
             
             return {
-                "store_type": store.store_type.value,
+                "store_type": store.store_type.value if hasattr(store.store_type, 'value') else str(store.store_type),
                 "collections_count": len(collections),
                 "total_vectors": total_vectors,
                 "dimensions": dimensions,

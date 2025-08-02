@@ -126,4 +126,5 @@ strict_equality = true
 dev = [
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
 ]

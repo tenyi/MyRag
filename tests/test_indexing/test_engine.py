@@ -304,6 +304,9 @@ class TestGraphRAGIndexer:
         import numpy as np
         from chinese_graphrag.models import TextUnit, Entity, Relationship, Community
         
+        # 模擬 GraphRAG 可用性檢查，確保走自定義流程
+        mocker.patch.object(indexer, '_check_graphrag_availability', return_value=False)
+        
         # 模擬文件處理
         mock_process_documents = mocker.patch.object(
             indexer, 

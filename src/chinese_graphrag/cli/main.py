@@ -312,8 +312,25 @@ def status(ctx: click.Context, output_format: str):
         sys.exit(1)
 
 
+def setup_warning_filters():
+    """設置警告過濾器以抑制已知的棄用警告"""
+    import warnings
+    
+    # 抑制 jieba 的 pkg_resources 棄用警告
+    warnings.filterwarnings(
+        'ignore', 
+        category=UserWarning, 
+        module='pkg_resources',
+        message='.*pkg_resources is deprecated.*'
+    )
+    
+    # 可以在此添加其他警告過濾器
+
 def main():
     """CLI 主入口函數。"""
+    # 設置警告過濾器
+    setup_warning_filters()
+    
     try:
         # 註冊索引命令
         from .index_commands import index, show_index
