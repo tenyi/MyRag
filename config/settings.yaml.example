@@ -18,7 +18,7 @@ models:
     max_retries: 3
   
   # 預設 Embedding 模型
-  default_embedding_model:
+  openai_embedding_model:
     api_key: ${GRAPHRAG_API_KEY}
     type: openai_embedding
     model: text-embedding-3-small
@@ -34,6 +34,16 @@ models:
     max_length: 512
     normalize_embeddings: true
     cache_enabled: true
+  
+  # Ollama Chat 模型（推薦本地部署）
+  ollama_chat_model:
+    type: ollama
+    model: gemma3
+    api_base: http://localhost:11434
+    max_tokens: 2000
+    temperature: 0.0
+    timeout: 60
+    max_retries: 3
   
   # Ollama Embedding 模型
   ollama_embedding_model:
@@ -131,12 +141,14 @@ parallelization:
 
 # 模型選擇策略配置
 model_selection:
-  default_llm: default_chat_model
-  default_embedding: default_embedding_model
+  default_llm: ollama_chat_model
+  default_embedding: ollama_embedding_model
   cost_optimization: true
   quality_threshold: 0.8
   fallback_models:
-    chinese_embedding_model: default_embedding_model
+    ollama_chat_model: default_chat_model
+    ollama_embedding_model: chinese_embedding_model
+    chinese_embedding_model: openai_embedding_model
     default_chat_model: azure_chat_model
 
 # 跳過的工作流程

@@ -229,7 +229,7 @@ class ConfigLoader:
                     "max_tokens": 2000,
                     "temperature": 0.0
                 },
-                "default_embedding_model": {
+                "openai_embedding_model": {
                     "api_key": "${GRAPHRAG_API_KEY:your-openai-api-key-here}",
                     "type": "openai_embedding",
                     "model": "text-embedding-3-small"
@@ -241,6 +241,26 @@ class ConfigLoader:
                     "batch_size": 32,
                     "normalize_embeddings": True,
                     "cache_enabled": True
+                },
+                "ollama_chat_model": {
+                    "type": "ollama",
+                    "model": "gemma3",
+                    "api_base": "http://localhost:11434",
+                    "max_tokens": 2000,
+                    "temperature": 0.0,
+                    "timeout": 60,
+                    "max_retries": 3
+                },
+                "ollama_embedding_model": {
+                    "type": "ollama",
+                    "model": "bge-m3",
+                    "api_base": "http://localhost:11434",
+                    "batch_size": 32,
+                    "max_length": 512,
+                    "vector_size": 1024,
+                    "normalize_embeddings": True,
+                    "cache_enabled": True,
+                    "device": "auto"
                 }
             },
             "vector_store": {
@@ -303,12 +323,14 @@ class ConfigLoader:
                 "batch_size": 10
             },
             "model_selection": {
-                "default_llm": "default_chat_model",
-                "default_embedding": "chinese_embedding_model",
+                "default_llm": "ollama_chat_model",
+                "default_embedding": "ollama_embedding_model",
                 "cost_optimization": True,
                 "quality_threshold": 0.8,
                 "fallback_models": {
-                    "chinese_embedding_model": "default_embedding_model"
+                    "ollama_chat_model": "default_chat_model",
+                    "ollama_embedding_model": "chinese_embedding_model",
+                    "chinese_embedding_model": "openai_embedding_model"
                 }
             }
         }

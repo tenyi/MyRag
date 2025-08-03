@@ -314,7 +314,7 @@ class EntityExtractor:
         entities = []
         found_entities = set()
         
-        # 使用正則表達式提取實體
+        # 1. 使用正則表達式提取實體
         for entity_type, pattern in self.entity_patterns.items():
             matches = re.findall(pattern, text)
             for match in matches:
@@ -322,9 +322,21 @@ class EntityExtractor:
                     entities.append(match)
                     found_entities.add(match)
         
-        # 使用分詞結果作為候選實體
-        words = jieba.cut(text)
-        for word in words:
+        # 2. 改進的分詞方法
+        # 2a. 使用精確模式分詞
+        words_exact = list(jieba.cut(text, cut_all=False))
+        
+        # 2b. 使用搜索引擎模式分詞（對實體識別更友好）
+        words_search = list(jieba.cut_for_search(text))
+        
+        # 2c. 單字符分割作為備選
+        chars = list(text)
+        
+        # 合併所有分詞結果
+        all_tokens = set(words_exact + words_search + chars)
+        
+        # 3. 從所有分詞結果中提取可能的實體
+        for word in all_tokens:
             word = word.strip()
             if (len(word) >= 2 and 
                 word not in found_entities and
@@ -332,7 +344,14 @@ class EntityExtractor:
                 entities.append(word)
                 found_entities.add(word)
         
-        return entities[:10]  # 限制實體數量
+        # 4. 特殊處理中文人名
+        person_entities = self._extract_chinese_names(text)
+        for person in person_entities:
+            if person not in found_entities:
+                entities.append(person)
+                found_entities.add(person)
+        
+        return entities[:15]  # 增加實體數量限制以獲得更多候選  # 限制實體數量
     
     def _is_likely_entity(self, word: str) -> bool:
         """判斷詞語是否可能是實體"""
@@ -346,6 +365,58 @@ class EntityExtractor:
         return (word not in exclude_words and
                 not re.match(r'^[\d\.\,]+$', word) and
                 len(word) >= 2)
+
+    
+    def _extract_chinese_names(self, text: str) -> List[str]:
+        """提取中文人名的專門方法"""
+        names = []
+        
+        # 常見中文姓氏
+        common_surnames = {
+            '王', '李', '張', '劉', '陳', '楊', '趙', '黃', '周', '吳',
+            '徐', '孫', '胡', '朱', '高', '林', '何', '郭', '馬', '羅',
+            '梁', '宋', '鄭', '謝', '韓', '唐', '馮', '于', '董', '蕭',
+            '程', '柴', '袁', '鄧', '許', '傅', '沈', '曾', '彭', '呂'
+        }
+        
+        # 1. 基於姓氏的人名模式匹配
+        for surname in common_surnames:
+            # 姓 + 1-2個字的名字
+            pattern = rf'{surname}[一-龥]{{1,2}}'
+            matches = re.findall(pattern, text)
+            names.extend(matches)
+        
+        # 2. 常見人名模式 - 修正 lookbehind 問題
+        name_patterns = [
+            r'[一-龥]{2,3}(?=姓|的|是|在|有|和|與)',  # 名字 + 動作詞
+            r'[一-龥]{2}(?=先生|女士|老師|經理|主任)',  # 職稱前的名字
+        ]
+        
+        # 使用簡單的前後文匹配替代 lookbehind
+        # 尋找 "叫XXX"、"名叫XXX"、"稱為XXX" 的模式
+        call_patterns = [
+            r'叫([一-龥]{2,3})',
+            r'名叫([一-龥]{2,3})',
+            r'稱為([一-龥]{2,3})',
+        ]
+        
+        for pattern in call_patterns:
+            matches = re.findall(pattern, text)
+            names.extend(matches)
+        
+        for pattern in name_patterns:
+            matches = re.findall(pattern, text)
+            names.extend(matches)
+        
+        # 3. 移除重複並過濾
+        unique_names = []
+        seen = set()
+        for name in names:
+            if name not in seen and len(name) >= 2 and len(name) <= 4:
+                unique_names.append(name)
+                seen.add(name)
+        
+        return unique_names
 
 
 class ChineseQueryProcessor:

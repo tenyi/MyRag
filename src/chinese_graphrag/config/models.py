@@ -15,6 +15,7 @@ class LLMType(str, Enum):
     """LLM 模型類型枚舉"""
     OPENAI_CHAT = "openai_chat"
     AZURE_OPENAI_CHAT = "azure_openai_chat"
+    OLLAMA = "ollama"
     LOCAL_CHAT = "local_chat"
 
 

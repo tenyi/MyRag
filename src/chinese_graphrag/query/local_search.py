@@ -108,23 +108,50 @@ class EntityMatcher:
             if entity.name in query_entities:
                 target_entities.append(entity)
         
-        # 2. 模糊匹配（基於關鍵詞）
+        # 2. 改進的模糊匹配策略
         if len(target_entities) < 3:  # 如果精確匹配結果不足
+            # 2a. 子字串匹配
+            for query_entity in analysis.entities:
+                for entity in all_entities:
+                    if entity not in target_entities:
+                        # 查詢實體包含在數據庫實體中 (如 "小明" 匹配 "張小明")
+                        if query_entity in entity.name:
+                            target_entities.append(entity)
+                            print(f"子字串匹配: {query_entity} -> {entity.name}")
+                        # 數據庫實體包含在查詢實體中 (如 "張小明" 匹配 "小明")
+                        elif entity.name in query_entity:
+                            target_entities.append(entity)
+                            print(f"反向子字串匹配: {query_entity} -> {entity.name}")
+            
+            # 2b. 關鍵詞匹配
             keywords = set(analysis.keywords)
             for entity in all_entities:
                 if entity not in target_entities:
                     # 檢查實體名稱是否包含關鍵詞
-                    entity_words = set(entity.name)
-                    if keywords.intersection(entity_words):
+                    entity_chars = set(entity.name)
+                    if keywords.intersection(entity_chars):
                         target_entities.append(entity)
+                        print(f"關鍵詞字符匹配: {keywords.intersection(entity_chars)} -> {entity.name}")
                     
                     # 檢查實體描述是否包含關鍵詞
                     if entity.description:
                         desc_words = set(entity.description.split())
                         if keywords.intersection(desc_words):
                             target_entities.append(entity)
+                            print(f"描述匹配: {keywords.intersection(desc_words)} -> {entity.name}")
         
-        # 3. 向量相似性匹配 - 現在真正實現這個功能！
+        # 3. 編輯距離匹配 (用於處理錯字或變體)
+        if len(target_entities) < 3:
+            for query_entity in analysis.entities:
+                for entity in all_entities:
+                    if entity not in target_entities:
+                        # 計算編輯距離 (允許1-2個字符差異)
+                        distance = self._edit_distance(query_entity, entity.name)
+                        if distance <= min(2, len(query_entity) // 2):
+                            target_entities.append(entity)
+                            print(f"編輯距離匹配 (距離={distance}): {query_entity} -> {entity.name}")
+        
+        # 4. 向量相似性匹配 - 現在真正實現這個功能！
         if len(target_entities) < 5:  # 如果前面的匹配結果仍不足
             try:
                 import asyncio
@@ -172,12 +199,13 @@ class EntityMatcher:
                         similar_entities = []
                         entity_id_map = {entity.id: entity for entity in all_entities}
                         
-                        for result in search_results.results[:5]:  # 只取前5個
-                            entity_id = result.metadata.get('id')
+                        # 正確遍歷搜尋結果 - VectorSearchResult 沒有 results 屬性
+                        for i, entity_id in enumerate(search_results.ids[:5]):  # 只取前5個
                             if entity_id in entity_id_map:
                                 entity = entity_id_map[entity_id]
                                 if entity not in target_entities:
                                     similar_entities.append(entity)
+                                    print(f"向量相似匹配: {query} -> {entity.name} (相似度: {search_results.similarities[i] if hasattr(search_results, 'similarities') else 'N/A'})")
                         
                         return similar_entities
                         
@@ -202,13 +230,56 @@ class EntityMatcher:
         
         # 限制結果數量並記錄
         final_entities = target_entities[:10]
+        
+        # 詳細記錄匹配過程和結果
+        print(f"=== 實體匹配調試資訊 ===")
+        print(f"查詢: {query}")
+        print(f"分析結果 - 實體: {analysis.entities}")
+        print(f"分析結果 - 關鍵詞: {analysis.keywords}")
+        print(f"總實體數量: {len(all_entities)}")
+        print(f"所有實體名稱: {[e.name for e in all_entities[:10]]}...")  # 只顯示前10個
+        print(f"最終匹配實體數量: {len(final_entities)}")
+        
         if final_entities:
             entity_names = [e.name for e in final_entities]
             print(f"找到目標實體: {entity_names}")
         else:
             print("未找到匹配的實體")
+        print("=" * 30)
         
         return final_entities
+
+    def _edit_distance(self, s1: str, s2: str) -> int:
+        """計算兩個字串的編輯距離（萊文斯坦距離）"""
+        if len(s1) == 0:
+            return len(s2)
+        if len(s2) == 0:
+            return len(s1)
+        
+        # 建立矩陣
+        matrix = [[0] * (len(s2) + 1) for _ in range(len(s1) + 1)]
+        
+        # 初始化第一行和第一列
+        for i in range(len(s1) + 1):
+            matrix[i][0] = i
+        for j in range(len(s2) + 1):
+            matrix[0][j] = j
+        
+        # 計算編輯距離
+        for i in range(1, len(s1) + 1):
+            for j in range(1, len(s2) + 1):
+                if s1[i-1] == s2[j-1]:
+                    cost = 0
+                else:
+                    cost = 1
+                
+                matrix[i][j] = min(
+                    matrix[i-1][j] + 1,      # 刪除
+                    matrix[i][j-1] + 1,      # 插入
+                    matrix[i-1][j-1] + cost  # 替換
+                )
+        
+        return matrix[len(s1)][len(s2)]
     
     def find_related_entities(
         self,

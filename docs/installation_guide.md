@@ -170,7 +170,7 @@ models:
     max_retries: 3
   
   # 預設 Embedding 模型
-  default_embedding_model:
+  openai_embedding_model:
     api_key: ${GRAPHRAG_API_KEY}
     type: openai_embedding
     model: text-embedding-3-small
