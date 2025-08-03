@@ -507,42 +507,79 @@ class GraphRAGIndexer:
         try:
             logger.info("使用 GraphRAG create_base_text_units workflow")
             
-            # 準備輸入數據格式
-            input_data = []
-            for doc in documents:
-                input_data.append({
-                    "id": doc.id,
-                    "title": doc.title,
-                    "text": doc.content,
-                    "metadata": doc.metadata or {}
-                })
+            # 建立 GraphRAG 配置適配器
+            from chinese_graphrag.config.graphrag_adapter import GraphRAGConfigAdapter
+            adapter = GraphRAGConfigAdapter(self.config)
             
-            # 轉換為 DataFrame
-            import pandas as pd
-            documents_df = pd.DataFrame(input_data)
-            
-            # 調用 GraphRAG 的 create_base_text_units_workflow
-            # 注意：GraphRAG 工作流程需要特定的配置和上下文
-            # 目前先回退到自定義實現，未來需要建立正確的 GraphRAG 配置轉換
-            logger.warning("GraphRAG 工作流程需要完整的配置轉換，暫時使用自定義實現")
-            return await self._create_text_units(documents)
-            
-            # 轉換結果為我們的 TextUnit 模型
-            text_units = []
-            if hasattr(text_units_result, 'iterrows'):
-                for _, row in text_units_result.iterrows():
-                    text_unit = TextUnit(
-                        id=row.get('id', str(uuid.uuid4())),
-                        text=row.get('text', ''),
-                        document_id=row.get('document_id', ''),
-                        chunk_index=row.get('chunk_index', 0),
-                        metadata=row.get('metadata', {})
-                    )
-                    text_units.append(text_unit)
-                    self.text_units[text_unit.id] = text_unit
-            
-            logger.info(f"GraphRAG 建立了 {len(text_units)} 個文本單元")
-            return text_units
+            # 準備 GraphRAG 執行環境
+            import tempfile
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                
+                # 設置環境
+                if not adapter.validate_and_prepare_environment(temp_path):
+                    logger.warning("GraphRAG 環境準備失敗，回退到自定義實現")
+                    return await self._create_text_units(documents)
+                
+                # 轉換文檔為 GraphRAG 格式
+                documents_parquet_path = adapter.convert_documents_to_graphrag_format(
+                    documents, temp_path / "output"
+                )
+                
+                # 載入 GraphRAG 配置
+                from graphrag.config.load_config import load_config
+                graphrag_config = load_config(temp_path)
+                
+                # 建立 GraphRAG 執行上下文
+                from graphrag.index.typing.context import PipelineRunContext
+                from graphrag.index.typing.stats import PipelineRunStats
+                from graphrag.storage.file_pipeline_storage import FilePipelineStorage
+                from graphrag.callbacks.noop_workflow_callbacks import NoopWorkflowCallbacks
+                from graphrag.cache.noop_pipeline_cache import NoopPipelineCache
+                
+                stats = PipelineRunStats()
+                callbacks = NoopWorkflowCallbacks()
+                cache = NoopPipelineCache()
+                
+                input_storage = FilePipelineStorage(temp_path / "input")
+                output_storage = FilePipelineStorage(temp_path / "output")
+                cache_storage = FilePipelineStorage(temp_path / "cache")
+                
+                context = PipelineRunContext(
+                    stats=stats,
+                    input_storage=input_storage,
+                    output_storage=output_storage,
+                    previous_storage=cache_storage,
+                    cache=cache,
+                    callbacks=callbacks,
+                    state={}
+                )
+                
+                # 調用 GraphRAG workflow
+                result = await create_base_text_units_workflow(
+                    config=graphrag_config,
+                    context=context
+                )
+                
+                # 轉換結果為我們的 TextUnit 模型
+                text_units = []
+                if hasattr(result, 'result') and result.result is not None:
+                    result_df = result.result
+                    logger.info(f"GraphRAG 返回了 {len(result_df)} 個文本單元")
+                    
+                    for _, row in result_df.iterrows():
+                        text_unit = TextUnit(
+                            id=row.get('id', str(uuid.uuid4())),
+                            text=row.get('text', ''),
+                            document_id=row.get('document_id', ''),
+                            chunk_index=row.get('chunk_index', 0),
+                            metadata=row.get('metadata', {})
+                        )
+                        text_units.append(text_unit)
+                        self.text_units[text_unit.id] = text_unit
+                
+                logger.info(f"GraphRAG 成功建立了 {len(text_units)} 個文本單元")
+                return text_units
             
         except Exception as e:
             logger.warning(f"GraphRAG create_base_text_units 失敗: {e}，回退到自定義方法")

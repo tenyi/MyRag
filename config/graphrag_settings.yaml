@@ -1,0 +1,223 @@
+# Microsoft GraphRAG 標準配置檔案
+# 針對中文文檔處理優化的 GraphRAG 配置
+
+# 模型配置
+models:
+  # 預設聊天模型（用於實體提取、關係分析等）
+  default_chat_model:
+    type: openai_chat
+    api_key: ${GRAPHRAG_API_KEY}
+    model: gpt-4.1
+    model_supports_json: true
+    max_tokens: 4000
+    temperature: 0.1
+    request_timeout: 180.0
+    retry_strategy: "native"
+    max_retries: 10
+    concurrent_requests: 25
+
+  # 聊天模型（備用）
+  secondary_chat_model:
+    type: openai_chat
+    api_key: ${GRAPHRAG_API_KEY}
+    model: gpt-4.1-mini
+    model_supports_json: true
+    max_tokens: 2000
+    temperature: 0.2
+
+  # Ollama 本地聊天模型
+  ollama_chat_model:
+    type: ollama
+    model: gemma2
+    api_base: http://localhost:11434
+    request_timeout: 300.0
+
+  # 預設 Embedding 模型
+  default_embedding_model:
+    type: openai_embedding
+    api_key: ${GRAPHRAG_API_KEY}
+    model: text-embedding-3-small
+    dimensions: 1536
+
+  # 中文優化 Embedding 模型
+  chinese_embedding_model:
+    type: openai_embedding
+    api_key: ${GRAPHRAG_API_KEY}
+    model: text-embedding-3-large
+    dimensions: 3072
+    # 注意：如需使用 BGE-M3，需要自定義 embedding 服務
+
+# 工作流程配置
+workflows:
+  - create_base_text_units
+  - extract_graph
+  - create_communities
+  - create_community_reports
+  - generate_text_embeddings
+
+# 輸入配置
+input:
+  type: file
+  file_type: text
+  base_dir: input
+  file_encoding: utf-8
+  file_pattern: ".*\\.(txt|md|docx|pdf)$"
+
+# 文本分塊配置
+chunks:
+  size: 1000
+  overlap: 200
+  group_by_columns: [id]
+  strategy: tokens
+
+# 輸出配置
+output:
+  type: file
+  base_dir: output
+
+# 儲存配置
+storage:
+  type: file
+  base_dir: output
+
+# 快取配置
+cache:
+  type: file
+  base_dir: cache
+
+# 報告配置
+reporting:
+  type: file
+  base_dir: reporting
+
+# 向量儲存配置
+vector_store:
+  type: lancedb
+  db_uri: ./lancedb
+  container_name: default
+  overwrite: false
+
+# GraphRAG 特定配置
+
+# 文本單元生成
+embed_text:
+  enabled: true
+  batch_size: 16
+  batch_max_tokens: 8191
+
+# 圖形提取配置
+extract_graph:
+  enabled: true
+  max_gleanings: 1
+  entity_types: ["人物", "組織", "地點", "事件", "概念", "技術", "產品"]
+  
+# 實體描述摘要
+summarize_descriptions:
+  enabled: true
+  max_length: 500
+
+# 社群檢測配置
+cluster_graph:
+  enabled: true
+  max_cluster_size: 15
+  resolution: 1.0
+
+# 社群報告配置
+community_reports:
+  enabled: true
+  max_length: 2000
+  max_input_length: 8000
+
+# 聲明提取配置（可選）
+extract_claims:
+  enabled: false
+  max_gleanings: 1
+
+# 本地搜尋配置
+local_search:
+  text_unit_prop: 0.5
+  community_prop: 0.1
+  conversation_history_max_turns: 5
+  top_k_mapped_entities: 10
+  top_k_relationships: 10
+  max_tokens: 12000
+
+# 全域搜尋配置
+global_search:
+  max_tokens: 12000
+  data_max_tokens: 12000
+  map_max_tokens: 1000
+  reduce_max_tokens: 2000
+  concurrency: 32
+
+# 自然語言處理配置
+extract_graph_nlp:
+  # 停用詞（中文）
+  stopwords: ["的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "都", "一", "一個", "上", "也", "很", "到", "說", "要", "去", "你", "會", "著", "沒有", "看", "好", "自己", "這"]
+
+# 中文處理特定配置
+chinese_processing:
+  # 分詞器設定
+  tokenizer: jieba
+  enable_traditional_chinese: true
+  enable_simplified_chinese: true
+  enable_pos_tagging: true
+  enable_ner: true
+  
+  # 自定義詞典
+  custom_dict: null
+  
+  # 實體識別設定
+  entity_recognition:
+    enable_person: true
+    enable_location: true
+    enable_organization: true
+    enable_time: true
+    enable_custom_entities: true
+  
+  # 關係提取設定
+  relationship_extraction:
+    enable_dependency_parsing: true
+    max_sentence_length: 100
+    min_confidence: 0.7
+
+# 效能優化配置
+performance:
+  # 並行處理
+  max_workers: 4
+  chunk_size: 100
+  
+  # 記憶體管理
+  max_memory_usage: "8GB"
+  enable_memory_optimization: true
+  
+  # 批次處理
+  batch_processing: true
+  batch_size: 32
+
+# 日誌配置
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: file
+      filename: logs/graphrag.log
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+    - type: console
+      level: INFO
+
+# 監控配置
+monitoring:
+  enabled: true
+  metrics_collection: true
+  performance_tracking: true
+
+# 安全配置
+security:
+  # API 金鑰管理
+  api_key_rotation: false
+  
+  # 資料隱私
+  enable_data_anonymization: false
+  pii_detection: false

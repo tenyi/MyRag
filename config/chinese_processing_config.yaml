@@ -1,0 +1,256 @@
+# 中文 GraphRAG 專用配置檔案
+# 專門針對中文文檔處理進行優化
+
+# 中文處理核心配置
+chinese_processing:
+  # 分詞器配置
+  tokenizer:
+    type: jieba
+    mode: "accurate"  # 精確模式
+    enable_paddle: false  # 是否啟用 paddle 模式
+    
+  # 語言支援
+  language_support:
+    traditional_chinese: true
+    simplified_chinese: true
+    auto_detect: true  # 自動檢測繁簡體
+    
+  # 詞性標註
+  pos_tagging:
+    enabled: true
+    engine: "jieba"
+    detailed_pos: true
+    
+  # 命名實體識別
+  named_entity_recognition:
+    enabled: true
+    engines: ["jieba", "custom"]
+    entity_types:
+      person: 
+        enabled: true
+        patterns: [".*先生", ".*女士", ".*教授", ".*博士", ".*總統", ".*主席"]
+      location:
+        enabled: true
+        patterns: [".*市", ".*縣", ".*省", ".*國", ".*區", ".*路", ".*街"]
+      organization:
+        enabled: true
+        patterns: [".*公司", ".*企業", ".*集團", ".*機構", ".*部門", ".*學院", ".*大學"]
+      time:
+        enabled: true
+        patterns: [".*年", ".*月", ".*日", ".*時", ".*分", "今天", "昨天", "明天"]
+      technology:
+        enabled: true
+        patterns: [".*技術", ".*系統", ".*平台", ".*軟體", ".*硬體", ".*演算法"]
+        
+  # 自定義詞典
+  custom_dictionaries:
+    # 領域專用詞典
+    domain_specific:
+      - path: "dicts/ai_terms.txt"
+        weight: 10
+      - path: "dicts/business_terms.txt"
+        weight: 8
+      - path: "dicts/tech_terms.txt"
+        weight: 9
+        
+    # 人名詞典
+    person_names:
+      - path: "dicts/chinese_names.txt"
+        weight: 15
+        
+    # 地名詞典
+    location_names:
+      - path: "dicts/chinese_locations.txt"
+        weight: 12
+
+# 中文文本預處理
+text_preprocessing:
+  # 清理規則
+  cleaning:
+    remove_punctuation: false  # 保留標點符號，對中文語義重要
+    normalize_whitespace: true
+    remove_extra_spaces: true
+    handle_traditional_chinese: "convert_to_simplified"  # auto, keep, convert_to_simplified, convert_to_traditional
+    
+  # 文本正規化
+  normalization:
+    unicode_normalization: "NFKC"
+    case_normalization: false  # 中文不需要大小寫轉換
+    number_normalization: true
+    
+  # 句子分割
+  sentence_splitting:
+    enabled: true
+    separators: ["。", "！", "？", "；", "\n"]
+    max_sentence_length: 200
+    min_sentence_length: 5
+
+# 中文實體關係提取
+entity_relationship_extraction:
+  # 關係模式
+  relationship_patterns:
+    - pattern: "{entity1} 是 {entity2} 的 {relation}"
+      confidence: 0.9
+    - pattern: "{entity1} 與 {entity2} {relation}"
+      confidence: 0.8
+    - pattern: "{entity1} 在 {entity2} {relation}"
+      confidence: 0.7
+    - pattern: "{entity1} 創立了 {entity2}"
+      confidence: 0.9
+      relation_type: "創立"
+      
+  # 依存句法分析
+  dependency_parsing:
+    enabled: true
+    parser: "ltp"  # 可選: ltp, stanza, spacy
+    max_sentence_length: 100
+    
+  # 關係分類
+  relation_classification:
+    enabled: true
+    classes:
+      - "工作於"
+      - "創立"
+      - "位於"
+      - "屬於"
+      - "合作"
+      - "競爭"
+      - "投資"
+      - "收購"
+      - "合併"
+
+# 中文社群檢測優化
+community_detection:
+  # 中文相似度計算
+  similarity_calculation:
+    method: "semantic"  # semantic, lexical, hybrid
+    weights:
+      semantic: 0.7
+      lexical: 0.3
+      
+  # 聚類參數調整（針對中文特性）
+  clustering:
+    min_community_size: 3
+    max_community_size: 20
+    resolution: 1.2  # 中文文本通常需要更高的解析度
+    
+  # 社群命名
+  community_naming:
+    strategy: "keyword_extraction"  # keyword_extraction, centrality, manual
+    max_keywords: 5
+    keyword_extraction:
+      method: "tf_idf"
+      min_keyword_length: 2
+      exclude_stopwords: true
+
+# 中文查詢優化
+query_optimization:
+  # 查詢擴展
+  query_expansion:
+    enabled: true
+    methods: ["synonym", "semantic", "pinyin"]
+    synonym_dict: "dicts/chinese_synonyms.txt"
+    
+  # 拼音支援
+  pinyin_support:
+    enabled: true
+    fuzzy_matching: true
+    tone_sensitive: false
+    
+  # 語義匹配
+  semantic_matching:
+    enabled: true
+    embedding_model: "chinese_embedding_model"
+    similarity_threshold: 0.7
+
+# 中文生成配置
+text_generation:
+  # 摘要生成
+  summarization:
+    style: "chinese_formal"  # chinese_formal, chinese_casual
+    max_length: 200
+    preserve_key_terms: true
+    
+  # 回答生成
+  answer_generation:
+    style: "chinese_explanatory"
+    include_citations: true
+    citation_format: "chinese"
+    
+  # 語言模型提示詞
+  prompts:
+    entity_extraction: |
+      請從以下中文文本中提取重要的實體（人物、組織、地點、概念）：
+      
+      文本：{text}
+      
+      請以 JSON 格式返回，包含實體名稱、類型和描述。
+      
+    relationship_extraction: |
+      請分析以下中文文本中實體之間的關係：
+      
+      文本：{text}
+      實體：{entities}
+      
+      請識別實體間的關係並以結構化格式返回。
+      
+    summarization: |
+      請為以下中文文本生成一個簡潔的摘要：
+      
+      文本：{text}
+      
+      摘要應該：
+      1. 保留關鍵資訊
+      2. 使用正式的中文表達
+      3. 長度控制在 {max_length} 字以內
+
+# 效能調整（針對中文）
+performance_tuning:
+  # 記憶體使用優化
+  memory_optimization:
+    chinese_dict_caching: true
+    segment_result_caching: true
+    cache_size: "512MB"
+    
+  # 處理速度優化
+  speed_optimization:
+    parallel_segmentation: true
+    batch_processing: true
+    max_batch_size: 100
+    
+  # 準確度與速度平衡
+  accuracy_speed_balance:
+    priority: "accuracy"  # accuracy, speed, balanced
+    jieba_mode: "accurate"  # fast, accurate
+
+# 錯誤處理
+error_handling:
+  # 編碼問題
+  encoding_issues:
+    auto_detect_encoding: true
+    fallback_encoding: "utf-8"
+    handle_malformed_chars: "replace"
+    
+  # 分詞錯誤
+  segmentation_errors:
+    handle_unknown_words: "keep"  # keep, ignore, substitute
+    min_word_length: 1
+    
+  # 實體識別錯誤
+  entity_recognition_errors:
+    confidence_threshold: 0.5
+    handle_overlapping_entities: "longest_match"  # longest_match, highest_confidence, merge
+
+# 評估指標
+evaluation_metrics:
+  # 中文特定指標
+  chinese_specific:
+    segmentation_accuracy: true
+    entity_f1_score: true
+    relationship_precision: true
+    
+  # 品質評估
+  quality_assessment:
+    readability_score: true
+    coherence_score: true
+    fluency_score: true
