@@ -220,10 +220,14 @@ class OllamaAdapter(LLMAdapter):
             # 針對中文任務優化 prompt
             optimized_prompt = self._optimize_chinese_prompt(prompt, task_type)
             
+            # 提取並移除已處理的參數，避免重複傳遞
+            max_tokens = kwargs.pop("max_tokens", self.config.max_tokens)
+            temperature = kwargs.pop("temperature", self.config.temperature)
+            
             response = await self.llm.async_generate(
                 optimized_prompt,
-                max_tokens=kwargs.get("max_tokens", self.config.max_tokens),
-                temperature=kwargs.get("temperature", self.config.temperature),
+                max_tokens=max_tokens,
+                temperature=temperature,
                 **kwargs
             )
             

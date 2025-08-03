@@ -153,33 +153,46 @@ def query(
         # 從主配置中獲取 LLM 配置
         llm_configs = []
         for model_name, model_config in config.models.items():
-            if hasattr(model_config, 'type') and 'chat' in str(model_config.type).lower():
-                # 檢查是否有 API 金鑰
-                api_key = getattr(model_config, 'api_key', None)
-                if not api_key:
-                    logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
-                    continue
+            # 檢查是否為 LLM 模型（排除 embedding 模型）
+            if hasattr(model_config, 'type'):
+                model_type_str = str(model_config.type).lower()
+                is_llm_model = (
+                    'chat' in model_type_str or 
+                    'ollama' in model_type_str or 
+                    'openai' in model_type_str
+                ) and 'embedding' not in model_type_str
                 
-                # 映射模型類型到 LLMProvider
-                if 'openai' in str(model_config.type).lower():
-                    provider = LLMProvider.OPENAI
-                elif 'ollama' in str(model_config.type).lower():
-                    provider = LLMProvider.OLLAMA
-                else:
-                    provider = LLMProvider.MOCK
-                
-                llm_config = LLMConfig(
-                    provider=provider,
-                    model=model_config.model,
-                    config={
-                        'api_key': api_key,
-                        'base_url': getattr(model_config, 'api_base', None),
-                        'temperature': getattr(model_config, 'temperature', 0.7)
-                    },
-                    max_tokens=getattr(model_config, 'max_tokens', 4000),
-                    temperature=getattr(model_config, 'temperature', 0.7)
-                )
-                llm_configs.append(llm_config)
+                if is_llm_model:
+                    # 檢查 API 金鑰（Ollama 模型不需要）
+                    api_key = getattr(model_config, 'api_key', None)
+                    model_type_str = str(model_config.type).lower()
+                    
+                    # Ollama 模型不需要 API 金鑰
+                    if not api_key and 'ollama' not in model_type_str:
+                        logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
+                        continue
+                    
+                    # 映射模型類型到 LLMProvider
+                    if 'openai' in str(model_config.type).lower():
+                        provider = LLMProvider.OPENAI
+                    elif 'ollama' in str(model_config.type).lower():
+                        provider = LLMProvider.OLLAMA
+                    else:
+                        provider = LLMProvider.MOCK
+                    
+                    llm_config = LLMConfig(
+                        provider=provider,
+                        model=model_config.model,
+                        config={
+                            'model': model_config.model,
+                            'api_key': api_key,
+                            'base_url': getattr(model_config, 'api_base', None),
+                            'temperature': getattr(model_config, 'temperature', 0.7)
+                        },
+                        max_tokens=getattr(model_config, 'max_tokens', 4000),
+                        temperature=getattr(model_config, 'temperature', 0.7)
+                    )
+                    llm_configs.append(llm_config)
         
         # 如果沒有找到 LLM 配置，創建一個默認的
         if not llm_configs:
@@ -502,33 +515,46 @@ def batch_query(
         # 從主配置中獲取 LLM 配置
         llm_configs = []
         for model_name, model_config in config.models.items():
-            if hasattr(model_config, 'type') and 'chat' in str(model_config.type).lower():
-                # 檢查是否有 API 金鑰
-                api_key = getattr(model_config, 'api_key', None)
-                if not api_key:
-                    logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
-                    continue
+            # 檢查是否為 LLM 模型（排除 embedding 模型）
+            if hasattr(model_config, 'type'):
+                model_type_str = str(model_config.type).lower()
+                is_llm_model = (
+                    'chat' in model_type_str or 
+                    'ollama' in model_type_str or 
+                    'openai' in model_type_str
+                ) and 'embedding' not in model_type_str
                 
-                # 映射模型類型到 LLMProvider
-                if 'openai' in str(model_config.type).lower():
-                    provider = LLMProvider.OPENAI
-                elif 'ollama' in str(model_config.type).lower():
-                    provider = LLMProvider.OLLAMA
-                else:
-                    provider = LLMProvider.MOCK
-                
-                llm_config = LLMConfig(
-                    provider=provider,
-                    model=model_config.model,
-                    config={
-                        'api_key': api_key,
-                        'base_url': getattr(model_config, 'api_base', None),
-                        'temperature': getattr(model_config, 'temperature', 0.7)
-                    },
-                    max_tokens=getattr(model_config, 'max_tokens', 4000),
-                    temperature=getattr(model_config, 'temperature', 0.7)
-                )
-                llm_configs.append(llm_config)
+                if is_llm_model:
+                    # 檢查 API 金鑰（Ollama 模型不需要）
+                    api_key = getattr(model_config, 'api_key', None)
+                    model_type_str = str(model_config.type).lower()
+                    
+                    # Ollama 模型不需要 API 金鑰
+                    if not api_key and 'ollama' not in model_type_str:
+                        logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
+                        continue
+                    
+                    # 映射模型類型到 LLMProvider
+                    if 'openai' in str(model_config.type).lower():
+                        provider = LLMProvider.OPENAI
+                    elif 'ollama' in str(model_config.type).lower():
+                        provider = LLMProvider.OLLAMA
+                    else:
+                        provider = LLMProvider.MOCK
+                    
+                    llm_config = LLMConfig(
+                        provider=provider,
+                        model=model_config.model,
+                        config={
+                            'model': model_config.model,
+                            'api_key': api_key,
+                            'base_url': getattr(model_config, 'api_base', None),
+                            'temperature': getattr(model_config, 'temperature', 0.7)
+                        },
+                        max_tokens=getattr(model_config, 'max_tokens', 4000),
+                        temperature=getattr(model_config, 'temperature', 0.7)
+                    )
+                    llm_configs.append(llm_config)
         
         # 如果沒有找到 LLM 配置，創建一個默認的
         if not llm_configs:

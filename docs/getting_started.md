@@ -69,7 +69,7 @@ cd chinese-graphrag
     ```bash
     cp config/settings.yaml.example config/settings.yaml
     ```
-    對於初次使用，預設的 `settings.yaml` 內容通常無需修改。它預設使用 OpenAI 的 `gpt-4o-mini` 和 `text-embedding-3-small` 模型，並將所有資料儲存在本地的 `./data` 目錄中。
+    對於初次使用，預設的 `settings.yaml` 內容通常無需修改。它預設使用 OpenAI 的 `gpt-4.1-mini` 和 `text-embedding-3-small` 模型，並將所有資料儲存在本地的 `./data` 目錄中。
 
 ## 4. 執行您的第一個 RAG 流程
 

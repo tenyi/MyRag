@@ -132,15 +132,57 @@ class ConfigLoader:
                 
             model_type = model_config.get('type')
             
-            # 根據類型建立適當的配置物件
-            if model_type in [t.value for t in LLMType]:
+            # 對於 ollama 類型，需要根據配置欄位來判斷是 LLM 還是 Embedding
+            if model_type == 'ollama':
+                # 檢查是否有 embedding 特有的欄位
+                embedding_fields = {'batch_size', 'max_length', 'vector_size', 'normalize_embeddings'}
+                llm_fields = {'max_tokens', 'temperature', 'model_supports_json'}
+                
+                config_fields = set(model_config.keys())
+                has_embedding_fields = bool(embedding_fields.intersection(config_fields))
+                has_llm_fields = bool(llm_fields.intersection(config_fields))
+                
+                if has_embedding_fields and not has_llm_fields:
+                    # 這是 embedding 配置
+                    try:
+                        processed_models[model_name] = EmbeddingConfig(**model_config)
+                    except ValidationError as e:
+                        raise ConfigurationError(
+                            f"Ollama Embedding 模型 '{model_name}' 配置錯誤: {e}"
+                        )
+                elif has_llm_fields and not has_embedding_fields:
+                    # 這是 LLM 配置
+                    try:
+                        processed_models[model_name] = LLMConfig(**model_config)
+                    except ValidationError as e:
+                        raise ConfigurationError(
+                            f"Ollama LLM 模型 '{model_name}' 配置錯誤: {e}"
+                        )
+                else:
+                    # 無法判斷，根據模型名稱進行推測
+                    if 'embedding' in model_name.lower():
+                        try:
+                            processed_models[model_name] = EmbeddingConfig(**model_config)
+                        except ValidationError as e:
+                            raise ConfigurationError(
+                                f"Ollama Embedding 模型 '{model_name}' 配置錯誤: {e}"
+                            )
+                    else:
+                        try:
+                            processed_models[model_name] = LLMConfig(**model_config)
+                        except ValidationError as e:
+                            raise ConfigurationError(
+                                f"Ollama LLM 模型 '{model_name}' 配置錯誤: {e}"
+                            )
+            # 其他類型的處理
+            elif model_type in [t.value for t in LLMType if t.value != 'ollama']:
                 try:
                     processed_models[model_name] = LLMConfig(**model_config)
                 except ValidationError as e:
                     raise ConfigurationError(
                         f"LLM 模型 '{model_name}' 配置錯誤: {e}"
                     )
-            elif model_type in [t.value for t in EmbeddingType]:
+            elif model_type in [t.value for t in EmbeddingType if t.value != 'ollama']:
                 try:
                     processed_models[model_name] = EmbeddingConfig(**model_config)
                 except ValidationError as e:
@@ -218,13 +260,11 @@ class ConfigLoader:
         """
         output_path = output_path or Path("settings.yaml")
         
-        default_config = {
-            "encoding_model": "cl100k_base",
-            "models": {
+        default_config = {"models": {
                 "default_chat_model": {
                     "api_key": "${GRAPHRAG_API_KEY:your-openai-api-key-here}",
                     "type": "openai_chat",
-                    "model": "gpt-4o",
+                    "model": "gpt-4.1",
                     "model_supports_json": True,
                     "max_tokens": 2000,
                     "temperature": 0.0

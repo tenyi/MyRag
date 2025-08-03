@@ -63,7 +63,7 @@ class TestDefaultModelSelectionStrategy:
         embedding_model = strategy.select_embedding_model(config, TaskType.TEXT_EMBEDDING)
         
         assert llm_model == "default_chat_model"
-        assert embedding_model == "chinese_embedding_model"
+        assert embedding_model == "ollama_embedding_model"
 
     def _create_test_config(self) -> GraphRAGConfig:
         """建立測試配置"""
@@ -73,7 +73,7 @@ class TestDefaultModelSelectionStrategy:
                     type=LLMType.OPENAI_CHAT,
                     model="gpt-4"
                 ),
-                "chinese_embedding_model": EmbeddingConfig(
+                "ollama_embedding_model": EmbeddingConfig(
                     type=EmbeddingType.BGE_M3,
                     model="BAAI/bge-m3"
                 )
@@ -84,7 +84,7 @@ class TestDefaultModelSelectionStrategy:
             ),
             model_selection=ModelSelectionConfig(
                 default_llm="default_chat_model",
-                default_embedding="chinese_embedding_model"
+                default_embedding="ollama_embedding_model"
             )
         )
 
@@ -131,7 +131,7 @@ class TestCostOptimizedSelectionStrategy:
         embedding_model = strategy.select_embedding_model(
             config, TaskType.TEXT_EMBEDDING, context
         )
-        assert embedding_model == "chinese_embedding_model"
+        assert embedding_model == "ollama_embedding_model"
 
     def _create_test_config(self) -> GraphRAGConfig:
         """建立測試配置"""
@@ -141,7 +141,7 @@ class TestCostOptimizedSelectionStrategy:
                     type=LLMType.OPENAI_CHAT,
                     model="gpt-4"
                 ),
-                "chinese_embedding_model": EmbeddingConfig(
+                "ollama_embedding_model": EmbeddingConfig(
                     type=EmbeddingType.BGE_M3,
                     model="BAAI/bge-m3"
                 ),
@@ -156,7 +156,7 @@ class TestCostOptimizedSelectionStrategy:
             ),
             model_selection=ModelSelectionConfig(
                 default_llm="default_chat_model",
-                default_embedding="chinese_embedding_model"
+                default_embedding="ollama_embedding_model"
             )
         )
 
@@ -175,7 +175,7 @@ class TestAdaptiveSelectionStrategy:
         assert llm_model in ["gpt4_model", "default_chat_model"]
         
         embedding_model = strategy.select_embedding_model(config, TaskType.TEXT_EMBEDDING)
-        assert embedding_model == "chinese_embedding_model"
+        assert embedding_model == "ollama_embedding_model"
 
     def test_chinese_context_preference(self):
         """測試中文上下文偏好"""
@@ -187,7 +187,7 @@ class TestAdaptiveSelectionStrategy:
         embedding_model = strategy.select_embedding_model(
             config, TaskType.TEXT_EMBEDDING, context
         )
-        assert embedding_model == "chinese_embedding_model"
+        assert embedding_model == "ollama_embedding_model"
 
     def _create_test_config(self) -> GraphRAGConfig:
         """建立測試配置"""
@@ -201,7 +201,7 @@ class TestAdaptiveSelectionStrategy:
                     type=LLMType.OPENAI_CHAT,
                     model="gpt-4"
                 ),
-                "chinese_embedding_model": EmbeddingConfig(
+                "ollama_embedding_model": EmbeddingConfig(
                     type=EmbeddingType.BGE_M3,
                     model="BAAI/bge-m3"
                 ),
@@ -216,7 +216,7 @@ class TestAdaptiveSelectionStrategy:
             ),
             model_selection=ModelSelectionConfig(
                 default_llm="default_chat_model",
-                default_embedding="chinese_embedding_model"
+                default_embedding="ollama_embedding_model"
             )
         )
 
@@ -255,7 +255,7 @@ class TestModelSelector:
         selector = ModelSelector(config)
         
         # 模擬選擇不存在的模型
-        selector.strategy = MockStrategy("nonexistent_model", "chinese_embedding_model")
+        selector.strategy = MockStrategy("nonexistent_model", "ollama_embedding_model")
         
         model_name, model_config = selector.select_llm_model(TaskType.ENTITY_EXTRACTION)
         
@@ -290,7 +290,7 @@ class TestModelSelector:
                     type=LLMType.OPENAI_CHAT,
                     model="gpt-4"
                 ),
-                "chinese_embedding_model": EmbeddingConfig(
+                "ollama_embedding_model": EmbeddingConfig(
                     type=EmbeddingType.BGE_M3,
                     model="BAAI/bge-m3"
                 )
@@ -301,7 +301,7 @@ class TestModelSelector:
             ),
             model_selection=ModelSelectionConfig(
                 default_llm="default_chat_model",
-                default_embedding="chinese_embedding_model"
+                default_embedding="ollama_embedding_model"
             )
         )
 

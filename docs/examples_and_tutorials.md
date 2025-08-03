@@ -122,7 +122,7 @@ config = GraphRAGConfig(
     models={
         "chat_model": {
             "type": "openai_chat",
-            "model": "gpt-4o-mini",
+            "model": "gpt-4.1-mini",
             "api_key": "your-api-key"
         },
         "embedding_model": {

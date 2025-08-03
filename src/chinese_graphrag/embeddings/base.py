@@ -19,6 +19,7 @@ class EmbeddingModelType(Enum):
     TEXT2VEC = "text2vec"
     M3E = "m3e"
     LOCAL = "local"
+    REMOTE_API = "remote_api"
 
 
 @dataclass

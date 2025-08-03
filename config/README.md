@@ -43,7 +43,7 @@
    GRAPHRAG_API_KEY=your-api-key-here
    
    # 可選設定
-   GRAPHRAG_MODEL=gpt-4o-mini
+   GRAPHRAG_MODEL=gpt-4.1-mini
    GRAPHRAG_DEVICE=auto
    ```
 

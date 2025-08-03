@@ -52,9 +52,7 @@ def demo_load_config():
         
         try:
             config = load_config(config_path)
-            print(f"成功載入配置")
-            print(f"編碼模型: {config.encoding_model}")
-            print(f"模型數量: {len(config.models)}")
+            print(f"成功載入配置")print(f"模型數量: {len(config.models)}")
             print(f"向量資料庫類型: {config.vector_store.type}")
             print(f"預設 LLM: {config.model_selection.default_llm}")
             print(f"預設 Embedding: {config.model_selection.default_embedding}")
@@ -158,7 +156,7 @@ def demo_config_validation():
                 "models": {
                     "some_model": {
                         "type": "openai_chat",
-                        "model": "gpt-4"
+                        "model": "gpt-4.1"
                     }
                 },
                 "vector_store": {

@@ -196,7 +196,7 @@ class ParallelizationConfig(BaseModel):
 class ModelSelectionConfig(BaseModel):
     """模型選擇策略配置"""
     default_llm: str = Field("default_chat_model", description="預設 LLM 模型")
-    default_embedding: str = Field("chinese_embedding_model", description="預設 Embedding 模型")
+    default_embedding: str = Field("ollama_embedding_model", description="預設 Embedding 模型")
     cost_optimization: bool = Field(True, description="是否啟用成本優化")
     quality_threshold: float = Field(0.8, description="品質閾值")
     fallback_models: Dict[str, str] = Field(
@@ -344,12 +344,7 @@ class GraphRAGConfig(BaseModel):
     debug: DebugConfig = Field(
         default_factory=DebugConfig,
         description="除錯配置"
-    )
-    
-    # 編碼模型
-    encoding_model: str = Field("cl100k_base", description="編碼模型")
-    
-    # 跳過的工作流程
+    )# 跳過的工作流程
     skip_workflows: List[str] = Field(default_factory=list, description="跳過的工作流程")
     
     # 自訂提示詞

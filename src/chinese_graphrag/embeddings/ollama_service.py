@@ -53,6 +53,8 @@ class OllamaEmbeddingService(EmbeddingService):
         max_retries: int = 3,
         dimensions: Optional[int] = None,
         device: str = "auto",
+        max_batch_size: int = 32,
+        max_sequence_length: int = 512,
         **kwargs
     ):
         """
@@ -65,28 +67,26 @@ class OllamaEmbeddingService(EmbeddingService):
             max_retries: 最大重試次數
             dimensions: 向量維度（自動檢測）
             device: 計算設備（對 Ollama 無效，保留兼容性）
+            max_batch_size: 最大批次大小
+            max_sequence_length: 最大序列長度
         """
-        super().__init__()
+        # 調用父類初始化方法
+        super().__init__(
+            model_name=model_name,
+            model_type=EmbeddingModelType.REMOTE_API,
+            max_batch_size=max_batch_size,
+            max_sequence_length=max_sequence_length,
+            device=device
+        )
         
-        self.model_name = model_name
         self.base_url = base_url.rstrip('/')
         self.timeout = timeout
         self.max_retries = max_retries
         self.dimensions = dimensions
-        self.device = device
-        
-        self.model_type = EmbeddingModelType.REMOTE_API
-        self.is_loaded = False
         
         # API 端點
         self.embed_url = f"{self.base_url}/api/embeddings"
         self.models_url = f"{self.base_url}/api/tags"
-        
-        # 初始化指標
-        self.metrics = ModelMetrics(
-            model_name=self.model_name,
-            model_type=self.model_type
-        )
         
         logger.info(f"初始化 Ollama Embedding 服務: {model_name} @ {base_url}")
     
@@ -179,9 +179,7 @@ class OllamaEmbeddingService(EmbeddingService):
             processing_time = time.time() - start_time
             
             # 更新指標
-            self.metrics.total_requests += 1
-            self.metrics.total_processing_time += processing_time
-            self.metrics.total_texts_processed += len(texts)
+            self.metrics.update_metrics(processing_time, success=True)
             
             result = EmbeddingResult(
                 embeddings=embeddings_array,
@@ -200,7 +198,7 @@ class OllamaEmbeddingService(EmbeddingService):
             return result
             
         except Exception as e:
-            self.metrics.error_count += 1
+            self.metrics.update_metrics(0, success=False)
             logger.error(f"Ollama 向量化失敗: {e}")
             raise
     
@@ -313,6 +311,11 @@ class OllamaEmbeddingService(EmbeddingService):
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
         norms = np.where(norms == 0, 1, norms)  # 避免除零
         return embeddings / norms
+
+    
+    def get_embedding_dimension(self) -> int:
+        """取得向量維度"""
+        return self.dimensions or 1024  # 返回檢測到的維度，如果未檢測到則返回預設值
     
     def get_model_info(self) -> Dict[str, Any]:
         """獲取模型資訊"""

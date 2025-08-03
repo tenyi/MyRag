@@ -274,7 +274,7 @@ SYSTEM_ENV_VARS = {
         name="GRAPHRAG_MODEL",
         description="預設 LLM 模型",
         required=False,
-        default="gpt-4o-mini",
+        default="gpt-4.1-mini",
         var_type="str"
     ),
     "GRAPHRAG_EMBEDDING_MODEL": EnvVarConfig(

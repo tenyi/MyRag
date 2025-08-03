@@ -36,7 +36,9 @@
       "Bash(python -c \"\nimport traceback\nimport sys\nsys.path.append(''''src'''')\ntry:\n    from chinese_graphrag.cli.main import main\n    main()\nexcept Exception as e:\n    traceback.print_exc()\n\" index --input ./documents --output ./data)",
       "Bash(git push:*)",
       "Bash(python:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(rg:*)",
+      "Bash(curl:*)"
     ]
   },
   "enabledMcpjsonServers": [

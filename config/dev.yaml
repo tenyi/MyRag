@@ -7,7 +7,7 @@ models:
   # 開發用 LLM 模型
   dev_llm:
     type: "openai_chat"
-    model: "gpt-4o-mini"
+    model: "gpt-4.1-mini"
     api_key: "${GRAPHRAG_API_KEY}"
     max_tokens: 2000
     temperature: 0.0

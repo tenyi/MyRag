@@ -1,9 +1,6 @@
 # 中文 GraphRAG 系統配置範例
 # 複製此檔案為 settings.yaml 並修改相關設定
 
-# 編碼模型
-encoding_model: cl100k_base
-
 # 模型配置
 models:
   # 預設 LLM 模型

@@ -34,12 +34,10 @@ class TestConfigLoader:
     def test_load_valid_config(self, tmp_path):
         """測試載入有效配置。"""
         config_file = tmp_path / "test_config.yaml"
-        config_data = {
-            "encoding_model": "cl100k_base",
-            "models": {
+        config_data = {"models": {
                 "test_llm": {
                     "type": "openai_chat",
-                    "model": "gpt-4o-mini",
+                    "model": "gpt-4.1-mini",
                     "api_key": "test-key",
                     "max_tokens": 2000,
                     "temperature": 0.0
@@ -69,9 +67,7 @@ class TestConfigLoader:
         loader = ConfigLoader(config_file)
         config = loader.load_config()
         
-        assert isinstance(config, GraphRAGConfig)
-        assert config.encoding_model == "cl100k_base"
-        assert len(config.models) == 2
+        assert isinstance(config, GraphRAGConfig)assert len(config.models) == 2
         assert config.model_selection.default_llm == "test_llm"
     
     def test_load_config_with_env_vars(self, tmp_path):
@@ -81,7 +77,7 @@ class TestConfigLoader:
             "models": {
                 "test_llm": {
                     "type": "openai_chat",
-                    "model": "gpt-4o-mini",
+                    "model": "gpt-4.1-mini",
                     "api_key": "${TEST_API_KEY}",
                     "max_tokens": "${TEST_MAX_TOKENS:4000}",
                     "temperature": 0.0
@@ -212,7 +208,7 @@ class TestConfigValidator:
             "models": {
                 "test_llm": {
                     "type": "openai_chat",
-                    "model": "gpt-4o-mini",
+                    "model": "gpt-4.1-mini",
                     "api_key": "test-key"
                 },
                 "test_embedding": {
@@ -251,7 +247,7 @@ class TestConfigValidator:
             "models": {
                 "existing_model": {
                     "type": "openai_chat",
-                    "model": "gpt-4o-mini"
+                    "model": "gpt-4.1-mini"
                 }
             },
             "model_selection": {
@@ -274,12 +270,10 @@ class TestConfigIntegration:
         """測試完整的配置工作流程。"""
         # 1. 建立配置檔案
         config_file = tmp_path / "integration_test.yaml"
-        config_data = {
-            "encoding_model": "cl100k_base",
-            "models": {
+        config_data = {"models": {
                 "main_llm": {
                     "type": "openai_chat",
-                    "model": "gpt-4o-mini",
+                    "model": "gpt-4.1-mini",
                     "api_key": "${INTEGRATION_TEST_API_KEY:test-key}",
                     "max_tokens": 2000,
                     "temperature": 0.0
@@ -316,12 +310,9 @@ class TestConfigIntegration:
         # 3. 驗證配置
         assert validate_config(config) is True
         
-        # 4. 測試配置使用
-        assert config.encoding_model == "cl100k_base"
-        
-        llm_config = config.get_default_llm_config()
+        # 4. 測試配置使用llm_config = config.get_default_llm_config()
         assert llm_config is not None
-        assert llm_config.model == "gpt-4o-mini"
+        assert llm_config.model == "gpt-4.1-mini"
         assert llm_config.api_key == "test-key"  # 使用預設值
         
         embedding_config = config.get_default_embedding_config()
@@ -336,7 +327,7 @@ class TestConfigIntegration:
             "models": {
                 "test_llm": {
                     "type": "openai_chat",
-                    "model": "gpt-4o-mini",
+                    "model": "gpt-4.1-mini",
                     "max_tokens": 10000,  # 過大的值，應該產生警告
                     "temperature": 0.0
                 },
@@ -389,7 +380,7 @@ def temp_env_file(tmp_path):
     env_file = tmp_path / ".env"
     env_content = """
 TEST_API_KEY=test-secret-key
-TEST_MODEL=gpt-4o-mini
+TEST_MODEL=gpt-4.1-mini
 TEST_TEMPERATURE=0.7
 TEST_DEBUG=true
 """
@@ -403,17 +394,15 @@ TEST_DEBUG=true
 @pytest.fixture
 def sample_config_dict():
     """提供範例配置字典。"""
-    return {
-        "encoding_model": "cl100k_base",
-        "models": {
+    return {"models": {
             "default_chat_model": {
                 "type": "openai_chat",
-                "model": "gpt-4o-mini",
+                "model": "gpt-4.1-mini",
                 "api_key": "test-key",
                 "max_tokens": 2000,
                 "temperature": 0.0
             },
-            "chinese_embedding_model": {
+            "ollama_embedding_model": {
                 "type": "bge_m3",
                 "model": "BAAI/bge-m3",
                 "device": "auto",
@@ -427,7 +416,7 @@ def sample_config_dict():
         },
         "model_selection": {
             "default_llm": "default_chat_model",
-            "default_embedding": "chinese_embedding_model"
+            "default_embedding": "ollama_embedding_model"
         }
     }
 

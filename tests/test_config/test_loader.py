@@ -20,15 +20,13 @@ class TestConfigLoader:
 
     def test_load_valid_config(self):
         """測試載入有效配置"""
-        config_data = {
-            "encoding_model": "cl100k_base",
-            "models": {
+        config_data = {"models": {
                 "default_chat_model": {
                     "type": "openai_chat",
                     "model": "gpt-4",
                     "api_key": "test-key"
                 },
-                "chinese_embedding_model": {
+                "ollama_embedding_model": {
                     "type": "bge_m3",
                     "model": "BAAI/bge-m3",
                     "device": "auto"
@@ -40,7 +38,7 @@ class TestConfigLoader:
             },
             "model_selection": {
                 "default_llm": "default_chat_model",
-                "default_embedding": "chinese_embedding_model"
+                "default_embedding": "ollama_embedding_model"
             }
         }
         
@@ -51,8 +49,6 @@ class TestConfigLoader:
         try:
             loader = ConfigLoader(config_path)
             config = loader.load_config()
-            
-            assert config.encoding_model == "cl100k_base"
             assert len(config.models) == 2
             assert config.vector_store.type.value == "lancedb"
             
@@ -61,7 +57,7 @@ class TestConfigLoader:
             assert llm_config is not None
             assert llm_config.type == LLMType.OPENAI_CHAT
             
-            embedding_config = config.get_embedding_config("chinese_embedding_model")
+            embedding_config = config.get_embedding_config("ollama_embedding_model")
             assert embedding_config is not None
             assert embedding_config.type == EmbeddingType.BGE_M3
             
