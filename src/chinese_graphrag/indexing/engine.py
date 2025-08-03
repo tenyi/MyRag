@@ -23,6 +23,13 @@ try:
     from graphrag.index.workflows.create_community_reports import run_workflow as create_community_reports_workflow
     from graphrag.index.workflows.generate_text_embeddings import run_workflow as generate_text_embeddings_workflow
     GRAPHRAG_AVAILABLE = True
+    
+    # 修復說明：
+    # - 已修復函數名不匹配問題（create_base_text_units -> create_base_text_units_workflow）
+    # - GraphRAG 工作流程需要標準的 GraphRAGConfig 和 PipelineRunContext
+    # - 目前暫時回退到自定義實現，直到建立配置轉換層
+    # TODO: 在階段 2 建立 GraphRAGConfigAdapter 來正確使用這些工作流程
+    
 except ImportError:
     logger.warning("Microsoft GraphRAG 套件未安裝，將使用自定義索引流程")
     GRAPHRAG_AVAILABLE = False
@@ -514,15 +521,11 @@ class GraphRAGIndexer:
             import pandas as pd
             documents_df = pd.DataFrame(input_data)
             
-            # 調用 GraphRAG 的 create_base_text_units
-            text_units_result = await create_base_text_units(
-                documents=documents_df,
-                chunk_size=self.config.chunks.size,
-                chunk_overlap=self.config.chunks.overlap,
-                callbacks=None,  # 使用預設回調
-                cache=None,      # 使用預設快取
-                storage=None     # 使用預設儲存
-            )
+            # 調用 GraphRAG 的 create_base_text_units_workflow
+            # 注意：GraphRAG 工作流程需要特定的配置和上下文
+            # 目前先回退到自定義實現，未來需要建立正確的 GraphRAG 配置轉換
+            logger.warning("GraphRAG 工作流程需要完整的配置轉換，暫時使用自定義實現")
+            return await self._create_text_units(documents)
             
             # 轉換結果為我們的 TextUnit 模型
             text_units = []
@@ -577,50 +580,12 @@ class GraphRAGIndexer:
             
             text_units_df = pd.DataFrame(text_units_data)
             
-            # 1. 使用 create_base_extracted_entities
-            logger.info("執行 create_base_extracted_entities")
-            extracted_entities_result = await create_base_extracted_entities(
-                text_units=text_units_df,
-                callbacks=None,
-                cache=None,
-                storage=None
-            )
-            
-            # 2. 使用 create_summarized_entities
-            logger.info("執行 create_summarized_entities")
-            summarized_entities_result = await create_summarized_entities(
-                entity_graph=extracted_entities_result,
-                callbacks=None,
-                cache=None,
-                storage=None
-            )
-            
-            # 3. 使用 create_base_entity_graph
-            logger.info("執行 create_base_entity_graph")
-            entity_graph_result = await create_base_entity_graph(
-                entities=summarized_entities_result,
-                callbacks=None,
-                cache=None,
-                storage=None
-            )
-            
-            # 4. 使用 create_final_entities
-            logger.info("執行 create_final_entities")
-            final_entities_result = await create_final_entities(
-                base_entity_graph=entity_graph_result,
-                callbacks=None,
-                cache=None,
-                storage=None
-            )
-            
-            # 5. 使用 create_final_relationships
-            logger.info("執行 create_final_relationships")
-            final_relationships_result = await create_final_relationships(
-                base_entity_graph=entity_graph_result,
-                callbacks=None,
-                cache=None,
-                storage=None
-            )
+            # GraphRAG 實體和關係提取工作流程需要完整的配置轉換
+            # 這些函數調用不正確，需要使用正確的工作流程：
+            # - extract_graph_workflow 用於實體和關係提取
+            # 暫時回退到自定義實現，直到建立正確的 GraphRAG 配置轉換
+            logger.warning("GraphRAG 實體關係提取工作流程需要完整的配置轉換，暫時使用自定義實現")
+            return await self._extract_entities_and_relationships(text_units)
             
             # 轉換結果為我們的模型
             entities = self._convert_graphrag_entities_to_models(final_entities_result)
@@ -680,26 +645,13 @@ class GraphRAGIndexer:
             entities_df = pd.DataFrame(entities_data)
             relationships_df = pd.DataFrame(relationships_data)
             
-            # 1. 使用 create_final_communities
-            logger.info("執行 create_final_communities")
-            communities_result = await create_final_communities(
-                entities=entities_df,
-                relationships=relationships_df,
-                callbacks=None,
-                cache=None,
-                storage=None
-            )
-            
-            # 2. 使用 create_final_community_reports
-            logger.info("執行 create_final_community_reports")
-            community_reports_result = await create_final_community_reports(
-                communities=communities_result,
-                entities=entities_df,
-                relationships=relationships_df,
-                callbacks=None,
-                cache=None,
-                storage=None
-            )
+            # GraphRAG 社群檢測工作流程需要完整的配置轉換
+            # 正確的函數應該是：
+            # - create_communities_workflow 用於社群檢測
+            # - create_community_reports_workflow 用於社群報告生成
+            # 暫時回退到自定義實現，直到建立正確的 GraphRAG 配置轉換
+            logger.warning("GraphRAG 社群檢測工作流程需要完整的配置轉換，暫時使用自定義實現")
+            return await self._detect_communities(entities, relationships)
             
             # 轉換結果為我們的模型
             communities = self._convert_graphrag_communities_to_models(
