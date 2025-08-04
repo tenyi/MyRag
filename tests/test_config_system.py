@@ -67,7 +67,8 @@ class TestConfigLoader:
         loader = ConfigLoader(config_file)
         config = loader.load_config()
         
-        assert isinstance(config, GraphRAGConfig)assert len(config.models) == 2
+        assert isinstance(config, GraphRAGConfig)
+        assert len(config.models) == 2
         assert config.model_selection.default_llm == "test_llm"
     
     def test_load_config_with_env_vars(self, tmp_path):
@@ -310,7 +311,8 @@ class TestConfigIntegration:
         # 3. 驗證配置
         assert validate_config(config) is True
         
-        # 4. 測試配置使用llm_config = config.get_default_llm_config()
+        # 4. 測試配置使用
+        llm_config = config.get_default_llm_config()
         assert llm_config is not None
         assert llm_config.model == "gpt-4.1-mini"
         assert llm_config.api_key == "test-key"  # 使用預設值
