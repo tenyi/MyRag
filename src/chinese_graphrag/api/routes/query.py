@@ -9,6 +9,7 @@
 
 import uuid
 import time
+import asyncio
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
@@ -16,10 +17,15 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, status
 from fastapi.responses import JSONResponse
 
 from ...config.settings import Settings
+from ...config.loader import load_config
 from ...monitoring.logger import get_logger
+from ...query.engine import QueryEngine, QueryEngineConfig
+from ...indexing.manager import GraphRAGIndexer
+from ...vector_stores.manager import VectorStoreManager
 from ..models import (
     QueryRequest, QueryResponse, QueryResult, BatchQueryRequest, BatchQueryResponse,
-    DataResponse, create_success_response, create_error_response, create_task_response,
+    SimpleQueryRequest, SimpleQueryResponse, DataResponse, 
+    create_success_response, create_error_response, create_task_response,
     ResponseStatus
 )
 
@@ -33,6 +39,185 @@ router = APIRouter()
 # 查詢任務儲存
 query_tasks: Dict[str, Dict[str, Any]] = {}
 
+# 全局查詢引擎實例
+_query_engine: Optional[QueryEngine] = None
+
+
+async def get_query_engine() -> QueryEngine:
+    """獲取或初始化查詢引擎。"""
+    global _query_engine
+    
+    if _query_engine is None:
+        try:
+            # 載入配置
+            config = load_config("./config/settings.yaml")
+            
+            # 初始化查詢引擎配置
+            query_engine_config = QueryEngineConfig(
+                llm_configs=[], # 將從配置中載入
+                enable_cache=True,
+                cache_ttl=3600,
+                max_concurrent_queries=10,
+                timeout_seconds=120
+            )
+            
+            # 初始化索引器（用於載入資料）
+            indexer = GraphRAGIndexer(config)
+            
+            # 初始化向量存儲
+            vector_store = VectorStoreManager(config.vector_store)
+            
+            # 創建查詢引擎
+            _query_engine = QueryEngine(query_engine_config, config, indexer, vector_store)
+            
+            logger.info("查詢引擎初始化完成")
+            
+        except Exception as e:
+            logger.error(f"查詢引擎初始化失敗: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"查詢引擎初始化失敗: {str(e)}"
+            )
+    
+    return _query_engine
+
+
+@router.post("/query/simple", response_model=SimpleQueryResponse, summary="執行精簡查詢")
+async def execute_simple_query(
+    request: SimpleQueryRequest
+) -> SimpleQueryResponse:
+    """執行精簡查詢，僅返回核心答案。
+    
+    此端點專為需要簡潔回答的應用場景設計，不包含詳細的推理過程、
+    來源資訊等額外內容，只返回查詢的核心答案。
+    
+    Args:
+        request: 精簡查詢請求參數
+        
+    Returns:
+        精簡查詢結果
+        
+    Raises:
+        HTTPException: 當查詢失敗時
+    """
+    try:
+        start_time = time.time()
+        
+        logger.info(f"執行精簡查詢: {request.query[:50]}...")
+        
+        # 驗證查詢參數
+        if not request.query.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="查詢內容不能為空"
+            )
+        
+        # 獲取查詢引擎
+        query_engine = await get_query_engine()
+        
+        # 執行查詢
+        if request.use_llm_segmentation:
+            unified_result = await query_engine.query_with_llm_segmentation(
+                request.query, 
+                search_type=request.search_type
+            )
+        else:
+            unified_result = await query_engine.query(
+                request.query, 
+                search_type=request.search_type
+            )
+        
+        processing_time = time.time() - start_time
+        
+        logger.info(f"精簡查詢完成，耗時 {processing_time:.3f}s，信心度 {unified_result.confidence:.2f}")
+        
+        return SimpleQueryResponse(
+            success=True,
+            message="查詢完成",
+            answer=unified_result.answer,
+            confidence=unified_result.confidence,
+            search_type=unified_result.search_type,
+            response_time=round(processing_time, 3)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"精簡查詢執行失敗: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"精簡查詢執行失敗: {str(e)}"
+        )
+
+
+@router.post("/query/simple/with-reasoning", response_model=SimpleQueryResponse, summary="執行精簡查詢（含推理）")
+async def execute_simple_query_with_reasoning(
+    request: SimpleQueryRequest
+) -> SimpleQueryResponse:
+    """執行精簡查詢，包含推理路徑。
+    
+    此端點提供核心答案的同時，也包含推理過程，適合需要了解
+    答案來源和推理邏輯的應用場景。
+    
+    Args:
+        request: 精簡查詢請求參數
+        
+    Returns:
+        包含推理路徑的精簡查詢結果
+        
+    Raises:
+        HTTPException: 當查詢失敗時
+    """
+    try:
+        start_time = time.time()
+        
+        logger.info(f"執行精簡查詢（含推理）: {request.query[:50]}...")
+        
+        # 驗證查詢參數
+        if not request.query.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="查詢內容不能為空"
+            )
+        
+        # 獲取查詢引擎
+        query_engine = await get_query_engine()
+        
+        # 執行查詢
+        if request.use_llm_segmentation:
+            unified_result = await query_engine.query_with_llm_segmentation(
+                request.query, 
+                search_type=request.search_type
+            )
+        else:
+            unified_result = await query_engine.query(
+                request.query, 
+                search_type=request.search_type
+            )
+        
+        processing_time = time.time() - start_time
+        
+        logger.info(f"精簡查詢（含推理）完成，耗時 {processing_time:.3f}s，信心度 {unified_result.confidence:.2f}")
+        
+        return SimpleQueryResponse(
+            success=True,
+            message="查詢完成",
+            answer=unified_result.answer,
+            confidence=unified_result.confidence,
+            search_type=unified_result.search_type,
+            response_time=round(processing_time, 3),
+            reasoning_path=unified_result.reasoning_path
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"精簡查詢（含推理）執行失敗: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"精簡查詢（含推理）執行失敗: {str(e)}"
+        )
+
 
 @router.post("/query", response_model=QueryResponse, summary="執行單一查詢")
 async def execute_query(
@@ -43,9 +228,8 @@ async def execute_query(
     
     支援多種查詢類型：
     - auto: 自動選擇最佳查詢方式
-    - semantic: 語義相似性查詢
-    - keyword: 關鍵字查詢
-    - graph: 圖結構查詢
+    - global: 全域搜尋
+    - local: 本地搜尋
     
     Args:
         request: 查詢請求參數
@@ -69,11 +253,36 @@ async def execute_query(
                 detail="查詢內容不能為空"
             )
         
-        # 執行查詢
-        results = await _execute_single_query(request, settings)
+        # 獲取查詢引擎
+        query_engine = await get_query_engine()
+        
+        # 執行查詢（使用預設的 jieba 分詞）
+        unified_result = await query_engine.query(
+            request.query, 
+            search_type=request.query_type
+        )
         
         processing_time = time.time() - start_time
         
+        # 將 UnifiedQueryResult 轉換為 API 期望的格式
+        results = [
+            QueryResult(
+                id="unified_result",
+                content=unified_result.answer,
+                score=unified_result.confidence,
+                source={
+                    "search_type": unified_result.search_type,
+                    "target_entities": unified_result.target_entities,
+                    "sources": unified_result.sources
+                } if request.include_sources else None,
+                metadata={
+                    "reasoning_path": unified_result.reasoning_path,
+                    "llm_model_used": unified_result.llm_model_used,
+                    "search_time": unified_result.search_time
+                }
+            )
+        ]
+
         # 準備查詢資訊
         query_info = {
             "query": request.query,
@@ -82,14 +291,16 @@ async def execute_query(
             "result_count": len(results),
             "max_results": request.max_results,
             "include_sources": request.include_sources,
-            "filters": request.filters
+            "filters": request.filters,
+            "confidence": unified_result.confidence,
+            "search_type": unified_result.search_type
         }
         
-        logger.info(f"查詢完成，找到 {len(results)} 個結果，耗時 {processing_time:.3f}s")
+        logger.info(f"查詢完成，耗時 {processing_time:.3f}s，信心度 {unified_result.confidence:.2f}")
         
         return QueryResponse(
             success=True,
-            message=f"查詢完成，找到 {len(results)} 個結果",
+            message=f"查詢完成，信心度 {unified_result.confidence:.2f}",
             data=results,
             query_info=query_info
         )
@@ -362,7 +573,30 @@ async def run_batch_query_task(task_id: str, request: BatchQueryRequest, setting
                 )
                 
                 # 執行查詢
-                query_results = await _execute_single_query(single_request, settings)
+                query_engine = await get_query_engine()
+                unified_result = await query_engine.query(
+                    single_request.query, 
+                    search_type=single_request.query_type
+                )
+                
+                # 將結果轉換為 QueryResult 格式
+                query_results = [
+                    QueryResult(
+                        id="unified_result",
+                        content=unified_result.answer,
+                        score=unified_result.confidence,
+                        source={
+                            "search_type": unified_result.search_type,
+                            "target_entities": unified_result.target_entities,
+                            "sources": unified_result.sources
+                        } if single_request.include_sources else None,
+                        metadata={
+                            "reasoning_path": unified_result.reasoning_path,
+                            "llm_model_used": unified_result.llm_model_used,
+                            "search_time": unified_result.search_time
+                        }
+                    )
+                ]
                 
                 # 建立查詢回應
                 query_response = QueryResponse(
@@ -433,103 +667,31 @@ async def _execute_single_query(request: QueryRequest, settings: Settings) -> Li
     Returns:
         查詢結果列表
     """
-    # TODO: 實作實際的查詢邏輯
-    # 這裡應該呼叫實際的查詢引擎
+    # 獲取查詢引擎並執行查詢
+    query_engine = await get_query_engine()
+    unified_result = await query_engine.query(
+        request.query, 
+        search_type=request.query_type
+    )
     
-    # 模擬查詢結果
-    results = []
-    
-    # 根據查詢類型產生不同的模擬結果
-    if request.query_type == "semantic":
-        results = _generate_semantic_results(request)
-    elif request.query_type == "keyword":
-        results = _generate_keyword_results(request)
-    elif request.query_type == "graph":
-        results = _generate_graph_results(request)
-    else:  # auto
-        results = _generate_auto_results(request)
-    
-    # 限制結果數量
-    if request.max_results:
-        results = results[:request.max_results]
-    
-    return results
-
-
-def _generate_semantic_results(request: QueryRequest) -> List[QueryResult]:
-    """產生語義查詢的模擬結果。"""
-    return [
+    # 轉換為 QueryResult 格式
+    results = [
         QueryResult(
-            id=f"semantic_{i}",
-            content=f"與 '{request.query}' 語義相關的內容 {i}",
-            score=0.9 - i * 0.1,
+            id="unified_result",
+            content=unified_result.answer,
+            score=unified_result.confidence,
             source={
-                "document_id": f"doc_{i}",
-                "document_title": f"文件 {i}",
-                "page": i + 1
+                "search_type": unified_result.search_type,
+                "target_entities": unified_result.target_entities,
+                "sources": unified_result.sources
             } if request.include_sources else None,
             metadata={
-                "query_type": "semantic",
-                "match_type": "semantic_similarity"
+                "reasoning_path": unified_result.reasoning_path,
+                "llm_model_used": unified_result.llm_model_used,
+                "search_time": unified_result.search_time
             }
-        ) for i in range(min(5, request.max_results or 5))
+        )
     ]
-
-
-def _generate_keyword_results(request: QueryRequest) -> List[QueryResult]:
-    """產生關鍵字查詢的模擬結果。"""
-    return [
-        QueryResult(
-            id=f"keyword_{i}",
-            content=f"包含關鍵字 '{request.query}' 的內容 {i}",
-            score=0.8 - i * 0.08,
-            source={
-                "document_id": f"doc_{i}",
-                "document_title": f"文件 {i}",
-                "page": i + 1
-            } if request.include_sources else None,
-            metadata={
-                "query_type": "keyword",
-                "match_type": "exact_match"
-            }
-        ) for i in range(min(3, request.max_results or 3))
-    ]
-
-
-def _generate_graph_results(request: QueryRequest) -> List[QueryResult]:
-    """產生圖查詢的模擬結果。"""
-    return [
-        QueryResult(
-            id=f"graph_{i}",
-            content=f"與 '{request.query}' 在知識圖譜中相關的實體 {i}",
-            score=0.85 - i * 0.05,
-            source={
-                "entity_id": f"entity_{i}",
-                "entity_type": "concept",
-                "relation": "related_to"
-            } if request.include_sources else None,
-            metadata={
-                "query_type": "graph",
-                "match_type": "graph_relation"
-            }
-        ) for i in range(min(4, request.max_results or 4))
-    ]
-
-
-def _generate_auto_results(request: QueryRequest) -> List[QueryResult]:
-    """產生自動查詢的模擬結果。"""
-    # 混合不同類型的結果
-    results = []
-    results.extend(_generate_semantic_results(request)[:2])
-    results.extend(_generate_keyword_results(request)[:2])
-    results.extend(_generate_graph_results(request)[:2])
-    
-    # 重新排序和調整分數
-    for i, result in enumerate(results):
-        result.id = f"auto_{i}"
-        result.score = 0.95 - i * 0.05
-        if result.metadata:
-            result.metadata["query_type"] = "auto"
     
     return results
 

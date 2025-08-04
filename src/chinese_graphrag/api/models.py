@@ -103,6 +103,13 @@ class QueryRequest(BaseModel):
     max_results: Optional[int] = Field(10, description="最大結果數")
     include_sources: Optional[bool] = Field(True, description="是否包含來源資訊")
     filters: Optional[Dict[str, Any]] = Field(None, description="查詢過濾條件")
+
+
+class SimpleQueryRequest(BaseModel):
+    """精簡查詢請求模型。"""
+    query: str = Field(..., description="查詢內容")
+    search_type: Optional[str] = Field("auto", description="搜尋類型 (auto/global/local)")
+    use_llm_segmentation: Optional[bool] = Field(True, description="是否使用 LLM 分詞")
     
     @validator('max_results')
     def validate_max_results(cls, v):
@@ -125,6 +132,15 @@ class QueryResponse(DataResponse):
     """查詢回應模型。"""
     data: List[QueryResult] = Field(..., description="查詢結果列表")
     query_info: Dict[str, Any] = Field(..., description="查詢資訊")
+
+
+class SimpleQueryResponse(BaseResponse):
+    """精簡查詢回應模型。"""
+    answer: str = Field(..., description="查詢答案")
+    confidence: float = Field(..., description="信心度 (0-1)")
+    search_type: str = Field(..., description="使用的搜尋類型")
+    response_time: float = Field(..., description="回應時間（秒）")
+    reasoning_path: Optional[List[str]] = Field(None, description="推理路徑（可選）")
 
 
 class BatchQueryRequest(BaseModel):
