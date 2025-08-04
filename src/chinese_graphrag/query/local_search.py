@@ -108,22 +108,22 @@ class EntityMatcher:
             if entity.name in query_entities:
                 target_entities.append(entity)
         
-        # 2. 改進的模糊匹配策略
-        if len(target_entities) < 3:  # 如果精確匹配結果不足
-            # 2a. 子字串匹配
-            for query_entity in analysis.entities:
-                for entity in all_entities:
-                    if entity not in target_entities:
-                        # 查詢實體包含在數據庫實體中 (如 "小明" 匹配 "張小明")
-                        if query_entity in entity.name:
-                            target_entities.append(entity)
-                            print(f"子字串匹配: {query_entity} -> {entity.name}")
-                        # 數據庫實體包含在查詢實體中 (如 "張小明" 匹配 "小明")
-                        elif entity.name in query_entity:
-                            target_entities.append(entity)
-                            print(f"反向子字串匹配: {query_entity} -> {entity.name}")
-            
-            # 2b. 關鍵詞匹配
+        # 2. 改進的模糊匹配策略 - 總是執行子字串匹配
+        # 2a. 子字串匹配
+        for query_entity in analysis.entities:
+            for entity in all_entities:
+                if entity not in target_entities:
+                    # 查詢實體包含在數據庫實體中 (如 "小明" 匹配 "張小明")
+                    if query_entity in entity.name:
+                        target_entities.append(entity)
+                        print(f"子字串匹配: {query_entity} -> {entity.name}")
+                    # 數據庫實體包含在查詢實體中 (如 "張小明" 匹配 "小明")
+                    elif entity.name in query_entity:
+                        target_entities.append(entity)
+                        print(f"反向子字串匹配: {query_entity} -> {entity.name}")
+        
+        # 2b. 關鍵詞匹配 - 僅在結果仍不足時執行
+        if len(target_entities) < 5:
             keywords = set(analysis.keywords)
             for entity in all_entities:
                 if entity not in target_entities:
@@ -434,7 +434,16 @@ class EntityFocusedStrategy(LocalSearchStrategy):
         logger.info(f"開始以實體為中心的本地搜尋: {context.query}")
         
         # 1. 分析目標實體
-        primary_entities = context.target_entities[:3]  # 重點關注前3個實體
+        # 1. 實體優先級排序：完整姓名實體優先
+        sorted_entities = sorted(
+            context.target_entities,
+            key=lambda e: (
+                -len(e.name),  # 較長的名稱（可能包含姓氏）優先
+                -len(e.description or ""),  # 描述更詳細的優先
+                e.name  # 相同條件下按名稱排序
+            )
+        )
+        primary_entities = sorted_entities[:3]  # 重點關注前3個實體
         
         # 2. 構建實體知識圖
         entity_knowledge = self._build_entity_knowledge_graph(
@@ -450,6 +459,25 @@ class EntityFocusedStrategy(LocalSearchStrategy):
         search_context = self._build_entity_search_context(
             context.query, context.analysis, entity_knowledge, evidence_texts
         )
+        
+        # 調試：打印搜尋上下文，確保張小明資訊被包含
+        print("=== LLM 搜尋上下文調試 ===")
+        if '張小明' in search_context:
+            print("✅ 搜尋上下文包含「張小明」資訊")
+            # 提取張小明相關的行
+            lines = search_context.split('\n')
+            for i, line in enumerate(lines):
+                if '張小明' in line:
+                    print(f"第 {i+1} 行: {line}")
+        else:
+            print("❌ 搜尋上下文未包含「張小明」資訊")
+            print("目標實體:")
+            for name in entity_knowledge.get("target_entities", {}):
+                print(f"  - {name}")
+            print("相關實體:")
+            for name in list(entity_knowledge.get("related_entities", {}))[:5]:
+                print(f"  - {name}")
+        print("=" * 30)
         
         # 5. 生成回答
         answer = await self._generate_entity_focused_answer(

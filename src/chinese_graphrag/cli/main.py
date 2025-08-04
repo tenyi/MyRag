@@ -338,9 +338,10 @@ def main():
         cli.add_command(show_index)
         
         # 註冊查詢命令
-        from .query_commands import query, batch_query
+        from .query_commands import query, batch_query, test_llm_segmentation
         cli.add_command(query)
         cli.add_command(batch_query)
+        cli.add_command(test_llm_segmentation)
         
         # 註冊管理命令
         from .management_commands import clean, doctor, config_cmd

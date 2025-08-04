@@ -32,6 +32,7 @@ class TaskType(str, Enum):
     GLOBAL_SEARCH = "global_search"
     LOCAL_SEARCH = "local_search"
     GENERAL_QA = "general_qa"
+    TEXT_SEGMENTATION = "text_segmentation"  # 新增：文本分詞任務
 
 
 @dataclass

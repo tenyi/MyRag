@@ -532,7 +532,7 @@ class QueryEngine:
         
         # 初始化核心元件
         self.llm_manager = LLMManager(config.llm_configs)
-        self.query_processor = ChineseQueryProcessor()
+        self.query_processor = ChineseQueryProcessor(self.llm_manager)  # 傳入 LLM 管理器
         self.global_search_engine = GlobalSearchEngine(
             self.llm_manager, 
             vector_store,
@@ -934,6 +934,82 @@ class QueryEngine:
                 search_time=time.time() - start_time,
                 llm_model_used="none"
             )
+
+    async def query_with_llm_segmentation(
+        self,
+        query: str,
+        search_type: Optional[str] = None,
+        enable_cache: bool = True,
+        **kwargs
+    ) -> UnifiedQueryResult:
+        """
+        使用 LLM 分詞執行查詢
+        
+        Args:
+            query: 查詢字串
+            search_type: 強制指定搜尋類型 ("global", "local", "hybrid")
+            enable_cache: 是否啟用快取
+            **kwargs: 其他參數
+            
+        Returns:
+            統一查詢結果
+        """
+        import time
+        start_time = time.time()
+        
+        logger.info(f"開始使用 LLM 分詞處理查詢: {query}")
+        
+        try:
+            # 1. 使用 LLM 分詞進行查詢預處理和分析
+            analysis = await self.query_processor.process_query_with_llm_segmentation(query)
+            logger.debug(f"LLM 分詞查詢分析完成: {analysis.query_type.value}")
+            
+            # 2. 檢查快取（使用特殊的快取鍵以區分 LLM 分詞結果）
+            if enable_cache:
+                # 為 LLM 分詞結果創建特殊的快取鍵
+                llm_cache_key = f"llm_seg_{query}"
+                cached_result = self.query_cache.get(llm_cache_key, analysis)
+                if cached_result:
+                    logger.info("返回 LLM 分詞快取結果")
+                    return cached_result
+            
+            # 3. 選擇搜尋類型
+            if search_type and search_type != "auto":
+                selected_search_type = search_type
+            else:
+                selected_search_type = self.search_selector.select_search_type(analysis)
+            logger.info(f"選擇搜尋類型: {selected_search_type}")
+            
+            # 4. 執行搜尋
+            result = await self._execute_search(query, analysis, selected_search_type, **kwargs)
+            
+            # 5. 更新搜尋時間
+            total_time = time.time() - start_time
+            result.search_time = total_time
+            
+            # 6. 快取結果
+            if enable_cache and result.confidence > 0.3:
+                llm_cache_key = f"llm_seg_{query}"
+                self.query_cache.set(llm_cache_key, analysis, result)
+            
+            logger.info(f"LLM 分詞查詢完成，耗時 {total_time:.2f} 秒，信心度 {result.confidence:.2f}")
+            return result
+            
+        except asyncio.TimeoutError:
+            logger.error(f"LLM 分詞查詢超時: {query}")
+            return UnifiedQueryResult(
+                query=query,
+                answer="查詢處理超時，請稍後重試或簡化您的問題。",
+                confidence=0.0,
+                search_type="timeout",
+                search_time=time.time() - start_time,
+                llm_model_used="none"
+            )
+        except Exception as e:
+            logger.error(f"LLM 分詞查詢處理失敗: {e}")
+            # 回退到普通查詢
+            logger.info("回退到普通分詞查詢")
+            return await self.query(query, search_type, enable_cache, **kwargs)
     
     async def _execute_search(
         self,

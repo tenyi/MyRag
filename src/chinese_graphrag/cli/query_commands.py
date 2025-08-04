@@ -73,6 +73,11 @@ logger = get_logger(__name__)
     is_flag=True,
     help="啟用全域搜尋（預設關閉，僅使用本地搜尋）"
 )
+@click.option(
+    "--use-jieba-segmentation",
+    is_flag=True,
+    help="使用 jieba 分詞（預設使用 LLM 分詞）"
+)
 @click.pass_context
 def query(
     ctx: click.Context,
@@ -85,15 +90,20 @@ def query(
     show_sources: bool,
     show_reasoning: bool,
     interactive: bool,
-    enable_global_search: bool
+    enable_global_search: bool,
+    use_jieba_segmentation: bool
 ):
     """執行中文問答查詢。
     
     使用範例:
     
     \b
-    # 基本查詢（僅本地搜尋）
+    # 基本查詢（使用 LLM 分詞）
     chinese-graphrag query "什麼是人工智慧？"
+    
+    \b
+    # 使用 jieba 分詞
+    chinese-graphrag query "小明姓什麼" --use-jieba-segmentation
     
     \b
     # 啟用全域搜尋
@@ -217,15 +227,21 @@ def query(
         
         query_engine = QueryEngine(query_engine_config, config, indexer, vector_store)
         
+        # 決定分詞方法：默認使用 LLM 分詞，除非用戶明確指定使用 jieba
+        use_llm_segmentation = not use_jieba_segmentation
+        
         # 互動模式
         if interactive or not question.strip():
-            _run_interactive_mode(query_engine, search_type, show_sources, show_reasoning, output_format, ctx.obj['quiet'])
+            _run_interactive_mode(
+                query_engine, search_type, show_sources, show_reasoning, 
+                output_format, ctx.obj['quiet'], use_llm_segmentation
+            )
             return
         
         # 單次查詢
         _execute_single_query(
             query_engine, question, search_type, show_sources, 
-            show_reasoning, output_format, ctx.obj['quiet']
+            show_reasoning, output_format, ctx.obj['quiet'], use_llm_segmentation
         )
         
     except Exception as e:
@@ -239,6 +255,115 @@ def query(
             console.print(f"[red]查詢失敗: {e}[/red]")
         sys.exit(1)
 
+@click.command()
+@click.argument("question", required=True)
+@click.pass_context
+def test_llm_segmentation(ctx: click.Context, question: str):
+    """測試 LLM 分詞功能
+    
+    使用範例:
+    chinese-graphrag test-llm-segmentation "小明姓什麼"
+    """
+    if not ctx.obj['config']:
+        console.print("[red]未找到配置檔案。請先執行 'chinese-graphrag init' 初始化系統。[/red]")
+        sys.exit(1)
+    
+    config = ctx.obj['config']
+    
+    try:
+        # 從主配置中獲取 LLM 配置
+        from ..query.manager import LLMManager, LLMConfig, LLMProvider
+        from ..query.processor import ChineseTextNormalizer
+        
+        llm_configs = []
+        for model_name, model_config in config.models.items():
+            # 檢查是否為 LLM 模型（排除 embedding 模型）
+            if hasattr(model_config, 'type'):
+                model_type_str = str(model_config.type).lower()
+                is_llm_model = (
+                    'chat' in model_type_str or 
+                    'ollama' in model_type_str or 
+                    'openai' in model_type_str
+                ) and 'embedding' not in model_type_str
+                
+                if is_llm_model:
+                    # 檢查 API 金鑰（Ollama 模型不需要）
+                    api_key = getattr(model_config, 'api_key', None)
+                    model_type_str = str(model_config.type).lower()
+                    
+                    # Ollama 模型不需要 API 金鑰
+                    if not api_key and 'ollama' not in model_type_str:
+                        logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
+                        continue
+                    
+                    # 映射模型類型到 LLMProvider
+                    if 'openai' in str(model_config.type).lower():
+                        provider = LLMProvider.OPENAI
+                    elif 'ollama' in str(model_config.type).lower():
+                        provider = LLMProvider.OLLAMA
+                    else:
+                        provider = LLMProvider.MOCK
+                    
+                    llm_config = LLMConfig(
+                        provider=provider,
+                        model=model_config.model,
+                        config={
+                            'model': model_config.model,
+                            'api_key': api_key,
+                            'base_url': getattr(model_config, 'api_base', None),
+                            'temperature': getattr(model_config, 'temperature', 0.7)
+                        },
+                        max_tokens=getattr(model_config, 'max_tokens', 4000),
+                        temperature=getattr(model_config, 'temperature', 0.7)
+                    )
+                    llm_configs.append(llm_config)
+        
+        if not llm_configs:
+            console.print("[red]未找到可用的 LLM 配置[/red]")
+            sys.exit(1)
+        
+        # 初始化 LLM 管理器
+        llm_manager = LLMManager(llm_configs)
+        
+        # 測試分詞
+        async def run_test():
+            console.print(f"[bold blue]測試查詢: {question}[/bold blue]\n")
+            
+            # 先測試不使用 LLM 的情況
+            normalizer_no_llm = ChineseTextNormalizer()
+            
+            # 對比 jieba 分詞
+            import jieba
+            jieba_segments = list(jieba.cut(question, cut_all=False))
+            jieba_keywords = normalizer_no_llm.extract_keywords(question)
+            
+            console.print("[cyan]jieba 分詞結果:[/cyan]")
+            console.print(f"  分詞: {jieba_segments}")
+            console.print(f"  關鍵詞: {jieba_keywords}\n")
+            
+            # 測試 LLM 分詞
+            normalizer = ChineseTextNormalizer(llm_manager)
+            
+            try:
+                with console.status("[bold green]正在使用 LLM 分詞..."):
+                    llm_segments = await normalizer.llm_segment_text(question)
+                    llm_keywords = await normalizer.extract_keywords_with_llm(question)
+                
+                console.print("[cyan]LLM 分詞結果:[/cyan]")
+                console.print(f"  分詞: {llm_segments}")
+                console.print(f"  關鍵詞: {llm_keywords}")
+                
+            except Exception as e:
+                console.print(f"[red]LLM 分詞失敗: {e}[/red]")
+        
+        # 執行測試
+        asyncio.run(run_test())
+        
+    except Exception as e:
+        logger.error(f"測試失敗: {e}")
+        console.print(f"[red]測試失敗: {e}[/red]")
+        sys.exit(1)
+
 
 def _execute_single_query(
     query_engine: QueryEngine,
@@ -247,7 +372,8 @@ def _execute_single_query(
     show_sources: bool,
     show_reasoning: bool,
     output_format: str,
-    quiet: bool
+    quiet: bool,
+    use_llm_segmentation: bool = True  # 新增參數，默認使用 LLM 分詞
 ):
     """執行單次查詢。"""
     start_time = time.time()
@@ -256,13 +382,21 @@ def _execute_single_query(
         console.print(f"\n[bold blue]🤔 問題: {question}[/bold blue]")
         
         with console.status("[bold green]正在思考..."):
-            unified_result = asyncio.run(query_engine.query(question, search_type=search_type))
+            # 根據參數選擇使用 LLM 分詞或普通分詞
+            if use_llm_segmentation:
+                unified_result = asyncio.run(query_engine.query_with_llm_segmentation(question, search_type=search_type))
+            else:
+                unified_result = asyncio.run(query_engine.query(question, search_type=search_type))
         result = unified_result.to_dict()
         # 添加 CLI 期望的字段映射
         result["response"] = unified_result.answer
         result["reasoning"] = unified_result.reasoning_path
     else:
-        unified_result = asyncio.run(query_engine.query(question, search_type=search_type))
+        # 根據參數選擇使用 LLM 分詞或普通分詞
+        if use_llm_segmentation:
+            unified_result = asyncio.run(query_engine.query_with_llm_segmentation(question, search_type=search_type))
+        else:
+            unified_result = asyncio.run(query_engine.query(question, search_type=search_type))
         result = unified_result.to_dict()
         # 添加 CLI 期望的字段映射
         result["response"] = unified_result.answer
@@ -279,7 +413,9 @@ def _execute_single_query(
     metrics_collector.record_timer("query.response_time", elapsed_time)
     metrics_collector.record_gauge("query.search_type", 1, labels={"type": result.get("search_type", "unknown")})
     
-    logger.info(f"查詢完成，耗時 {elapsed_time:.2f} 秒，搜尋類型: {result.get('search_type', 'unknown')}")
+    # 在日誌中標註使用的分詞方法
+    segmentation_method = "LLM分詞" if use_llm_segmentation else "jieba分詞"
+    logger.info(f"查詢完成，耗時 {elapsed_time:.2f} 秒，搜尋類型: {result.get('search_type', 'unknown')}，分詞方法: {segmentation_method}")
 
 
 def _run_interactive_mode(
@@ -288,11 +424,14 @@ def _run_interactive_mode(
     show_sources: bool,
     show_reasoning: bool,
     output_format: str,
-    quiet: bool
+    quiet: bool,
+    use_llm_segmentation: bool = True  # 新增參數
 ):
     """運行互動模式。"""
     if not quiet:
         console.print("\n[bold green]🎯 進入互動查詢模式[/bold green]")
+        segmentation_method = "LLM分詞" if use_llm_segmentation else "jieba分詞"
+        console.print(f"當前分詞方法: [cyan]{segmentation_method}[/cyan]")
         console.print("輸入 'exit' 或 'quit' 退出，輸入 'help' 查看幫助")
         console.print("-" * 50)
     
@@ -318,7 +457,7 @@ def _run_interactive_mode(
             # 執行查詢
             _execute_single_query(
                 query_engine, question, default_search_type,
-                show_sources, show_reasoning, output_format, quiet
+                show_sources, show_reasoning, output_format, quiet, use_llm_segmentation
             )
             
         except KeyboardInterrupt:
@@ -341,10 +480,13 @@ def _show_interactive_help():
   set search-type <type>          - 設定搜尋類型 (auto/global/local)
   set sources <on/off>            - 開啟/關閉來源顯示
   set reasoning <on/off>          - 開啟/關閉推理過程顯示
+  set segmentation <llm/jieba>    - 設定分詞方法 (LLM分詞/jieba分詞)
   
 [cyan]系統命令:[/cyan]
   help, h                         - 顯示此幫助
   exit, quit, q                   - 退出互動模式
+
+[yellow]注意:[/yellow] 分詞方法設定功能尚未實作，請使用命令行參數 --use-jieba-segmentation
 """
     console.print(Panel(help_text, title="幫助", expand=False))
 

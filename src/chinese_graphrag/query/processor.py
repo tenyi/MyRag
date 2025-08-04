@@ -229,18 +229,21 @@ class RuleBasedClassifier(QueryClassifier):
 class ChineseTextNormalizer:
     """中文文本正規化器"""
     
-    def __init__(self):
+    def __init__(self, llm_manager=None):
         # 載入停用詞
         self.stopwords = self._load_stopwords()
         
         # 標點符號模式
-        self.punctuation_pattern = r'[！？。，、；：""''（）《》【】『』「」〈〉〔〕…—～·]'
+        self.punctuation_pattern = r'[！？。，、；：""\'\'\（）《》【】〖〗〈〉「」『』…—～·]'
         
         # 數字模式
         self.number_pattern = r'\d+\.?\d*'
         
         # 英文字母模式
         self.english_pattern = r'[a-zA-Z]+'
+        
+        # LLM 管理器（可選）
+        self.llm_manager = llm_manager
     
     def _load_stopwords(self) -> Set[str]:
         """載入中文停用詞"""
@@ -269,8 +272,148 @@ class ChineseTextNormalizer:
         
         return text
     
+    async def llm_segment_text(self, text: str) -> List[str]:
+        """
+        使用 LLM 進行中文分詞
+        
+        Args:
+            text: 待分詞的文本
+            
+        Returns:
+            分詞結果列表
+        """
+        if not self.llm_manager:
+            raise ValueError("LLM 管理器未初始化，無法使用 LLM 分詞功能")
+        
+        # 構建分詞提示詞
+        prompt = self._build_segmentation_prompt(text)
+        
+        try:
+            # 使用 LLM 進行分詞
+            response = await self.llm_manager.generate(
+                prompt,
+                TaskType.TEXT_SEGMENTATION,
+                max_tokens=500,
+                temperature=0.1  # 使用較低的溫度以獲得更一致的結果
+            )
+            
+            # 解析 LLM 回應
+            segments = self._parse_segmentation_response(response)
+            
+            return segments
+            
+        except Exception as e:
+            # 如果 LLM 分詞失敗，回退到 jieba 分詞
+            import jieba
+            fallback_segments = list(jieba.cut(text, cut_all=False))
+            return fallback_segments
+    
+    def _build_segmentation_prompt(self, text: str) -> str:
+        """構建分詞提示詞"""
+        prompt = f"""# 中文分詞任務
+
+## 任務說明
+請對以下中文文本進行精確分詞，特別注意人名、地名、專有名詞的正確切分。
+
+## 分詞原則
+1. 人名應該作為完整詞彙，不要拆分（如：「小明」不要分成「小」+「明」）
+2. 「姓什麼」類型的查詢中，人名和動詞應該分開（如：「小明姓什麼」應分為「小明」+「姓」+「什麼」）
+3. 專有名詞保持完整
+4. 動詞、形容詞、副詞等按語法規則分詞
+5. 標點符號單獨成詞
+
+## 待分詞文本
+{text}
+
+## 輸出格式
+請直接輸出分詞結果，每個詞用空格分隔，不要添加其他說明文字。
+
+例如：
+輸入：小明姓什麼
+輸出：小明 姓 什麼
+
+請開始分詞："""
+        
+        return prompt
+    
+    def _parse_segmentation_response(self, response: str) -> List[str]:
+        """解析 LLM 分詞回應"""
+        # 清理回應文本
+        response = response.strip()
+        
+        # 移除可能的說明文字，只保留分詞結果
+        lines = response.split('\n')
+        segmentation_line = None
+        
+        # 尋找包含分詞結果的行
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith('#') and not line.startswith('輸出：') and not line.startswith('結果：'):
+                # 檢查是否包含中文字符
+                if any('\u4e00' <= char <= '\u9fff' for char in line):
+                    segmentation_line = line
+                    break
+        
+        if not segmentation_line:
+            # 如果沒有找到合適的行，使用第一個非空行
+            for line in lines:
+                if line.strip():
+                    segmentation_line = line.strip()
+                    break
+        
+        if not segmentation_line:
+            return []
+        
+        # 分割詞彙
+        segments = segmentation_line.split()
+        
+        # 過濾空字符串
+        segments = [seg.strip() for seg in segments if seg.strip()]
+        
+        return segments
+    
+    async def extract_keywords_with_llm(self, text: str, max_keywords: int = 10) -> List[str]:
+        """
+        使用 LLM 分詞後提取關鍵詞
+        
+        Args:
+            text: 待處理文本
+            max_keywords: 最大關鍵詞數量
+            
+        Returns:
+            關鍵詞列表
+        """
+        try:
+            # 使用 LLM 分詞
+            words = await self.llm_segment_text(text)
+        except Exception:
+            # 回退到 jieba 分詞
+            import jieba
+            words = list(jieba.cut(text))
+        
+        # 過濾停用詞、標點符號和短詞
+        keywords = []
+        for word in words:
+            word = word.strip()
+            if (word and 
+                len(word) > 1 and 
+                word not in self.stopwords and
+                not re.match(self.punctuation_pattern, word) and
+                not re.match(r'^\d+$', word)):
+                keywords.append(word)
+        
+        # 去重並保持順序
+        unique_keywords = []
+        seen = set()
+        for keyword in keywords:
+            if keyword not in seen:
+                unique_keywords.append(keyword)
+                seen.add(keyword)
+        
+        return unique_keywords[:max_keywords]
+    
     def extract_keywords(self, text: str, max_keywords: int = 10) -> List[str]:
-        """提取關鍵詞"""
+        """提取關鍵詞（使用 jieba 分詞）"""
         # 分詞
         words = jieba.cut(text)
         
@@ -322,20 +465,27 @@ class EntityExtractor:
                     entities.append(match)
                     found_entities.add(match)
         
-        # 2. 改進的分詞方法
-        # 2a. 使用精確模式分詞
+        # 2. 特殊處理中文人名 - 提前處理，優先級更高
+        person_entities = self._extract_chinese_names(text)
+        for person in person_entities:
+            if person not in found_entities:
+                entities.append(person)
+                found_entities.add(person)
+        
+        # 3. 改進的分詞方法
+        # 3a. 使用精確模式分詞
         words_exact = list(jieba.cut(text, cut_all=False))
         
-        # 2b. 使用搜索引擎模式分詞（對實體識別更友好）
+        # 3b. 使用搜索引擎模式分詞（對實體識別更友好）
         words_search = list(jieba.cut_for_search(text))
         
-        # 2c. 單字符分割作為備選
+        # 3c. 單字符分割作為備選
         chars = list(text)
         
         # 合併所有分詞結果
         all_tokens = set(words_exact + words_search + chars)
         
-        # 3. 從所有分詞結果中提取可能的實體
+        # 4. 從所有分詞結果中提取可能的實體
         for word in all_tokens:
             word = word.strip()
             if (len(word) >= 2 and 
@@ -344,14 +494,15 @@ class EntityExtractor:
                 entities.append(word)
                 found_entities.add(word)
         
-        # 4. 特殊處理中文人名
-        person_entities = self._extract_chinese_names(text)
-        for person in person_entities:
-            if person not in found_entities:
-                entities.append(person)
-                found_entities.add(person)
+        # 5. 特殊處理：如果發現類似「XXX姓」的模式，嘗試提取人名
+        name_surname_pattern = r'([一-龯]{2,3})姓'
+        matches = re.findall(name_surname_pattern, text)
+        for match in matches:
+            if match not in found_entities and len(match) >= 2:
+                entities.append(match)
+                found_entities.add(match)
         
-        return entities[:15]  # 增加實體數量限制以獲得更多候選  # 限制實體數量
+        return entities[:15]  # 限制實體數量  # 增加實體數量限制以獲得更多候選  # 限制實體數量
     
     def _is_likely_entity(self, word: str) -> bool:
         """判斷詞語是否可能是實體"""
@@ -382,22 +533,29 @@ class EntityExtractor:
         # 1. 基於姓氏的人名模式匹配
         for surname in common_surnames:
             # 姓 + 1-2個字的名字
-            pattern = rf'{surname}[一-龥]{{1,2}}'
+            pattern = rf'{surname}[一-龯]{{1,2}}'
             matches = re.findall(pattern, text)
             names.extend(matches)
         
-        # 2. 常見人名模式 - 修正 lookbehind 問題
+        # 2. 特殊處理「XXX姓什麼」這類查詢
+        # 匹配「小明姓」、「張三姓」等模式，提取前面的人名
+        name_surname_query_pattern = r'([一-龯]{2,3})姓(?:什麼|甚麼|\?)'
+        matches = re.findall(name_surname_query_pattern, text)
+        for match in matches:
+            names.append(match)
+        
+        # 3. 常見人名模式 - 修正 lookbehind 問題
         name_patterns = [
-            r'[一-龥]{2,3}(?=姓|的|是|在|有|和|與)',  # 名字 + 動作詞
-            r'[一-龥]{2}(?=先生|女士|老師|經理|主任)',  # 職稱前的名字
+            r'[一-龯]{2,3}(?=姓|的|是|在|有|和|與)',  # 名字 + 動作詞
+            r'[一-龯]{2}(?=先生|女士|老師|經理|主任)',  # 職稱前的名字
         ]
         
         # 使用簡單的前後文匹配替代 lookbehind
         # 尋找 "叫XXX"、"名叫XXX"、"稱為XXX" 的模式
         call_patterns = [
-            r'叫([一-龥]{2,3})',
-            r'名叫([一-龥]{2,3})',
-            r'稱為([一-龥]{2,3})',
+            r'叫([一-龯]{2,3})',
+            r'名叫([一-龯]{2,3})',
+            r'稱為([一-龯]{2,3})',
         ]
         
         for pattern in call_patterns:
@@ -408,7 +566,7 @@ class EntityExtractor:
             matches = re.findall(pattern, text)
             names.extend(matches)
         
-        # 3. 移除重複並過濾
+        # 4. 移除重複並過濾
         unique_names = []
         seen = set()
         for name in names:
@@ -426,11 +584,12 @@ class ChineseQueryProcessor:
     提供智慧的中文查詢分析和處理功能。
     """
     
-    def __init__(self):
+    def __init__(self, llm_manager=None):
         """初始化中文查詢處理器"""
         self.classifier = RuleBasedClassifier()
-        self.normalizer = ChineseTextNormalizer()
+        self.normalizer = ChineseTextNormalizer(llm_manager)
         self.entity_extractor = EntityExtractor()
+        self.llm_manager = llm_manager
         
         logger.info("中文查詢處理器初始化完成")
     
@@ -492,6 +651,158 @@ class ChineseQueryProcessor:
         
         logger.info(f"查詢分析完成: {query_type.value} ({overall_confidence:.2f})")
         return analysis
+
+    async def process_query_with_llm_segmentation(self, query: str) -> QueryAnalysis:
+        """
+        使用 LLM 分詞處理中文查詢
+        
+        Args:
+            query: 原始查詢字串
+            
+        Returns:
+            查詢分析結果
+        """
+        logger.debug(f"使用 LLM 分詞處理查詢: {query}")
+        
+        preprocessing_notes = []
+        
+        # 1. 文本正規化
+        normalized_query = self.normalizer.normalize(query)
+        if normalized_query != query:
+            preprocessing_notes.append("文本已正規化")
+        
+        # 2. 使用 LLM 分詞提取實體
+        entities = await self._extract_entities_with_llm_segmentation(normalized_query)
+        if entities:
+            preprocessing_notes.append(f"使用 LLM 分詞提取到 {len(entities)} 個實體")
+        
+        # 3. 使用 LLM 分詞提取關鍵詞
+        try:
+            keywords = await self.normalizer.extract_keywords_with_llm(normalized_query)
+            if keywords:
+                preprocessing_notes.append(f"使用 LLM 分詞提取到 {len(keywords)} 個關鍵詞")
+        except Exception as e:
+            logger.warning(f"LLM 關鍵詞提取失敗，回退到 jieba: {e}")
+            keywords = self.normalizer.extract_keywords(normalized_query)
+            if keywords:
+                preprocessing_notes.append(f"回退到 jieba 提取到 {len(keywords)} 個關鍵詞")
+        
+        # 4. 分類查詢類型
+        query_type, type_confidence = self.classifier.classify_query_type(
+            normalized_query, entities
+        )
+        
+        # 5. 分類查詢意圖
+        intent, intent_confidence = self.classifier.classify_intent(normalized_query)
+        
+        # 6. 計算整體信心度
+        overall_confidence = (type_confidence + intent_confidence) / 2
+        
+        # 7. 建議 LLM 任務類型
+        suggested_llm_task = self._suggest_llm_task(query_type, intent, entities)
+        
+        # 8. 建立分析結果
+        analysis = QueryAnalysis(
+            original_query=query,
+            normalized_query=normalized_query,
+            query_type=query_type,
+            intent=intent,
+            entities=entities,
+            keywords=keywords,
+            confidence=overall_confidence,
+            suggested_llm_task=suggested_llm_task,
+            preprocessing_notes=preprocessing_notes
+        )
+        
+        logger.info(f"LLM 分詞查詢分析完成: {query_type.value} ({overall_confidence:.2f})")
+        return analysis
+    
+    async def _extract_entities_with_llm_segmentation(self, text: str) -> List[str]:
+        """
+        使用 LLM 分詞輔助實體提取
+        
+        Args:
+            text: 待處理文本
+            
+        Returns:
+            實體列表
+        """
+        entities = []
+        found_entities = set()
+        
+        # 1. 使用正則表達式提取實體
+        for entity_type, pattern in self.entity_extractor.entity_patterns.items():
+            matches = re.findall(pattern, text)
+            for match in matches:
+                if match not in found_entities:
+                    entities.append(match)
+                    found_entities.add(match)
+        
+        # 2. 特殊處理中文人名 - 提前處理，優先級更高
+        person_entities = self.entity_extractor._extract_chinese_names(text)
+        for person in person_entities:
+            if person not in found_entities:
+                entities.append(person)
+                found_entities.add(person)
+        
+        # 3. 使用 LLM 分詞結果提取實體
+        try:
+            if self.llm_manager:
+                # 使用 LLM 分詞
+                llm_segments = await self.normalizer.llm_segment_text(text)
+                
+                # 從 LLM 分詞結果中提取可能的實體
+                for word in llm_segments:
+                    word = word.strip()
+                    if (len(word) >= 2 and 
+                        word not in found_entities and
+                        self.entity_extractor._is_likely_entity(word)):
+                        entities.append(word)
+                        found_entities.add(word)
+            else:
+                # 回退到 jieba 分詞
+                import jieba
+                words_exact = list(jieba.cut(text, cut_all=False))
+                words_search = list(jieba.cut_for_search(text))
+                chars = list(text)
+                
+                all_tokens = set(words_exact + words_search + chars)
+                
+                for word in all_tokens:
+                    word = word.strip()
+                    if (len(word) >= 2 and 
+                        word not in found_entities and
+                        self.entity_extractor._is_likely_entity(word)):
+                        entities.append(word)
+                        found_entities.add(word)
+                        
+        except Exception as e:
+            logger.warning(f"LLM 分詞實體提取失敗: {e}")
+            # 回退到原有邏輯
+            import jieba
+            words_exact = list(jieba.cut(text, cut_all=False))
+            words_search = list(jieba.cut_for_search(text))
+            chars = list(text)
+            
+            all_tokens = set(words_exact + words_search + chars)
+            
+            for word in all_tokens:
+                word = word.strip()
+                if (len(word) >= 2 and 
+                    word not in found_entities and
+                    self.entity_extractor._is_likely_entity(word)):
+                    entities.append(word)
+                    found_entities.add(word)
+        
+        # 4. 特殊處理：如果發現類似「XXX姓」的模式，嘗試提取人名
+        name_surname_pattern = r'([一-龯]{2,3})姓'
+        matches = re.findall(name_surname_pattern, text)
+        for match in matches:
+            if match not in found_entities and len(match) >= 2:
+                entities.append(match)
+                found_entities.add(match)
+        
+        return entities[:15]  # 限制實體數量
     
     def _suggest_llm_task(
         self, 
