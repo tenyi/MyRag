@@ -6,6 +6,7 @@
 
 from .document_processor import DocumentProcessor
 from .engine import GraphRAGIndexer
+from .analyzer import IndexAnalyzer
 
 # 為了向後相容性，提供 IndexingEngine 別名
 IndexingEngine = GraphRAGIndexer
@@ -14,4 +15,5 @@ __all__ = [
     "DocumentProcessor",
     "GraphRAGIndexer",
     "IndexingEngine",
+    "IndexAnalyzer",
 ]

@@ -68,6 +68,7 @@ Thumbs.db
 config/settings.yaml
 data/
 logs/*.log
+logs/
 *.db
 *.sqlite
 *.sqlite3
