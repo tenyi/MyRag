@@ -41,17 +41,14 @@ class ConfigValidator:
         self.errors: List[str] = []
         self.warnings: List[str] = []
     
-    def validate_config(self, config: GraphRAGConfig) -> bool:
+    def validate_config(self, config: GraphRAGConfig) -> Dict[str, Any]:
         """完整驗證配置。
         
         Args:
             config: 要驗證的配置
             
         Returns:
-            是否驗證通過
-            
-        Raises:
-            ConfigValidationError: 驗證失敗時
+            驗證結果字典，包含 'valid', 'errors', 'warnings' 鍵
         """
         self.errors.clear()
         self.warnings.clear()
@@ -79,15 +76,27 @@ class ConfigValidator:
             for warning in self.warnings:
                 warnings.warn(warning, ConfigValidationWarning)
             
-            # 檢查是否有錯誤
-            if self.errors:
-                error_msg = "配置驗證失敗:\n" + "\n".join(f"- {error}" for error in self.errors)
-                raise ConfigValidationError(error_msg)
-            
-            return True
+            # 回傳驗證結果
+            return {
+                'valid': len(self.errors) == 0,
+                'errors': self.errors.copy(),
+                'warnings': self.warnings.copy()
+            }
             
         except ValidationError as e:
-            raise ConfigValidationError(f"配置結構驗證失敗: {e}")
+            self.errors.append(f"配置結構驗證失敗: {e}")
+            return {
+                'valid': False,
+                'errors': self.errors.copy(),
+                'warnings': self.warnings.copy()
+            }
+        except Exception as e:
+            self.errors.append(f"驗證過程發生錯誤: {e}")
+            return {
+                'valid': False,
+                'errors': self.errors.copy(),
+                'warnings': self.warnings.copy()
+            }
     
     def _validate_basic_structure(self, config: GraphRAGConfig) -> None:
         """驗證基礎配置結構。"""
@@ -379,7 +388,14 @@ def validate_config(config: GraphRAGConfig) -> bool:
         ConfigValidationError: 驗證失敗時
     """
     validator = ConfigValidator()
-    return validator.validate_config(config)
+    result = validator.validate_config(config)
+    
+    # 如果有錯誤，拋出異常
+    if not result['valid']:
+        error_msg = "配置驗證失敗:\n" + "\n".join(f"- {error}" for error in result['errors'])
+        raise ConfigValidationError(error_msg)
+    
+    return result['valid']
 
 
 def apply_default_values(config_dict: Dict[str, Any]) -> Dict[str, Any]:
