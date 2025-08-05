@@ -461,23 +461,23 @@ class EntityFocusedStrategy(LocalSearchStrategy):
         )
         
         # 調試：打印搜尋上下文，確保張小明資訊被包含
-        print("=== LLM 搜尋上下文調試 ===")
-        if '張小明' in search_context:
-            print("✅ 搜尋上下文包含「張小明」資訊")
-            # 提取張小明相關的行
-            lines = search_context.split('\n')
-            for i, line in enumerate(lines):
-                if '張小明' in line:
-                    print(f"第 {i+1} 行: {line}")
-        else:
-            print("❌ 搜尋上下文未包含「張小明」資訊")
-            print("目標實體:")
-            for name in entity_knowledge.get("target_entities", {}):
-                print(f"  - {name}")
-            print("相關實體:")
-            for name in list(entity_knowledge.get("related_entities", {}))[:5]:
-                print(f"  - {name}")
-        print("=" * 30)
+        # print("=== LLM 搜尋上下文調試 ===")
+        # if '張小明' in search_context:
+        #     print("✅ 搜尋上下文包含「張小明」資訊")
+        #     # 提取張小明相關的行
+        #     lines = search_context.split('\n')
+        #     for i, line in enumerate(lines):
+        #         if '張小明' in line:
+        #             print(f"第 {i+1} 行: {line}")
+        # else:
+        #     print("❌ 搜尋上下文未包含「張小明」資訊")
+        #     print("目標實體:")
+        #     for name in entity_knowledge.get("target_entities", {}):
+        #         print(f"  - {name}")
+        #     print("相關實體:")
+        #     for name in list(entity_knowledge.get("related_entities", {}))[:5]:
+        #         print(f"  - {name}")
+        # print("=" * 30)
         
         # 5. 生成回答
         answer = await self._generate_entity_focused_answer(

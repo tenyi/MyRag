@@ -24,6 +24,103 @@ console = Console()
 logger = get_logger(__name__)
 
 
+def _get_default_llm_config(config, logger):
+    """
+    獲取默認 LLM 配置，優先使用用戶指定的默認模型
+    
+    Args:
+        config: GraphRAG 配置對象
+        logger: 日誌記錄器
+        
+    Returns:
+        List[LLMConfig]: LLM 配置列表
+    """
+    from ..query.manager import LLMConfig, LLMProvider
+    
+    # 優先使用配置中指定的默認 LLM 模型
+    default_llm_name = config.model_selection.default_llm
+    default_llm_config_obj = config.get_llm_config(default_llm_name)
+    
+    llm_configs = []
+    
+    if default_llm_config_obj:
+        # 檢查 API 金鑰（Ollama 模型不需要）
+        api_key = getattr(default_llm_config_obj, 'api_key', None)
+        model_type_str = str(default_llm_config_obj.type).lower()
+        
+        # Ollama 模型不需要 API 金鑰
+        if api_key or 'ollama' in model_type_str:
+            # 映射模型類型到 LLMProvider
+            if 'openai' in model_type_str:
+                provider = LLMProvider.OPENAI
+            elif 'ollama' in model_type_str:
+                provider = LLMProvider.OLLAMA
+            else:
+                provider = LLMProvider.MOCK
+            
+            default_config = LLMConfig(
+                provider=provider,
+                model=default_llm_config_obj.model,
+                config={
+                    'model': default_llm_config_obj.model,
+                    'api_key': api_key,
+                    'base_url': getattr(default_llm_config_obj, 'api_base', None),
+                    'temperature': getattr(default_llm_config_obj, 'temperature', 0.7)
+                },
+                max_tokens=getattr(default_llm_config_obj, 'max_tokens', 4000),
+                temperature=getattr(default_llm_config_obj, 'temperature', 0.7)
+            )
+            llm_configs.append(default_config)
+            logger.info(f"使用默認 LLM 模型: {default_llm_name} ({default_llm_config_obj.model})")
+            return llm_configs
+        else:
+            logger.warning(f"默認 LLM 模型 {default_llm_name} 缺少 API 金鑰")
+    
+    # 如果默認模型不可用，嘗試備用模型
+    if hasattr(config.model_selection, 'fallback_models'):
+        fallback_name = config.model_selection.fallback_models.get(default_llm_name)
+        if fallback_name:
+            fallback_config = config.get_llm_config(fallback_name)
+            if fallback_config:
+                logger.info(f"使用備用 LLM 模型: {fallback_name}")
+                api_key = getattr(fallback_config, 'api_key', None)
+                model_type_str = str(fallback_config.type).lower()
+                
+                if api_key or 'ollama' in model_type_str:
+                    if 'openai' in model_type_str:
+                        provider = LLMProvider.OPENAI
+                    elif 'ollama' in model_type_str:
+                        provider = LLMProvider.OLLAMA
+                    else:
+                        provider = LLMProvider.MOCK
+                    
+                    fallback_llm_config = LLMConfig(
+                        provider=provider,
+                        model=fallback_config.model,
+                        config={
+                            'model': fallback_config.model,
+                            'api_key': api_key,
+                            'base_url': getattr(fallback_config, 'api_base', None),
+                            'temperature': getattr(fallback_config, 'temperature', 0.7)
+                        },
+                        max_tokens=getattr(fallback_config, 'max_tokens', 4000),
+                        temperature=getattr(fallback_config, 'temperature', 0.7)
+                    )
+                    llm_configs.append(fallback_llm_config)
+                    return llm_configs
+    
+    # 如果都不可用，創建一個默認的測試配置
+    logger.warning("未找到可用的 LLM 配置，使用測試模型")
+    default_llm_config = LLMConfig(
+        provider=LLMProvider.MOCK,
+        model="test_model",
+        config={},
+        max_tokens=4000,
+        temperature=0.7
+    )
+    llm_configs.append(default_llm_config)
+    return llm_configs
+
 @click.command()
 @click.argument("question", type=str)
 @click.option(
@@ -78,6 +175,11 @@ logger = get_logger(__name__)
     is_flag=True,
     help="使用 jieba 分詞（預設使用 LLM 分詞）"
 )
+@click.option(
+    "--simple", "-s",
+    is_flag=True,
+    help="返回精簡答案（不包含詳細推理過程）"
+)
 @click.pass_context
 def query(
     ctx: click.Context,
@@ -91,7 +193,8 @@ def query(
     show_reasoning: bool,
     interactive: bool,
     enable_global_search: bool,
-    use_jieba_segmentation: bool
+    use_jieba_segmentation: bool,
+    simple: bool
 ):
     """執行中文問答查詢。
     
@@ -160,60 +263,8 @@ def query(
         from ..query.engine import QueryEngineConfig
         from ..query.manager import LLMConfig, LLMProvider
         
-        # 從主配置中獲取 LLM 配置
-        llm_configs = []
-        for model_name, model_config in config.models.items():
-            # 檢查是否為 LLM 模型（排除 embedding 模型）
-            if hasattr(model_config, 'type'):
-                model_type_str = str(model_config.type).lower()
-                is_llm_model = (
-                    'chat' in model_type_str or 
-                    'ollama' in model_type_str or 
-                    'openai' in model_type_str
-                ) and 'embedding' not in model_type_str
-                
-                if is_llm_model:
-                    # 檢查 API 金鑰（Ollama 模型不需要）
-                    api_key = getattr(model_config, 'api_key', None)
-                    model_type_str = str(model_config.type).lower()
-                    
-                    # Ollama 模型不需要 API 金鑰
-                    if not api_key and 'ollama' not in model_type_str:
-                        logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
-                        continue
-                    
-                    # 映射模型類型到 LLMProvider
-                    if 'openai' in str(model_config.type).lower():
-                        provider = LLMProvider.OPENAI
-                    elif 'ollama' in str(model_config.type).lower():
-                        provider = LLMProvider.OLLAMA
-                    else:
-                        provider = LLMProvider.MOCK
-                    
-                    llm_config = LLMConfig(
-                        provider=provider,
-                        model=model_config.model,
-                        config={
-                            'model': model_config.model,
-                            'api_key': api_key,
-                            'base_url': getattr(model_config, 'api_base', None),
-                            'temperature': getattr(model_config, 'temperature', 0.7)
-                        },
-                        max_tokens=getattr(model_config, 'max_tokens', 4000),
-                        temperature=getattr(model_config, 'temperature', 0.7)
-                    )
-                    llm_configs.append(llm_config)
-        
-        # 如果沒有找到 LLM 配置，創建一個默認的
-        if not llm_configs:
-            default_llm_config = LLMConfig(
-                provider=LLMProvider.MOCK,
-                model="test_model",
-                config={},
-                max_tokens=4000,
-                temperature=0.7
-            )
-            llm_configs.append(default_llm_config)
+        # 使用新的輔助函數獲取默認 LLM 配置
+        llm_configs = _get_default_llm_config(config, logger)
         
         query_engine_config = QueryEngineConfig(
             llm_configs=llm_configs,
@@ -271,52 +322,11 @@ def test_llm_segmentation(ctx: click.Context, question: str):
     config = ctx.obj['config']
     
     try:
-        # 從主配置中獲取 LLM 配置
-        from ..query.manager import LLMManager, LLMConfig, LLMProvider
+        # 使用新的輔助函數獲取默認 LLM 配置
+        from ..query.manager import LLMManager
         from ..query.processor import ChineseTextNormalizer
         
-        llm_configs = []
-        for model_name, model_config in config.models.items():
-            # 檢查是否為 LLM 模型（排除 embedding 模型）
-            if hasattr(model_config, 'type'):
-                model_type_str = str(model_config.type).lower()
-                is_llm_model = (
-                    'chat' in model_type_str or 
-                    'ollama' in model_type_str or 
-                    'openai' in model_type_str
-                ) and 'embedding' not in model_type_str
-                
-                if is_llm_model:
-                    # 檢查 API 金鑰（Ollama 模型不需要）
-                    api_key = getattr(model_config, 'api_key', None)
-                    model_type_str = str(model_config.type).lower()
-                    
-                    # Ollama 模型不需要 API 金鑰
-                    if not api_key and 'ollama' not in model_type_str:
-                        logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
-                        continue
-                    
-                    # 映射模型類型到 LLMProvider
-                    if 'openai' in str(model_config.type).lower():
-                        provider = LLMProvider.OPENAI
-                    elif 'ollama' in str(model_config.type).lower():
-                        provider = LLMProvider.OLLAMA
-                    else:
-                        provider = LLMProvider.MOCK
-                    
-                    llm_config = LLMConfig(
-                        provider=provider,
-                        model=model_config.model,
-                        config={
-                            'model': model_config.model,
-                            'api_key': api_key,
-                            'base_url': getattr(model_config, 'api_base', None),
-                            'temperature': getattr(model_config, 'temperature', 0.7)
-                        },
-                        max_tokens=getattr(model_config, 'max_tokens', 4000),
-                        temperature=getattr(model_config, 'temperature', 0.7)
-                    )
-                    llm_configs.append(llm_config)
+        llm_configs = _get_default_llm_config(config, logger)
         
         if not llm_configs:
             console.print("[red]未找到可用的 LLM 配置[/red]")
@@ -373,7 +383,8 @@ def _execute_single_query(
     show_reasoning: bool,
     output_format: str,
     quiet: bool,
-    use_llm_segmentation: bool = True  # 新增參數，默認使用 LLM 分詞
+    use_llm_segmentation: bool = True,  # 新增參數，默認使用 LLM 分詞
+    simple: bool = False  # 新增精簡模式參數
 ):
     """執行單次查詢。"""
     start_time = time.time()
@@ -404,8 +415,12 @@ def _execute_single_query(
     
     elapsed_time = time.time() - start_time
     
-    # 格式化輸出
-    _display_query_result(result, show_sources, show_reasoning, output_format, elapsed_time, quiet)
+    # 如果是精簡模式，直接輸出答案
+    if simple:
+        _display_simple_result(result, output_format, elapsed_time, quiet)
+    else:
+        # 格式化輸出
+        _display_query_result(result, show_sources, show_reasoning, output_format, elapsed_time, quiet)
     
     # 記錄指標
     metrics_collector = get_metrics_collector()
@@ -415,7 +430,8 @@ def _execute_single_query(
     
     # 在日誌中標註使用的分詞方法
     segmentation_method = "LLM分詞" if use_llm_segmentation else "jieba分詞"
-    logger.info(f"查詢完成，耗時 {elapsed_time:.2f} 秒，搜尋類型: {result.get('search_type', 'unknown')}，分詞方法: {segmentation_method}")
+    mode = "精簡模式" if simple else "完整模式"
+    logger.info(f"查詢完成，耗時 {elapsed_time:.2f} 秒，搜尋類型: {result.get('search_type', 'unknown')}，分詞方法: {segmentation_method}，模式: {mode}")
 
 
 def _run_interactive_mode(
@@ -654,60 +670,8 @@ def batch_query(
         from ..query.engine import QueryEngineConfig
         from ..query.manager import LLMConfig, LLMProvider
         
-        # 從主配置中獲取 LLM 配置
-        llm_configs = []
-        for model_name, model_config in config.models.items():
-            # 檢查是否為 LLM 模型（排除 embedding 模型）
-            if hasattr(model_config, 'type'):
-                model_type_str = str(model_config.type).lower()
-                is_llm_model = (
-                    'chat' in model_type_str or 
-                    'ollama' in model_type_str or 
-                    'openai' in model_type_str
-                ) and 'embedding' not in model_type_str
-                
-                if is_llm_model:
-                    # 檢查 API 金鑰（Ollama 模型不需要）
-                    api_key = getattr(model_config, 'api_key', None)
-                    model_type_str = str(model_config.type).lower()
-                    
-                    # Ollama 模型不需要 API 金鑰
-                    if not api_key and 'ollama' not in model_type_str:
-                        logger.warning(f"模型 {model_name} 沒有 API 金鑰，跳過")
-                        continue
-                    
-                    # 映射模型類型到 LLMProvider
-                    if 'openai' in str(model_config.type).lower():
-                        provider = LLMProvider.OPENAI
-                    elif 'ollama' in str(model_config.type).lower():
-                        provider = LLMProvider.OLLAMA
-                    else:
-                        provider = LLMProvider.MOCK
-                    
-                    llm_config = LLMConfig(
-                        provider=provider,
-                        model=model_config.model,
-                        config={
-                            'model': model_config.model,
-                            'api_key': api_key,
-                            'base_url': getattr(model_config, 'api_base', None),
-                            'temperature': getattr(model_config, 'temperature', 0.7)
-                        },
-                        max_tokens=getattr(model_config, 'max_tokens', 4000),
-                        temperature=getattr(model_config, 'temperature', 0.7)
-                    )
-                    llm_configs.append(llm_config)
-        
-        # 如果沒有找到 LLM 配置，創建一個默認的
-        if not llm_configs:
-            default_llm_config = LLMConfig(
-                provider=LLMProvider.MOCK,
-                model="test_model",
-                config={},
-                max_tokens=4000,
-                temperature=0.7
-            )
-            llm_configs.append(default_llm_config)
+        # 使用新的輔助函數獲取默認 LLM 配置
+        llm_configs = _get_default_llm_config(config, logger)
         
         query_engine_config = QueryEngineConfig(
             llm_configs=llm_configs,
