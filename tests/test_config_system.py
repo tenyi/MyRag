@@ -227,7 +227,9 @@ class TestConfigValidator:
         validator = ConfigValidator()
         
         # 應該通過驗證
-        assert validator.validate_config(config) is True
+        result = validator.validate_config(config)
+        assert result['valid'] is True
+        assert len(result['errors']) == 0
     
     def test_validate_invalid_chunk_config(self):
         """測試驗證無效的分塊配置。"""
@@ -260,8 +262,13 @@ class TestConfigValidator:
         config = GraphRAGConfig(**config_dict)
         validator = ConfigValidator()
         
-        with pytest.raises(ConfigValidationError):
-            validator.validate_config(config)
+        # 新的驗證方法返回字典，檢查驗證結果
+        result = validator.validate_config(config)
+        assert result['valid'] is False
+        assert len(result['errors']) > 0
+        # 檢查是否包含預期的錯誤訊息
+        error_messages = ' '.join(result['errors'])
+        assert "non_existent_model" in error_messages or "another_non_existent_model" in error_messages
 
 
 class TestConfigIntegration:
@@ -369,8 +376,11 @@ class TestConfigIntegration:
         
         # 捕獲警告
         with pytest.warns(UserWarning):
-            assert validator.validate_config(config) is True
+            result = validator.validate_config(config)
         
+        # 檢查驗證結果
+        assert result['valid'] is True
+        assert len(result['warnings']) > 0
         # 檢查是否有警告記錄
         assert len(validator.warnings) > 0
 
