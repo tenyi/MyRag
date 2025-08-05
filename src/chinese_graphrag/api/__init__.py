@@ -14,4 +14,4 @@ __author__ = "Chinese GraphRAG Team"
 API_VERSION = "v1"
 API_PREFIX = f"/api/{API_VERSION}"
 
-__all__ = ['API_VERSION', 'API_PREFIX']
+__all__ = ["API_VERSION", "API_PREFIX"]

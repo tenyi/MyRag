@@ -8,24 +8,24 @@ API 文件生成和管理模組
 """
 
 import json
-import yaml
-from pathlib import Path
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
+import yaml
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 
 class APIDocumentationGenerator:
     """API 文件生成器。
-    
+
     負責生成完整的 API 文件，包括 OpenAPI 規格、使用範例和測試案例。
     """
-    
+
     def __init__(self, app: FastAPI, output_dir: str = "docs/api"):
         """初始化文件生成器。
-        
+
         Args:
             app: FastAPI 應用程式實例
             output_dir: 文件輸出目錄
@@ -33,10 +33,10 @@ class APIDocumentationGenerator:
         self.app = app
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def generate_openapi_spec(self) -> Dict[str, Any]:
         """生成 OpenAPI 規格。
-        
+
         Returns:
             OpenAPI 規格字典
         """
@@ -46,76 +46,58 @@ class APIDocumentationGenerator:
             description=self.app.description,
             routes=self.app.routes,
         )
-        
+
         # 添加額外的中文描述和範例
         self._enhance_openapi_spec(openapi_spec)
-        
+
         return openapi_spec
-    
+
     def _enhance_openapi_spec(self, spec: Dict[str, Any]):
         """增強 OpenAPI 規格，添加中文描述和範例。
-        
+
         Args:
             spec: OpenAPI 規格字典
         """
         # 添加伺服器資訊
         spec["servers"] = [
-            {
-                "url": "http://localhost:8000",
-                "description": "開發環境"
-            },
+            {"url": "http://localhost:8000", "description": "開發環境"},
             {
                 "url": "https://api.chinese-graphrag.example.com",
-                "description": "生產環境"
-            }
+                "description": "生產環境",
+            },
         ]
-        
+
         # 添加標籤描述
         spec["tags"] = [
-            {
-                "name": "health",
-                "description": "系統健康檢查相關的端點"
-            },
-            {
-                "name": "indexing",
-                "description": "文件索引和處理相關的端點"
-            },
-            {
-                "name": "query",
-                "description": "查詢和檢索相關的端點"
-            },
-            {
-                "name": "configuration",
-                "description": "系統配置管理相關的端點"
-            },
-            {
-                "name": "monitoring",
-                "description": "系統監控和指標相關的端點"
-            }
+            {"name": "health", "description": "系統健康檢查相關的端點"},
+            {"name": "indexing", "description": "文件索引和處理相關的端點"},
+            {"name": "query", "description": "查詢和檢索相關的端點"},
+            {"name": "configuration", "description": "系統配置管理相關的端點"},
+            {"name": "monitoring", "description": "系統監控和指標相關的端點"},
         ]
-        
+
         # 添加全域安全定義（雖然目前不需要認證）
         spec["components"]["securitySchemes"] = {
             "ApiKeyAuth": {
                 "type": "apiKey",
                 "in": "header",
                 "name": "X-API-Key",
-                "description": "API 金鑰認證（未來功能）"
+                "description": "API 金鑰認證（未來功能）",
             },
             "BearerAuth": {
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
-                "description": "JWT 權杖認證（未來功能）"
-            }
+                "description": "JWT 權杖認證（未來功能）",
+            },
         }
-        
+
         # 添加範例到每個端點
         self._add_examples_to_paths(spec)
-    
+
     def _add_examples_to_paths(self, spec: Dict[str, Any]):
         """為每個 API 端點添加範例。
-        
+
         Args:
             spec: OpenAPI 規格字典
         """
@@ -133,10 +115,10 @@ class APIDocumentationGenerator:
                                     "system": {
                                         "status": "running",
                                         "uptime": 3600.5,
-                                        "version": "v1"
+                                        "version": "v1",
                                     }
-                                }
-                            }
+                                },
+                            },
                         }
                     }
                 }
@@ -151,8 +133,8 @@ class APIDocumentationGenerator:
                                 "output_path": "./data/output",
                                 "file_types": ["txt", "pdf", "docx"],
                                 "batch_size": 32,
-                                "force_rebuild": False
-                            }
+                                "force_rebuild": False,
+                            },
                         }
                     }
                 }
@@ -166,14 +148,14 @@ class APIDocumentationGenerator:
                                 "query": "什麼是人工智慧？",
                                 "query_type": "global_search",
                                 "max_tokens": 2000,
-                                "temperature": 0.7
-                            }
+                                "temperature": 0.7,
+                            },
                         }
                     }
                 }
-            }
+            },
         }
-        
+
         # 將範例添加到對應的路徑
         if "paths" in spec:
             for path, methods in spec["paths"].items():
@@ -181,53 +163,55 @@ class APIDocumentationGenerator:
                     for method, method_spec in methods.items():
                         if method in examples[path]:
                             if "requestBody" in method_spec:
-                                method_spec["requestBody"]["content"]["application/json"]["examples"] = examples[path][method]["examples"]
-    
+                                method_spec["requestBody"]["content"][
+                                    "application/json"
+                                ]["examples"] = examples[path][method]["examples"]
+
     def save_openapi_spec(self, format: str = "json") -> Path:
         """儲存 OpenAPI 規格。
-        
+
         Args:
             format: 檔案格式 ('json' 或 'yaml')
-            
+
         Returns:
             儲存的檔案路徑
         """
         spec = self.generate_openapi_spec()
-        
+
         if format.lower() == "yaml":
             file_path = self.output_dir / "openapi.yaml"
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 yaml.dump(spec, f, default_flow_style=False, allow_unicode=True)
         else:
             file_path = self.output_dir / "openapi.json"
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(spec, f, indent=2, ensure_ascii=False)
-        
+
         return file_path
-    
+
     def generate_client_examples(self) -> Dict[str, str]:
         """生成客戶端程式碼範例。
-        
+
         Returns:
             不同語言的客戶端範例程式碼
         """
         examples = {
             "python": self._generate_python_examples(),
             "javascript": self._generate_javascript_examples(),
-            "curl": self._generate_curl_examples()
+            "curl": self._generate_curl_examples(),
         }
-        
+
         # 儲存範例到檔案
         for language, code in examples.items():
             file_path = self.output_dir / f"examples.{language}"
             if language == "curl":
                 file_path = self.output_dir / "examples.sh"
-            
-            with open(file_path, 'w', encoding='utf-8') as f:
+
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(code)
-        
+
         return examples
-    
+
     def _generate_python_examples(self) -> str:
         """生成 Python 客戶端範例。"""
         return '''#!/usr/bin/env python3
@@ -402,10 +386,10 @@ def main():
 if __name__ == "__main__":
     main()
 '''
-    
+
     def _generate_javascript_examples(self) -> str:
         """生成 JavaScript 客戶端範例。"""
-        return '''/**
+        return """/**
  * Chinese GraphRAG API JavaScript 客戶端範例
  * 
  * 本範例展示如何使用 JavaScript 呼叫 Chinese GraphRAG API。
@@ -584,11 +568,11 @@ if (typeof module !== 'undefined' && module.exports) {
         main();
     }
 }
-'''
-    
+"""
+
     def _generate_curl_examples(self) -> str:
         """生成 cURL 命令範例。"""
-        return '''#!/bin/bash
+        return """#!/bin/bash
 
 # Chinese GraphRAG API cURL 範例
 # 
@@ -765,11 +749,11 @@ curl -X GET \\
 echo
 
 echo "=== 測試完成 ==="
-'''
-    
+"""
+
     def generate_postman_collection(self) -> Dict[str, Any]:
         """生成 Postman 集合。
-        
+
         Returns:
             Postman 集合定義
         """
@@ -778,17 +762,11 @@ echo "=== 測試完成 ==="
                 "name": "Chinese GraphRAG API",
                 "description": "針對中文文件優化的知識圖譜檢索增強生成系統 API",
                 "version": "1.0.0",
-                "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+                "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
             },
             "variable": [
-                {
-                    "key": "baseUrl",
-                    "value": "http://localhost:8000"
-                },
-                {
-                    "key": "apiPrefix",
-                    "value": "/api/v1"
-                }
+                {"key": "baseUrl", "value": "http://localhost:8000"},
+                {"key": "apiPrefix", "value": "/api/v1"},
             ],
             "item": [
                 {
@@ -802,9 +780,9 @@ echo "=== 測試完成 ==="
                                 "url": {
                                     "raw": "{{baseUrl}}/health",
                                     "host": ["{{baseUrl}}"],
-                                    "path": ["health"]
-                                }
-                            }
+                                    "path": ["health"],
+                                },
+                            },
                         },
                         {
                             "name": "Detailed Health Check",
@@ -814,11 +792,11 @@ echo "=== 測試完成 ==="
                                 "url": {
                                     "raw": "{{baseUrl}}/health/detailed",
                                     "host": ["{{baseUrl}}"],
-                                    "path": ["health", "detailed"]
-                                }
-                            }
-                        }
-                    ]
+                                    "path": ["health", "detailed"],
+                                },
+                            },
+                        },
+                    ],
                 },
                 {
                     "name": "Indexing",
@@ -828,29 +806,30 @@ echo "=== 測試完成 ==="
                             "request": {
                                 "method": "POST",
                                 "header": [
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
+                                    {"key": "Content-Type", "value": "application/json"}
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": json.dumps({
-                                        "input_path": "./documents",
-                                        "output_path": "./data/output",
-                                        "file_types": ["txt", "pdf", "docx"],
-                                        "batch_size": 32,
-                                        "force_rebuild": False
-                                    }, indent=2, ensure_ascii=False)
+                                    "raw": json.dumps(
+                                        {
+                                            "input_path": "./documents",
+                                            "output_path": "./data/output",
+                                            "file_types": ["txt", "pdf", "docx"],
+                                            "batch_size": 32,
+                                            "force_rebuild": False,
+                                        },
+                                        indent=2,
+                                        ensure_ascii=False,
+                                    ),
                                 },
                                 "url": {
                                     "raw": "{{baseUrl}}{{apiPrefix}}/index",
                                     "host": ["{{baseUrl}}"],
-                                    "path": ["{{apiPrefix}}", "index"]
-                                }
-                            }
+                                    "path": ["{{apiPrefix}}", "index"],
+                                },
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "name": "Query",
@@ -860,65 +839,66 @@ echo "=== 測試完成 ==="
                             "request": {
                                 "method": "POST",
                                 "header": [
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
+                                    {"key": "Content-Type", "value": "application/json"}
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": json.dumps({
-                                        "query": "什麼是人工智慧？",
-                                        "query_type": "global_search",
-                                        "max_tokens": 2000,
-                                        "temperature": 0.7
-                                    }, indent=2, ensure_ascii=False)
+                                    "raw": json.dumps(
+                                        {
+                                            "query": "什麼是人工智慧？",
+                                            "query_type": "global_search",
+                                            "max_tokens": 2000,
+                                            "temperature": 0.7,
+                                        },
+                                        indent=2,
+                                        ensure_ascii=False,
+                                    ),
                                 },
                                 "url": {
                                     "raw": "{{baseUrl}}{{apiPrefix}}/query",
                                     "host": ["{{baseUrl}}"],
-                                    "path": ["{{apiPrefix}}", "query"]
-                                }
-                            }
+                                    "path": ["{{apiPrefix}}", "query"],
+                                },
+                            },
                         }
-                    ]
-                }
-            ]
+                    ],
+                },
+            ],
         }
-        
+
         # 儲存 Postman 集合
         file_path = self.output_dir / "postman-collection.json"
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             json.dump(collection, f, indent=2, ensure_ascii=False)
-        
+
         return collection
-    
+
     def generate_complete_documentation(self):
         """生成完整的 API 文件。"""
         print("正在生成 API 文件...")
-        
+
         # 生成 OpenAPI 規格
         openapi_json = self.save_openapi_spec("json")
         openapi_yaml = self.save_openapi_spec("yaml")
         print(f"✅ OpenAPI 規格已生成: {openapi_json}, {openapi_yaml}")
-        
+
         # 生成客戶端範例
         examples = self.generate_client_examples()
         print(f"✅ 客戶端範例已生成: {len(examples)} 種語言")
-        
+
         # 生成 Postman 集合
         self.generate_postman_collection()
         print("✅ Postman 集合已生成")
-        
+
         # 生成 README
         self._generate_readme()
         print("✅ API 文件 README 已生成")
-        
+
         print(f"\\n📁 所有文件已生成到: {self.output_dir}")
-    
+
     def _generate_readme(self):
         """生成 API 文件的 README。"""
-        readme_content = f'''# Chinese GraphRAG API 文件
+        readme_content = f"""# Chinese GraphRAG API 文件
 
 ## 概述
 
@@ -1120,8 +1100,8 @@ CMD ["uv", "run", "uvicorn", "chinese_graphrag.api.app:app", "--host", "0.0.0.0"
 ---
 
 *本文件由 Chinese GraphRAG API 文件生成器自動生成*
-'''
-        
+"""
+
         readme_path = self.output_dir / "README.md"
-        with open(readme_path, 'w', encoding='utf-8') as f:
+        with open(readme_path, "w", encoding="utf-8") as f:
             f.write(readme_content)

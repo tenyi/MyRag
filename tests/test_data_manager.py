@@ -9,17 +9,18 @@ import hashlib
 import json
 import shutil
 import tempfile
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import yaml
-from dataclasses import dataclass, asdict
 
 
 @dataclass
 class TestDataInfo:
     """測試資料資訊"""
+
     name: str
     description: str
     data_type: str  # 'document', 'vector', 'config', 'fixture'
@@ -33,57 +34,56 @@ class TestDataInfo:
 
 class TestDataManager:
     """測試資料管理器"""
-    
+
     def __init__(self, base_dir: Union[str, Path] = None):
         """
         初始化測試資料管理器
-        
+
         Args:
             base_dir: 測試資料基礎目錄，預設為 ./test_data
         """
         self.base_dir = Path(base_dir) if base_dir else Path("test_data")
         self.base_dir.mkdir(exist_ok=True)
-        
+
         # 建立子目錄結構
         self.documents_dir = self.base_dir / "documents"
         self.vectors_dir = self.base_dir / "vectors"
         self.configs_dir = self.base_dir / "configs"
         self.fixtures_dir = self.base_dir / "fixtures"
         self.temp_dir = self.base_dir / "temp"
-        
-        for dir_path in [self.documents_dir, self.vectors_dir, self.configs_dir, 
-                        self.fixtures_dir, self.temp_dir]:
+
+        for dir_path in [
+            self.documents_dir,
+            self.vectors_dir,
+            self.configs_dir,
+            self.fixtures_dir,
+            self.temp_dir,
+        ]:
             dir_path.mkdir(exist_ok=True)
-        
+
         # 資料註冊表檔案
         self.registry_file = self.base_dir / "data_registry.json"
         self.registry = self._load_registry()
-    
+
     def _load_registry(self) -> Dict[str, TestDataInfo]:
         """載入資料註冊表"""
         if self.registry_file.exists():
             try:
-                with open(self.registry_file, 'r', encoding='utf-8') as f:
+                with open(self.registry_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    return {
-                        name: TestDataInfo(**info) 
-                        for name, info in data.items()
-                    }
+                    return {name: TestDataInfo(**info) for name, info in data.items()}
             except Exception as e:
                 print(f"載入資料註冊表失敗: {e}")
-        
+
         return {}
-    
+
     def _save_registry(self):
         """儲存資料註冊表"""
-        registry_data = {
-            name: asdict(info) 
-            for name, info in self.registry.items()
-        }
-        
-        with open(self.registry_file, 'w', encoding='utf-8') as f:
+        registry_data = {name: asdict(info) for name, info in self.registry.items()}
+
+        with open(self.registry_file, "w", encoding="utf-8") as f:
             json.dump(registry_data, f, ensure_ascii=False, indent=2)
-    
+
     def _calculate_checksum(self, file_path: Path) -> str:
         """計算檔案校驗和"""
         sha256_hash = hashlib.sha256()
@@ -91,7 +91,7 @@ class TestDataManager:
             for chunk in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(chunk)
         return sha256_hash.hexdigest()
-    
+
     def register_data(
         self,
         name: str,
@@ -99,11 +99,11 @@ class TestDataManager:
         data_type: str,
         description: str = "",
         tags: List[str] = None,
-        metadata: Dict[str, Any] = None
+        metadata: Dict[str, Any] = None,
     ) -> TestDataInfo:
         """
         註冊測試資料
-        
+
         Args:
             name: 資料名稱
             file_path: 檔案路徑
@@ -111,15 +111,15 @@ class TestDataManager:
             description: 描述
             tags: 標籤列表
             metadata: 元資料
-            
+
         Returns:
             TestDataInfo: 資料資訊
         """
         file_path = Path(file_path)
-        
+
         if not file_path.exists():
             raise FileNotFoundError(f"檔案不存在: {file_path}")
-        
+
         data_info = TestDataInfo(
             name=name,
             description=description,
@@ -129,52 +129,50 @@ class TestDataManager:
             created_at=datetime.now().isoformat(),
             checksum=self._calculate_checksum(file_path),
             tags=tags or [],
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
-        
+
         self.registry[name] = data_info
         self._save_registry()
-        
+
         return data_info
-    
+
     def get_data_info(self, name: str) -> Optional[TestDataInfo]:
         """獲取資料資訊"""
         return self.registry.get(name)
-    
+
     def list_data(
-        self,
-        data_type: str = None,
-        tags: List[str] = None
+        self, data_type: str = None, tags: List[str] = None
     ) -> List[TestDataInfo]:
         """
         列出測試資料
-        
+
         Args:
             data_type: 篩選資料類型
             tags: 篩選標籤
-            
+
         Returns:
             List[TestDataInfo]: 資料資訊列表
         """
         results = []
-        
+
         for data_info in self.registry.values():
             # 類型篩選
             if data_type and data_info.data_type != data_type:
                 continue
-            
+
             # 標籤篩選
             if tags and not any(tag in data_info.tags for tag in tags):
                 continue
-            
+
             results.append(data_info)
-        
+
         return results
-    
+
     def create_sample_documents(self) -> Dict[str, Path]:
         """建立範例文件集合"""
         documents = {}
-        
+
         # 中文 AI 技術文件
         ai_doc = self.documents_dir / "ai_technology.md"
         ai_content = """# 人工智慧技術概述
@@ -265,20 +263,20 @@ class TestDataManager:
 
 AI技術的發展將持續改變我們的生活和工作方式，創造更多可能性。
 """
-        
-        with open(ai_doc, 'w', encoding='utf-8') as f:
+
+        with open(ai_doc, "w", encoding="utf-8") as f:
             f.write(ai_content)
-        
-        documents['ai_technology'] = ai_doc
+
+        documents["ai_technology"] = ai_doc
         self.register_data(
-            'ai_technology',
+            "ai_technology",
             ai_doc,
-            'document',
-            '人工智慧技術概述文件',
-            ['ai', 'technology', 'chinese'],
-            {'language': 'zh-TW', 'word_count': len(ai_content)}
+            "document",
+            "人工智慧技術概述文件",
+            ["ai", "technology", "chinese"],
+            {"language": "zh-TW", "word_count": len(ai_content)},
         )
-        
+
         # 機器學習詳細文件
         ml_doc = self.documents_dir / "machine_learning_guide.txt"
         ml_content = """機器學習完整指南
@@ -374,20 +372,20 @@ AI技術的發展將持續改變我們的生活和工作方式，創造更多可
 
 機器學習是一個快速發展的領域，新的演算法和技術不斷涌現，需要持續學習和實踐。
 """
-        
-        with open(ml_doc, 'w', encoding='utf-8') as f:
+
+        with open(ml_doc, "w", encoding="utf-8") as f:
             f.write(ml_content)
-        
-        documents['machine_learning'] = ml_doc
+
+        documents["machine_learning"] = ml_doc
         self.register_data(
-            'machine_learning',
+            "machine_learning",
             ml_doc,
-            'document',
-            '機器學習完整指南',
-            ['ml', 'guide', 'chinese'],
-            {'language': 'zh-TW', 'word_count': len(ml_content)}
+            "document",
+            "機器學習完整指南",
+            ["ml", "guide", "chinese"],
+            {"language": "zh-TW", "word_count": len(ml_content)},
         )
-        
+
         # 深度學習技術文件
         dl_doc = self.documents_dir / "deep_learning.md"
         dl_content = """# 深度學習技術詳解
@@ -538,370 +536,376 @@ AI技術的發展將持續改變我們的生活和工作方式，創造更多可
 
 深度學習技術持續快速發展，在各個領域都有重大突破和應用。
 """
-        
-        with open(dl_doc, 'w', encoding='utf-8') as f:
+
+        with open(dl_doc, "w", encoding="utf-8") as f:
             f.write(dl_content)
-        
-        documents['deep_learning'] = dl_doc
+
+        documents["deep_learning"] = dl_doc
         self.register_data(
-            'deep_learning',  
+            "deep_learning",
             dl_doc,
-            'document',
-            '深度學習技術詳解',
-            ['dl', 'neural_networks', 'chinese'],
-            {'language': 'zh-TW', 'word_count': len(dl_content)}
+            "document",
+            "深度學習技術詳解",
+            ["dl", "neural_networks", "chinese"],
+            {"language": "zh-TW", "word_count": len(dl_content)},
         )
-        
+
         print(f"已建立 {len(documents)} 個範例文件")
         return documents
-    
+
     def create_test_configs(self) -> Dict[str, Path]:
         """建立測試配置檔案"""
         configs = {}
-        
+
         # 基本測試配置
         basic_config = {
-            'embedding': {
-                'model': 'BAAI/bge-m3',
-                'dimension': 768,
-                'batch_size': 16,
-                'device': 'cpu'
+            "embedding": {
+                "model": "BAAI/bge-m3",
+                "dimension": 768,
+                "batch_size": 16,
+                "device": "cpu",
             },
-            'vector_store': {
-                'type': 'lancedb',
-                'path': './test_vectors',
-                'table_name': 'test_embeddings'
+            "vector_store": {
+                "type": "lancedb",
+                "path": "./test_vectors",
+                "table_name": "test_embeddings",
             },
-            'llm': {
-                'provider': 'openai',
-                'model': 'gpt-3.5-turbo',
-                'temperature': 0.7,
-                'max_tokens': 1000
+            "llm": {
+                "provider": "openai",
+                "model": "gpt-3.5-turbo",
+                "temperature": 0.7,
+                "max_tokens": 1000,
             },
-            'indexing': {
-                'chunk_size': 500,
-                'chunk_overlap': 50,
-                'min_chunk_size': 100
+            "indexing": {"chunk_size": 500, "chunk_overlap": 50, "min_chunk_size": 100},
+            "query": {
+                "top_k": 10,
+                "similarity_threshold": 0.7,
+                "max_context_length": 4000,
             },
-            'query': {
-                'top_k': 10,
-                'similarity_threshold': 0.7,
-                'max_context_length': 4000
-            }
         }
-        
+
         basic_config_file = self.configs_dir / "basic_test_config.yaml"
-        with open(basic_config_file, 'w', encoding='utf-8') as f:
+        with open(basic_config_file, "w", encoding="utf-8") as f:
             yaml.dump(basic_config, f, allow_unicode=True, default_flow_style=False)
-        
-        configs['basic'] = basic_config_file
+
+        configs["basic"] = basic_config_file
         self.register_data(
-            'basic_test_config',
+            "basic_test_config",
             basic_config_file,
-            'config',
-            '基本測試配置檔案',
-            ['config', 'test', 'basic']
+            "config",
+            "基本測試配置檔案",
+            ["config", "test", "basic"],
         )
-        
+
         # 效能測試配置
         performance_config = {
-            'embedding': {
-                'model': 'BAAI/bge-m3',
-                'dimension': 768,
-                'batch_size': 64,  # 更大批次
-                'device': 'cpu'
+            "embedding": {
+                "model": "BAAI/bge-m3",
+                "dimension": 768,
+                "batch_size": 64,  # 更大批次
+                "device": "cpu",
             },
-            'vector_store': {
-                'type': 'lancedb',
-                'path': './perf_test_vectors',
-                'table_name': 'perf_embeddings'
+            "vector_store": {
+                "type": "lancedb",
+                "path": "./perf_test_vectors",
+                "table_name": "perf_embeddings",
             },
-            'indexing': {
-                'chunk_size': 1000,  # 更大分塊
-                'chunk_overlap': 100,
-                'min_chunk_size': 200,
-                'parallel_workers': 4
+            "indexing": {
+                "chunk_size": 1000,  # 更大分塊
+                "chunk_overlap": 100,
+                "min_chunk_size": 200,
+                "parallel_workers": 4,
             },
-            'performance': {
-                'max_documents': 1000,
-                'max_processing_time': 300,
-                'memory_limit_mb': 2048,
-                'benchmark_iterations': 10
-            }
+            "performance": {
+                "max_documents": 1000,
+                "max_processing_time": 300,
+                "memory_limit_mb": 2048,
+                "benchmark_iterations": 10,
+            },
         }
-        
+
         perf_config_file = self.configs_dir / "performance_test_config.yaml"
-        with open(perf_config_file, 'w', encoding='utf-8') as f:
-            yaml.dump(performance_config, f, allow_unicode=True, default_flow_style=False)
-        
-        configs['performance'] = perf_config_file
+        with open(perf_config_file, "w", encoding="utf-8") as f:
+            yaml.dump(
+                performance_config, f, allow_unicode=True, default_flow_style=False
+            )
+
+        configs["performance"] = perf_config_file
         self.register_data(
-            'performance_test_config',
+            "performance_test_config",
             perf_config_file,
-            'config',
-            '效能測試配置檔案',
-            ['config', 'test', 'performance']
+            "config",
+            "效能測試配置檔案",
+            ["config", "test", "performance"],
         )
-        
+
         # 中文特定配置
         chinese_config = {
-            'text_processing': {
-                'language': 'zh-TW',
-                'segmentation': 'jieba',
-                'stopwords_file': 'chinese_stopwords.txt',
-                'min_word_length': 1,
-                'max_word_length': 20
+            "text_processing": {
+                "language": "zh-TW",
+                "segmentation": "jieba",
+                "stopwords_file": "chinese_stopwords.txt",
+                "min_word_length": 1,
+                "max_word_length": 20,
             },
-            'embedding': {
-                'model': 'BAAI/bge-m3',
-                'dimension': 768,
-                'batch_size': 32,
-                'normalize': True,
-                'chinese_optimization': True
+            "embedding": {
+                "model": "BAAI/bge-m3",
+                "dimension": 768,
+                "batch_size": 32,
+                "normalize": True,
+                "chinese_optimization": True,
             },
-            'indexing': {
-                'chunk_size': 300,  # 中文字符較短
-                'chunk_overlap': 30,
-                'sentence_splitter': 'chinese_aware',
-                'preserve_formatting': True
+            "indexing": {
+                "chunk_size": 300,  # 中文字符較短
+                "chunk_overlap": 30,
+                "sentence_splitter": "chinese_aware",
+                "preserve_formatting": True,
             },
-            'query': {
-                'chinese_query_expansion': True,
-                'synonym_matching': True,
-                'traditional_simplified_convert': True
-            }
+            "query": {
+                "chinese_query_expansion": True,
+                "synonym_matching": True,
+                "traditional_simplified_convert": True,
+            },
         }
-        
+
         chinese_config_file = self.configs_dir / "chinese_test_config.yaml"
-        with open(chinese_config_file, 'w', encoding='utf-8') as f:
+        with open(chinese_config_file, "w", encoding="utf-8") as f:
             yaml.dump(chinese_config, f, allow_unicode=True, default_flow_style=False)
-        
-        configs['chinese'] = chinese_config_file
+
+        configs["chinese"] = chinese_config_file
         self.register_data(
-            'chinese_test_config',
+            "chinese_test_config",
             chinese_config_file,
-            'config',
-            '中文特定測試配置檔案',
-            ['config', 'test', 'chinese']
+            "config",
+            "中文特定測試配置檔案",
+            ["config", "test", "chinese"],
         )
-        
+
         print(f"已建立 {len(configs)} 個測試配置檔案")
         return configs
-    
+
     def create_test_fixtures(self) -> Dict[str, Path]:
         """建立測試夾具資料"""
         fixtures = {}
-        
+
         # 測試查詢集合
         test_queries = {
-            'definition_queries': [
+            "definition_queries": [
                 "什麼是人工智慧？",
                 "機器學習的定義是什麼？",
                 "請解釋深度學習的概念",
-                "神經網路是如何工作的？"
+                "神經網路是如何工作的？",
             ],
-            'comparison_queries': [
+            "comparison_queries": [
                 "機器學習和深度學習有什麼區別？",
                 "CNN和RNN的差異在哪裡？",
                 "監督學習與無監督學習的對比",
-                "Transformer和RNN的優缺點比較"
+                "Transformer和RNN的優缺點比較",
             ],
-            'application_queries': [
+            "application_queries": [
                 "人工智慧在醫療領域的應用",
                 "深度學習在自然語言處理中的使用",
                 "機器學習在金融業的實際案例",
-                "電腦視覺技術的商業應用"
+                "電腦視覺技術的商業應用",
             ],
-            'technical_queries': [
+            "technical_queries": [
                 "如何選擇合適的激活函數？",
                 "什麼時候使用CNN而不是RNN？",
                 "如何解決梯度消失問題？",
-                "Attention機制的工作原理"
-            ]
+                "Attention機制的工作原理",
+            ],
         }
-        
+
         queries_file = self.fixtures_dir / "test_queries.json"
-        with open(queries_file, 'w', encoding='utf-8') as f:
+        with open(queries_file, "w", encoding="utf-8") as f:
             json.dump(test_queries, f, ensure_ascii=False, indent=2)
-        
-        fixtures['queries'] = queries_file
+
+        fixtures["queries"] = queries_file
         self.register_data(
-            'test_queries',
+            "test_queries",
             queries_file,
-            'fixture',
-            '測試查詢集合',
-            ['queries', 'test', 'chinese']
+            "fixture",
+            "測試查詢集合",
+            ["queries", "test", "chinese"],
         )
-        
+
         # 預期答案範本
         expected_answers = {
-            '什麼是人工智慧？': {
-                'keywords': ['人工智慧', 'AI', '電腦科學', '模擬智慧'],
-                'min_length': 100,
-                'should_mention': ['機器學習', '技術', '應用'],
-                'confidence_threshold': 0.8
+            "什麼是人工智慧？": {
+                "keywords": ["人工智慧", "AI", "電腦科學", "模擬智慧"],
+                "min_length": 100,
+                "should_mention": ["機器學習", "技術", "應用"],
+                "confidence_threshold": 0.8,
             },
-            '機器學習和深度學習有什麼區別？': {
-                'keywords': ['機器學習', '深度學習', '神經網路', '差別'],
-                'min_length': 150,
-                'should_mention': ['多層', '特徵', '演算法'],
-                'confidence_threshold': 0.85
-            }
+            "機器學習和深度學習有什麼區別？": {
+                "keywords": ["機器學習", "深度學習", "神經網路", "差別"],
+                "min_length": 150,
+                "should_mention": ["多層", "特徵", "演算法"],
+                "confidence_threshold": 0.85,
+            },
         }
-        
+
         answers_file = self.fixtures_dir / "expected_answers.json"
-        with open(answers_file, 'w', encoding='utf-8') as f:
+        with open(answers_file, "w", encoding="utf-8") as f:
             json.dump(expected_answers, f, ensure_ascii=False, indent=2)
-        
-        fixtures['answers'] = answers_file
+
+        fixtures["answers"] = answers_file
         self.register_data(
-            'expected_answers',
+            "expected_answers",
             answers_file,
-            'fixture',
-            '預期答案範本',
-            ['answers', 'validation', 'test']
+            "fixture",
+            "預期答案範本",
+            ["answers", "validation", "test"],
         )
-        
+
         # 效能基準資料
         performance_benchmarks = {
-            'document_processing': {
-                'max_time_per_document': 2.0,
-                'max_memory_per_document_mb': 10.0,
-                'min_throughput_docs_per_second': 5.0
+            "document_processing": {
+                "max_time_per_document": 2.0,
+                "max_memory_per_document_mb": 10.0,
+                "min_throughput_docs_per_second": 5.0,
             },
-            'embedding_generation': {
-                'max_time_per_batch': 5.0,
-                'max_memory_per_batch_mb': 500.0,
-                'min_throughput_texts_per_second': 20.0
+            "embedding_generation": {
+                "max_time_per_batch": 5.0,
+                "max_memory_per_batch_mb": 500.0,
+                "min_throughput_texts_per_second": 20.0,
             },
-            'vector_search': {
-                'max_search_time_ms': 100.0,
-                'max_memory_per_search_mb': 50.0,
-                'min_precision_at_k': 0.8
+            "vector_search": {
+                "max_search_time_ms": 100.0,
+                "max_memory_per_search_mb": 50.0,
+                "min_precision_at_k": 0.8,
             },
-            'end_to_end_query': {
-                'max_response_time_seconds': 10.0,
-                'max_memory_usage_mb': 1000.0,
-                'min_answer_quality_score': 0.7
-            }
+            "end_to_end_query": {
+                "max_response_time_seconds": 10.0,
+                "max_memory_usage_mb": 1000.0,
+                "min_answer_quality_score": 0.7,
+            },
         }
-        
+
         benchmarks_file = self.fixtures_dir / "performance_benchmarks.json"
-        with open(benchmarks_file, 'w', encoding='utf-8') as f:
+        with open(benchmarks_file, "w", encoding="utf-8") as f:
             json.dump(performance_benchmarks, f, ensure_ascii=False, indent=2)
-        
-        fixtures['benchmarks'] = benchmarks_file
+
+        fixtures["benchmarks"] = benchmarks_file
         self.register_data(
-            'performance_benchmarks',
+            "performance_benchmarks",
             benchmarks_file,
-            'fixture',
-            '效能基準資料',
-            ['performance', 'benchmarks', 'test']
+            "fixture",
+            "效能基準資料",
+            ["performance", "benchmarks", "test"],
         )
-        
+
         print(f"已建立 {len(fixtures)} 個測試夾具檔案")
         return fixtures
-    
+
     def create_temporary_workspace(self, prefix: str = "test_") -> Path:
         """建立臨時工作空間"""
         workspace = Path(tempfile.mkdtemp(prefix=prefix, dir=self.temp_dir))
-        
+
         # 建立標準子目錄
         (workspace / "documents").mkdir()
         (workspace / "data").mkdir()
         (workspace / "output").mkdir()
         (workspace / "logs").mkdir()
-        
+
         return workspace
-    
+
     def cleanup_temporary_data(self, max_age_hours: int = 24):
         """清理臨時資料"""
         import time
+
         current_time = time.time()
-        
+
         cleaned_count = 0
         for item in self.temp_dir.iterdir():
             if item.is_dir():
                 # 檢查目錄修改時間
                 mod_time = item.stat().st_mtime
                 age_hours = (current_time - mod_time) / 3600
-                
+
                 if age_hours > max_age_hours:
                     shutil.rmtree(item)
                     cleaned_count += 1
-        
+
         print(f"已清理 {cleaned_count} 個過期的臨時目錄")
         return cleaned_count
-    
+
     def validate_data_integrity(self) -> Dict[str, bool]:
         """驗證資料完整性"""
         results = {}
-        
+
         for name, data_info in self.registry.items():
             file_path = Path(data_info.file_path)
-            
+
             # 檢查檔案是否存在
             if not file_path.exists():
                 results[name] = False
                 continue
-            
+
             # 檢查檔案大小
             current_size = file_path.stat().st_size
             if current_size != data_info.size_bytes:
                 results[name] = False
                 continue
-            
+
             # 檢查校驗和
             current_checksum = self._calculate_checksum(file_path)
             if current_checksum != data_info.checksum:
                 results[name] = False
                 continue
-            
+
             results[name] = True
-        
+
         return results
-    
+
     def export_data_manifest(self, output_file: str = "data_manifest.json") -> Path:
         """匯出資料清單"""
         manifest = {
-            'generated_at': datetime.now().isoformat(),
-            'total_data_count': len(self.registry),
-            'data_by_type': {},
-            'data_registry': {name: asdict(info) for name, info in self.registry.items()}
+            "generated_at": datetime.now().isoformat(),
+            "total_data_count": len(self.registry),
+            "data_by_type": {},
+            "data_registry": {
+                name: asdict(info) for name, info in self.registry.items()
+            },
         }
-        
+
         # 按類型統計
         for data_info in self.registry.values():
             data_type = data_info.data_type
-            if data_type not in manifest['data_by_type']:
-                manifest['data_by_type'][data_type] = 0
-            manifest['data_by_type'][data_type] += 1
-        
+            if data_type not in manifest["data_by_type"]:
+                manifest["data_by_type"][data_type] = 0
+            manifest["data_by_type"][data_type] += 1
+
         manifest_file = self.base_dir / output_file
-        with open(manifest_file, 'w', encoding='utf-8') as f:
+        with open(manifest_file, "w", encoding="utf-8") as f:
             json.dump(manifest, f, ensure_ascii=False, indent=2)
-        
+
         print(f"資料清單已匯出至: {manifest_file}")
         return manifest_file
-    
+
     def reset_all_data(self, confirm: bool = False):
         """重設所有測試資料"""
         if not confirm:
             print("警告：此操作將刪除所有測試資料！")
             print("請使用 reset_all_data(confirm=True) 確認執行")
             return
-        
+
         # 清空註冊表
         self.registry.clear()
         self._save_registry()
-        
+
         # 刪除所有資料檔案
-        for dir_path in [self.documents_dir, self.vectors_dir, self.configs_dir, 
-                        self.fixtures_dir, self.temp_dir]:
+        for dir_path in [
+            self.documents_dir,
+            self.vectors_dir,
+            self.configs_dir,
+            self.fixtures_dir,
+            self.temp_dir,
+        ]:
             if dir_path.exists():
                 shutil.rmtree(dir_path)
                 dir_path.mkdir()
-        
+
         print("所有測試資料已重設")
 
 
@@ -909,41 +913,41 @@ def main():
     """測試資料管理器示例用法"""
     # 建立測試資料管理器
     manager = TestDataManager()
-    
+
     print("🗂️ 初始化測試資料管理器")
     print(f"資料目錄: {manager.base_dir}")
-    
+
     # 建立範例資料
     print("\n📄 建立範例文件...")
     documents = manager.create_sample_documents()
-    
+
     print("\n⚙️ 建立測試配置...")
     configs = manager.create_test_configs()
-    
+
     print("\n🧪 建立測試夾具...")
     fixtures = manager.create_test_fixtures()
-    
+
     # 列出所有資料
     print("\n📊 資料總覽:")
     all_data = manager.list_data()
     for data_info in all_data:
         print(f"  {data_info.name} ({data_info.data_type}): {data_info.description}")
-    
+
     # 驗證資料完整性
     print("\n✅ 驗證資料完整性...")
     integrity_results = manager.validate_data_integrity()
     valid_count = sum(integrity_results.values())
     total_count = len(integrity_results)
     print(f"有效資料: {valid_count}/{total_count}")
-    
+
     # 匯出資料清單
     print("\n📋 匯出資料清單...")
     manifest_file = manager.export_data_manifest()
-    
+
     # 清理臨時資料
     print("\n🧹 清理過期臨時資料...")
     manager.cleanup_temporary_data()
-    
+
     print("\n✨ 測試資料管理器設定完成！")
 
 

@@ -39,18 +39,18 @@ __all__ = [
 
 def create_default_processor_manager() -> DocumentProcessorManager:
     """建立預設的文件處理器管理器
-    
+
     註冊所有可用的文件處理器
-    
+
     Returns:
         DocumentProcessorManager: 配置好的處理器管理器
     """
     manager = DocumentProcessorManager()
-    
+
     # 註冊各種處理器
     manager.register_processor("text", TextProcessor())
     manager.register_processor("markdown", MarkdownProcessor())
     manager.register_processor("pdf", PDFProcessor())
     manager.register_processor("docx", DocxProcessor())
-    
+
     return manager

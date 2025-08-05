@@ -11,12 +11,12 @@ from typing import Dict, List, Optional, Tuple
 
 from .models import EmbeddingConfig, GraphRAGConfig, LLMConfig
 
-
 logger = logging.getLogger(__name__)
 
 
 class TaskType(str, Enum):
     """任務類型枚舉"""
+
     ENTITY_EXTRACTION = "entity_extraction"
     RELATIONSHIP_EXTRACTION = "relationship_extraction"
     COMMUNITY_DETECTION = "community_detection"
@@ -29,7 +29,7 @@ class TaskType(str, Enum):
 
 class ModelPerformanceMetrics:
     """模型效能指標"""
-    
+
     def __init__(self):
         self.response_times: Dict[str, List[float]] = {}
         self.success_rates: Dict[str, List[bool]] = {}
@@ -86,19 +86,19 @@ class ModelSelectionStrategy(ABC):
 
     @abstractmethod
     def select_llm_model(
-        self, 
-        config: GraphRAGConfig, 
+        self,
+        config: GraphRAGConfig,
         task_type: TaskType,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> str:
         """
         選擇 LLM 模型
-        
+
         Args:
             config: GraphRAG 配置
             task_type: 任務類型
             context: 額外上下文資訊
-            
+
         Returns:
             str: 選中的模型名稱
         """
@@ -106,19 +106,19 @@ class ModelSelectionStrategy(ABC):
 
     @abstractmethod
     def select_embedding_model(
-        self, 
-        config: GraphRAGConfig, 
+        self,
+        config: GraphRAGConfig,
         task_type: TaskType,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> str:
         """
         選擇 Embedding 模型
-        
+
         Args:
             config: GraphRAG 配置
             task_type: 任務類型
             context: 額外上下文資訊
-            
+
         Returns:
             str: 選中的模型名稱
         """
@@ -129,19 +129,19 @@ class DefaultModelSelectionStrategy(ModelSelectionStrategy):
     """預設模型選擇策略"""
 
     def select_llm_model(
-        self, 
-        config: GraphRAGConfig, 
+        self,
+        config: GraphRAGConfig,
         task_type: TaskType,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> str:
         """選擇預設 LLM 模型"""
         return config.model_selection.default_llm
 
     def select_embedding_model(
-        self, 
-        config: GraphRAGConfig, 
+        self,
+        config: GraphRAGConfig,
         task_type: TaskType,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> str:
         """選擇預設 Embedding 模型"""
         return config.model_selection.default_embedding
@@ -152,29 +152,29 @@ class CostOptimizedSelectionStrategy(ModelSelectionStrategy):
 
     def __init__(self, performance_metrics: ModelPerformanceMetrics):
         self.performance_metrics = performance_metrics
-        
+
         # 預定義的模型成本係數（相對值）
         self.llm_cost_coefficients = {
             "gpt-4": 1.0,
             "gpt-4-turbo": 0.5,
             "gpt-3.5-turbo": 0.1,
             "claude-3": 0.8,
-            "local_model": 0.01
+            "local_model": 0.01,
         }
-        
+
         self.embedding_cost_coefficients = {
             "text-embedding-3-large": 1.0,
             "text-embedding-3-small": 0.5,
             "text-embedding-ada-002": 0.3,
             "bge-m3": 0.01,
-            "local_embedding": 0.01
+            "local_embedding": 0.01,
         }
 
     def select_llm_model(
-        self, 
-        config: GraphRAGConfig, 
+        self,
+        config: GraphRAGConfig,
         task_type: TaskType,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> str:
         """基於成本和品質選擇 LLM 模型"""
         if not config.model_selection.cost_optimization:
@@ -182,7 +182,8 @@ class CostOptimizedSelectionStrategy(ModelSelectionStrategy):
 
         # 取得所有可用的 LLM 模型
         llm_models = [
-            name for name, model_config in config.models.items()
+            name
+            for name, model_config in config.models.items()
             if isinstance(model_config, LLMConfig)
         ]
 
@@ -197,10 +198,10 @@ class CostOptimizedSelectionStrategy(ModelSelectionStrategy):
         return best_model or config.model_selection.default_llm
 
     def select_embedding_model(
-        self, 
-        config: GraphRAGConfig, 
+        self,
+        config: GraphRAGConfig,
         task_type: TaskType,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> str:
         """基於成本和品質選擇 Embedding 模型"""
         if not config.model_selection.cost_optimization:
@@ -208,7 +209,8 @@ class CostOptimizedSelectionStrategy(ModelSelectionStrategy):
 
         # 取得所有可用的 Embedding 模型
         embedding_models = [
-            name for name, model_config in config.models.items()
+            name
+            for name, model_config in config.models.items()
             if isinstance(model_config, EmbeddingConfig)
         ]
 
@@ -216,10 +218,11 @@ class CostOptimizedSelectionStrategy(ModelSelectionStrategy):
             return config.model_selection.default_embedding
 
         # 對於中文任務，優先選擇中文優化模型
-        if context and context.get('language') == 'zh':
+        if context and context.get("language") == "zh":
             chinese_models = [
-                name for name in embedding_models
-                if 'chinese' in name.lower() or 'bge' in name.lower()
+                name
+                for name in embedding_models
+                if "chinese" in name.lower() or "bge" in name.lower()
             ]
             if chinese_models:
                 return chinese_models[0]
@@ -232,17 +235,16 @@ class CostOptimizedSelectionStrategy(ModelSelectionStrategy):
         return best_model or config.model_selection.default_embedding
 
     def _select_best_model_by_cost_quality(
-        self, 
-        models: List[str], 
-        task_type: TaskType,
-        quality_threshold: float
+        self, models: List[str], task_type: TaskType, quality_threshold: float
     ) -> Optional[str]:
         """根據成本和品質選擇最佳模型"""
         model_scores = []
 
         for model_name in models:
             # 取得品質分數
-            quality_score = self.performance_metrics.get_average_quality_score(model_name)
+            quality_score = self.performance_metrics.get_average_quality_score(
+                model_name
+            )
             if quality_score is None or quality_score < quality_threshold:
                 continue
 
@@ -292,22 +294,23 @@ class AdaptiveSelectionStrategy(ModelSelectionStrategy):
             TaskType.SUMMARIZATION: ["gpt-4", "claude-3"],
             TaskType.QUESTION_ANSWERING: ["gpt-4", "gpt-4-turbo"],
             TaskType.TEXT_EMBEDDING: ["bge-m3", "text-embedding-3-small"],
-            TaskType.QUERY_EMBEDDING: ["bge-m3", "text-embedding-3-small"]
+            TaskType.QUERY_EMBEDDING: ["bge-m3", "text-embedding-3-small"],
         }
 
     def select_llm_model(
-        self, 
-        config: GraphRAGConfig, 
+        self,
+        config: GraphRAGConfig,
         task_type: TaskType,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> str:
         """基於任務類型和歷史效能選擇 LLM 模型"""
         # 取得任務偏好的模型
         preferred_models = self.task_model_preferences.get(task_type, [])
-        
+
         # 取得所有可用的 LLM 模型
         available_models = [
-            name for name, model_config in config.models.items()
+            name
+            for name, model_config in config.models.items()
             if isinstance(model_config, LLMConfig)
         ]
 
@@ -323,28 +326,30 @@ class AdaptiveSelectionStrategy(ModelSelectionStrategy):
         return config.model_selection.default_llm
 
     def select_embedding_model(
-        self, 
-        config: GraphRAGConfig, 
+        self,
+        config: GraphRAGConfig,
         task_type: TaskType,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> str:
         """基於任務類型和歷史效能選擇 Embedding 模型"""
         # 對於中文內容，優先選擇中文優化模型
-        if context and context.get('language') == 'zh':
+        if context and context.get("language") == "zh":
             chinese_models = [
-                name for name, model_config in config.models.items()
-                if isinstance(model_config, EmbeddingConfig) and 
-                ('chinese' in name.lower() or 'bge' in name.lower())
+                name
+                for name, model_config in config.models.items()
+                if isinstance(model_config, EmbeddingConfig)
+                and ("chinese" in name.lower() or "bge" in name.lower())
             ]
             if chinese_models:
                 return chinese_models[0]
 
         # 取得任務偏好的模型
         preferred_models = self.task_model_preferences.get(task_type, [])
-        
+
         # 取得所有可用的 Embedding 模型
         available_models = [
-            name for name, model_config in config.models.items()
+            name
+            for name, model_config in config.models.items()
             if isinstance(model_config, EmbeddingConfig)
         ]
 
@@ -363,7 +368,7 @@ class ModelSelector:
     def __init__(self, config: GraphRAGConfig):
         self.config = config
         self.performance_metrics = ModelPerformanceMetrics()
-        
+
         # 根據配置選擇策略
         if config.model_selection.cost_optimization:
             self.strategy = CostOptimizedSelectionStrategy(self.performance_metrics)
@@ -371,94 +376,96 @@ class ModelSelector:
             self.strategy = AdaptiveSelectionStrategy(self.performance_metrics)
 
     def select_llm_model(
-        self, 
-        task_type: TaskType,
-        context: Optional[Dict] = None
+        self, task_type: TaskType, context: Optional[Dict] = None
     ) -> Tuple[str, LLMConfig]:
         """
         選擇 LLM 模型
-        
+
         Args:
             task_type: 任務類型
             context: 額外上下文
-            
+
         Returns:
             Tuple[str, LLMConfig]: 模型名稱和配置
         """
         model_name = self.strategy.select_llm_model(self.config, task_type, context)
         model_config = self.config.get_llm_config(model_name)
-        
+
         if model_config is None:
             # 使用備用模型
             fallback_name = self.config.model_selection.fallback_models.get(model_name)
             if fallback_name:
                 model_config = self.config.get_llm_config(fallback_name)
                 model_name = fallback_name
-            
+
             if model_config is None:
                 # 使用預設模型
                 model_name = self.config.model_selection.default_llm
                 model_config = self.config.get_default_llm_config()
-        
+
         logger.info(f"為任務 {task_type} 選擇 LLM 模型: {model_name}")
         return model_name, model_config
 
     def select_embedding_model(
-        self, 
-        task_type: TaskType,
-        context: Optional[Dict] = None
+        self, task_type: TaskType, context: Optional[Dict] = None
     ) -> Tuple[str, EmbeddingConfig]:
         """
         選擇 Embedding 模型
-        
+
         Args:
             task_type: 任務類型
             context: 額外上下文
-            
+
         Returns:
             Tuple[str, EmbeddingConfig]: 模型名稱和配置
         """
-        model_name = self.strategy.select_embedding_model(self.config, task_type, context)
+        model_name = self.strategy.select_embedding_model(
+            self.config, task_type, context
+        )
         model_config = self.config.get_embedding_config(model_name)
-        
+
         if model_config is None:
             # 使用備用模型
             fallback_name = self.config.model_selection.fallback_models.get(model_name)
             if fallback_name:
                 model_config = self.config.get_embedding_config(fallback_name)
                 model_name = fallback_name
-            
+
             if model_config is None:
                 # 使用預設模型
                 model_name = self.config.model_selection.default_embedding
                 model_config = self.config.get_default_embedding_config()
-        
+
         logger.info(f"為任務 {task_type} 選擇 Embedding 模型: {model_name}")
         return model_name, model_config
 
     def record_model_performance(
-        self, 
-        model_name: str, 
+        self,
+        model_name: str,
         response_time: float,
         success: bool,
         quality_score: Optional[float] = None,
-        cost: Optional[float] = None
+        cost: Optional[float] = None,
     ):
         """記錄模型效能"""
         self.performance_metrics.record_response_time(model_name, response_time)
         self.performance_metrics.record_success(model_name, success)
-        
+
         if quality_score is not None:
             self.performance_metrics.record_quality_score(model_name, quality_score)
-        
+
         if cost is not None:
             self.performance_metrics.record_cost(model_name, cost)
 
     def get_model_statistics(self, model_name: str) -> Dict:
         """取得模型統計資訊"""
         return {
-            "average_response_time": self.performance_metrics.get_average_response_time(model_name),
+            "average_response_time": self.performance_metrics.get_average_response_time(
+                model_name
+            ),
             "success_rate": self.performance_metrics.get_success_rate(model_name),
-            "average_quality_score": self.performance_metrics.get_average_quality_score(model_name),
-            "average_cost": self.performance_metrics.get_average_cost(model_name)
+            "average_quality_score": self.performance_metrics.get_average_quality_score(
+                model_name
+            ),
+            "average_cost": self.performance_metrics.get_average_cost(model_name),
         }

@@ -4,18 +4,18 @@
 """
 
 from .base import (
-    VectorStore,
-    VectorStoreType,
-    VectorSearchResult,
-    VectorCollection,
-    VectorStoreError,
-    ConnectionError,
     CollectionError,
-    VectorOperationError,
-    SearchType,
-    RerankingMethod,
+    ConnectionError,
     HybridSearchConfig,
-    SearchFilter
+    RerankingMethod,
+    SearchFilter,
+    SearchType,
+    VectorCollection,
+    VectorOperationError,
+    VectorSearchResult,
+    VectorStore,
+    VectorStoreError,
+    VectorStoreType,
 )
 from .lancedb_store import LanceDBStore
 from .manager import VectorStoreManager, create_vector_store_manager
@@ -26,22 +26,18 @@ __all__ = [
     "VectorStoreType",
     "VectorSearchResult",
     "VectorCollection",
-    
     # 搜尋相關類別
     "SearchType",
     "RerankingMethod",
     "HybridSearchConfig",
     "SearchFilter",
-    
     # 異常類別
     "VectorStoreError",
     "ConnectionError",
     "CollectionError",
     "VectorOperationError",
-    
     # 具體實作
     "LanceDBStore",
-    
     # 管理器
     "VectorStoreManager",
     "create_vector_store_manager",

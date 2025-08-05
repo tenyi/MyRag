@@ -4,30 +4,29 @@
 測試中文 GraphRAG 系統的異常處理和恢復機制。
 """
 
+from .test_consistency import *
+from .test_incremental import *
+
 # 匯入所有測試模組
 from .test_recovery import *
-from .test_incremental import *
-from .test_consistency import *
 
 __all__ = [
     # 恢復機制測試
     "TestCheckpointMetadata",
-    "TestSystemState", 
+    "TestSystemState",
     "TestFileCheckpointStorage",
     "TestCheckpointManager",
     "TestStateManager",
     "TestRecoveryManager",
     "TestGlobalRecoveryManager",
     "TestRecoveryIntegration",
-    
     # 增量索引測試
     "TestFileMetadata",
     "TestChangeRecord",
     "TestFileWatcher",
-    "TestIncrementalIndexStorage", 
+    "TestIncrementalIndexStorage",
     "TestIncrementalIndexManager",
     "TestIncrementalIndexingIntegration",
-    
     # 一致性檢查測試
     "TestConsistencyIssue",
     "TestConsistencyReport",

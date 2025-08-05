@@ -32,7 +32,7 @@ class TestModelPerformanceMetrics:
     def test_record_and_retrieve_metrics(self):
         """測試記錄和檢索指標"""
         metrics = ModelPerformanceMetrics()
-        
+
         # 記錄指標
         metrics.record_response_time("model1", 1.5)
         metrics.record_response_time("model1", 2.0)
@@ -40,13 +40,13 @@ class TestModelPerformanceMetrics:
         metrics.record_success("model1", False)
         metrics.record_quality_score("model1", 0.8)
         metrics.record_cost("model1", 0.01)
-        
+
         # 檢索指標
         assert metrics.get_average_response_time("model1") == 1.75
         assert metrics.get_success_rate("model1") == 0.5
         assert metrics.get_average_quality_score("model1") == 0.8
         assert metrics.get_average_cost("model1") == 0.01
-        
+
         # 測試不存在的模型
         assert metrics.get_average_response_time("nonexistent") is None
 
@@ -58,10 +58,12 @@ class TestDefaultModelSelectionStrategy:
         """測試選擇預設模型"""
         config = self._create_test_config()
         strategy = DefaultModelSelectionStrategy()
-        
+
         llm_model = strategy.select_llm_model(config, TaskType.ENTITY_EXTRACTION)
-        embedding_model = strategy.select_embedding_model(config, TaskType.TEXT_EMBEDDING)
-        
+        embedding_model = strategy.select_embedding_model(
+            config, TaskType.TEXT_EMBEDDING
+        )
+
         assert llm_model == "default_chat_model"
         assert embedding_model == "ollama_embedding_model"
 
@@ -70,22 +72,19 @@ class TestDefaultModelSelectionStrategy:
         return GraphRAGConfig(
             models={
                 "default_chat_model": LLMConfig(
-                    type=LLMType.OPENAI_CHAT,
-                    model="gpt-4"
+                    type=LLMType.OPENAI_CHAT, model="gpt-4"
                 ),
                 "ollama_embedding_model": EmbeddingConfig(
-                    type=EmbeddingType.BGE_M3,
-                    model="BAAI/bge-m3"
-                )
+                    type=EmbeddingType.BGE_M3, model="BAAI/bge-m3"
+                ),
             },
             vector_store=VectorStoreConfig(
-                type=VectorStoreType.LANCEDB,
-                uri="./data/lancedb"
+                type=VectorStoreType.LANCEDB, uri="./data/lancedb"
             ),
             model_selection=ModelSelectionConfig(
                 default_llm="default_chat_model",
-                default_embedding="ollama_embedding_model"
-            )
+                default_embedding="ollama_embedding_model",
+            ),
         )
 
 
@@ -96,10 +95,10 @@ class TestCostOptimizedSelectionStrategy:
         """測試成本優化關閉時的行為"""
         config = self._create_test_config()
         config.model_selection.cost_optimization = False
-        
+
         metrics = ModelPerformanceMetrics()
         strategy = CostOptimizedSelectionStrategy(metrics)
-        
+
         llm_model = strategy.select_llm_model(config, TaskType.ENTITY_EXTRACTION)
         assert llm_model == "default_chat_model"
 
@@ -107,14 +106,14 @@ class TestCostOptimizedSelectionStrategy:
         """測試成本優化啟用時的行為"""
         config = self._create_test_config()
         config.model_selection.cost_optimization = True
-        
+
         metrics = ModelPerformanceMetrics()
         # 記錄一些效能指標
         metrics.record_quality_score("default_chat_model", 0.9)
         metrics.record_cost("default_chat_model", 0.1)
-        
+
         strategy = CostOptimizedSelectionStrategy(metrics)
-        
+
         llm_model = strategy.select_llm_model(config, TaskType.ENTITY_EXTRACTION)
         assert llm_model == "default_chat_model"
 
@@ -122,10 +121,10 @@ class TestCostOptimizedSelectionStrategy:
         """測試中文 Embedding 模型偏好"""
         config = self._create_test_config()
         config.model_selection.cost_optimization = True
-        
+
         metrics = ModelPerformanceMetrics()
         strategy = CostOptimizedSelectionStrategy(metrics)
-        
+
         # 測試中文上下文
         context = {"language": "zh"}
         embedding_model = strategy.select_embedding_model(
@@ -138,26 +137,22 @@ class TestCostOptimizedSelectionStrategy:
         return GraphRAGConfig(
             models={
                 "default_chat_model": LLMConfig(
-                    type=LLMType.OPENAI_CHAT,
-                    model="gpt-4"
+                    type=LLMType.OPENAI_CHAT, model="gpt-4"
                 ),
                 "ollama_embedding_model": EmbeddingConfig(
-                    type=EmbeddingType.BGE_M3,
-                    model="BAAI/bge-m3"
+                    type=EmbeddingType.BGE_M3, model="BAAI/bge-m3"
                 ),
                 "openai_embedding_model": EmbeddingConfig(
-                    type=EmbeddingType.OPENAI_EMBEDDING,
-                    model="text-embedding-3-small"
-                )
+                    type=EmbeddingType.OPENAI_EMBEDDING, model="text-embedding-3-small"
+                ),
             },
             vector_store=VectorStoreConfig(
-                type=VectorStoreType.LANCEDB,
-                uri="./data/lancedb"
+                type=VectorStoreType.LANCEDB, uri="./data/lancedb"
             ),
             model_selection=ModelSelectionConfig(
                 default_llm="default_chat_model",
-                default_embedding="ollama_embedding_model"
-            )
+                default_embedding="ollama_embedding_model",
+            ),
         )
 
 
@@ -169,12 +164,14 @@ class TestAdaptiveSelectionStrategy:
         config = self._create_test_config()
         metrics = ModelPerformanceMetrics()
         strategy = AdaptiveSelectionStrategy(metrics)
-        
+
         # 測試不同任務類型
         llm_model = strategy.select_llm_model(config, TaskType.ENTITY_EXTRACTION)
         assert llm_model in ["gpt4_model", "default_chat_model"]
-        
-        embedding_model = strategy.select_embedding_model(config, TaskType.TEXT_EMBEDDING)
+
+        embedding_model = strategy.select_embedding_model(
+            config, TaskType.TEXT_EMBEDDING
+        )
         assert embedding_model == "ollama_embedding_model"
 
     def test_chinese_context_preference(self):
@@ -182,7 +179,7 @@ class TestAdaptiveSelectionStrategy:
         config = self._create_test_config()
         metrics = ModelPerformanceMetrics()
         strategy = AdaptiveSelectionStrategy(metrics)
-        
+
         context = {"language": "zh"}
         embedding_model = strategy.select_embedding_model(
             config, TaskType.TEXT_EMBEDDING, context
@@ -194,30 +191,23 @@ class TestAdaptiveSelectionStrategy:
         return GraphRAGConfig(
             models={
                 "default_chat_model": LLMConfig(
-                    type=LLMType.OPENAI_CHAT,
-                    model="gpt-3.5-turbo"
+                    type=LLMType.OPENAI_CHAT, model="gpt-3.5-turbo"
                 ),
-                "gpt4_model": LLMConfig(
-                    type=LLMType.OPENAI_CHAT,
-                    model="gpt-4"
-                ),
+                "gpt4_model": LLMConfig(type=LLMType.OPENAI_CHAT, model="gpt-4"),
                 "ollama_embedding_model": EmbeddingConfig(
-                    type=EmbeddingType.BGE_M3,
-                    model="BAAI/bge-m3"
+                    type=EmbeddingType.BGE_M3, model="BAAI/bge-m3"
                 ),
                 "openai_embedding_model": EmbeddingConfig(
-                    type=EmbeddingType.OPENAI_EMBEDDING,
-                    model="text-embedding-3-small"
-                )
+                    type=EmbeddingType.OPENAI_EMBEDDING, model="text-embedding-3-small"
+                ),
             },
             vector_store=VectorStoreConfig(
-                type=VectorStoreType.LANCEDB,
-                uri="./data/lancedb"
+                type=VectorStoreType.LANCEDB, uri="./data/lancedb"
             ),
             model_selection=ModelSelectionConfig(
                 default_llm="default_chat_model",
-                default_embedding="ollama_embedding_model"
-            )
+                default_embedding="ollama_embedding_model",
+            ),
         )
 
 
@@ -228,9 +218,9 @@ class TestModelSelector:
         """測試選擇 LLM 模型"""
         config = self._create_test_config()
         selector = ModelSelector(config)
-        
+
         model_name, model_config = selector.select_llm_model(TaskType.ENTITY_EXTRACTION)
-        
+
         assert model_name in config.models
         assert isinstance(model_config, LLMConfig)
 
@@ -238,9 +228,11 @@ class TestModelSelector:
         """測試選擇 Embedding 模型"""
         config = self._create_test_config()
         selector = ModelSelector(config)
-        
-        model_name, model_config = selector.select_embedding_model(TaskType.TEXT_EMBEDDING)
-        
+
+        model_name, model_config = selector.select_embedding_model(
+            TaskType.TEXT_EMBEDDING
+        )
+
         assert model_name in config.models
         assert isinstance(model_config, EmbeddingConfig)
 
@@ -251,14 +243,14 @@ class TestModelSelector:
         config.model_selection.fallback_models = {
             "nonexistent_model": "default_chat_model"
         }
-        
+
         selector = ModelSelector(config)
-        
+
         # 模擬選擇不存在的模型
         selector.strategy = MockStrategy("nonexistent_model", "ollama_embedding_model")
-        
+
         model_name, model_config = selector.select_llm_model(TaskType.ENTITY_EXTRACTION)
-        
+
         # 應該使用備用模型
         assert model_name == "default_chat_model"
         assert isinstance(model_config, LLMConfig)
@@ -267,15 +259,11 @@ class TestModelSelector:
         """測試記錄模型效能"""
         config = self._create_test_config()
         selector = ModelSelector(config)
-        
+
         selector.record_model_performance(
-            "test_model", 
-            response_time=1.5,
-            success=True,
-            quality_score=0.8,
-            cost=0.01
+            "test_model", response_time=1.5, success=True, quality_score=0.8, cost=0.01
         )
-        
+
         stats = selector.get_model_statistics("test_model")
         assert stats["average_response_time"] == 1.5
         assert stats["success_rate"] == 1.0
@@ -287,34 +275,31 @@ class TestModelSelector:
         return GraphRAGConfig(
             models={
                 "default_chat_model": LLMConfig(
-                    type=LLMType.OPENAI_CHAT,
-                    model="gpt-4"
+                    type=LLMType.OPENAI_CHAT, model="gpt-4"
                 ),
                 "ollama_embedding_model": EmbeddingConfig(
-                    type=EmbeddingType.BGE_M3,
-                    model="BAAI/bge-m3"
-                )
+                    type=EmbeddingType.BGE_M3, model="BAAI/bge-m3"
+                ),
             },
             vector_store=VectorStoreConfig(
-                type=VectorStoreType.LANCEDB,
-                uri="./data/lancedb"
+                type=VectorStoreType.LANCEDB, uri="./data/lancedb"
             ),
             model_selection=ModelSelectionConfig(
                 default_llm="default_chat_model",
-                default_embedding="ollama_embedding_model"
-            )
+                default_embedding="ollama_embedding_model",
+            ),
         )
 
 
 class MockStrategy:
     """模擬策略類別，用於測試"""
-    
+
     def __init__(self, llm_model: str, embedding_model: str):
         self.llm_model = llm_model
         self.embedding_model = embedding_model
-    
+
     def select_llm_model(self, config, task_type, context=None):
         return self.llm_model
-    
+
     def select_embedding_model(self, config, task_type, context=None):
         return self.embedding_model

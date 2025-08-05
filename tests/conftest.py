@@ -10,8 +10,9 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
+from unittest.mock import MagicMock, Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
 
 # 設定測試日誌級別
 logging.basicConfig(level=logging.WARNING)
@@ -59,20 +60,20 @@ def sample_documents() -> List[Dict[str, Any]]:
             "id": "doc_1",
             "title": "人工智慧概述",
             "content": "人工智慧是電腦科學的重要分支，致力於開發智慧機器。",
-            "metadata": {"author": "張三", "date": "2024-01-01"}
+            "metadata": {"author": "張三", "date": "2024-01-01"},
         },
         {
-            "id": "doc_2", 
+            "id": "doc_2",
             "title": "機器學習基礎",
             "content": "機器學習是AI的核心技術，通過資料訓練模型。",
-            "metadata": {"author": "李四", "date": "2024-01-02"}
+            "metadata": {"author": "李四", "date": "2024-01-02"},
         },
         {
             "id": "doc_3",
             "title": "深度學習應用",
             "content": "深度學習在圖像識別和自然語言處理中有廣泛應用。",
-            "metadata": {"author": "王五", "date": "2024-01-03"}
-        }
+            "metadata": {"author": "王五", "date": "2024-01-03"},
+        },
     ]
 
 
@@ -85,22 +86,22 @@ def sample_entities() -> List[Dict[str, Any]]:
             "name": "人工智慧",
             "type": "概念",
             "description": "電腦科學分支，研究智慧機器",
-            "embedding": [0.1] * 768
+            "embedding": [0.1] * 768,
         },
         {
             "id": "entity_2",
-            "name": "機器學習", 
+            "name": "機器學習",
             "type": "技術",
             "description": "AI子領域，專注演算法研究",
-            "embedding": [0.2] * 768
+            "embedding": [0.2] * 768,
         },
         {
             "id": "entity_3",
             "name": "深度學習",
             "type": "技術",
             "description": "機器學習子集，模擬神經網路",
-            "embedding": [0.3] * 768
-        }
+            "embedding": [0.3] * 768,
+        },
     ]
 
 
@@ -111,10 +112,10 @@ def sample_relationships() -> List[Dict[str, Any]]:
         {
             "id": "rel_1",
             "source": "entity_2",
-            "target": "entity_1", 
+            "target": "entity_1",
             "type": "子領域",
             "description": "機器學習是人工智慧的子領域",
-            "weight": 0.8
+            "weight": 0.8,
         },
         {
             "id": "rel_2",
@@ -122,8 +123,8 @@ def sample_relationships() -> List[Dict[str, Any]]:
             "target": "entity_2",
             "type": "子集",
             "description": "深度學習是機器學習的子集",
-            "weight": 0.9
-        }
+            "weight": 0.9,
+        },
     ]
 
 
@@ -164,31 +165,23 @@ def mock_llm_service():
 def test_config() -> Dict[str, Any]:
     """測試配置"""
     return {
-        "embedding": {
-            "model_name": "BAAI/bge-m3",
-            "device": "cpu",
-            "batch_size": 32
-        },
+        "embedding": {"model_name": "BAAI/bge-m3", "device": "cpu", "batch_size": 32},
         "vector_store": {
             "type": "lancedb",
             "path": "./test_data/vector_db",
-            "collection_name": "test_collection"
+            "collection_name": "test_collection",
         },
-        "llm": {
-            "provider": "openai",
-            "model": "gpt-3.5-turbo",
-            "temperature": 0.7
-        },
+        "llm": {"provider": "openai", "model": "gpt-3.5-turbo", "temperature": 0.7},
         "indexing": {
             "chunk_size": 512,
             "chunk_overlap": 50,
-            "max_chunks_per_document": 100
+            "max_chunks_per_document": 100,
         },
         "chinese": {
             "jieba_dict_path": None,
             "stopwords_path": None,
-            "enable_parallel": True
-        }
+            "enable_parallel": True,
+        },
     }
 
 
@@ -196,12 +189,12 @@ def test_config() -> Dict[str, Any]:
 def cleanup_files():
     """清理測試檔案的 fixture"""
     files_to_cleanup = []
-    
+
     def add_file(file_path: Path):
         files_to_cleanup.append(file_path)
-    
+
     yield add_file
-    
+
     # 清理檔案
     for file_path in files_to_cleanup:
         if file_path.exists():
@@ -209,6 +202,7 @@ def cleanup_files():
                 file_path.unlink()
             elif file_path.is_dir():
                 import shutil
+
                 shutil.rmtree(file_path)
 
 
@@ -222,29 +216,31 @@ pytest.mark.chinese = pytest.mark.chinese
 # 跳過條件
 def pytest_configure(config):
     """配置 pytest"""
-    config.addinivalue_line(
-        "markers", "unit: 單元測試標記"
-    )
-    config.addinivalue_line(
-        "markers", "integration: 整合測試標記"
-    )
-    config.addinivalue_line(
-        "markers", "slow: 慢速測試標記"
-    )
-    config.addinivalue_line(
-        "markers", "chinese: 中文處理測試標記"
-    )
+    config.addinivalue_line("markers", "unit: 單元測試標記")
+    config.addinivalue_line("markers", "integration: 整合測試標記")
+    config.addinivalue_line("markers", "slow: 慢速測試標記")
+    config.addinivalue_line("markers", "chinese: 中文處理測試標記")
 
 
 def pytest_collection_modifyitems(config, items):
     """修改測試項目"""
     # 檢查環境變數，決定是否跳過特定測試
-    skip_integration = pytest.mark.skip(reason="跳過整合測試（使用 --integration 運行）")
+    skip_integration = pytest.mark.skip(
+        reason="跳過整合測試（使用 --integration 運行）"
+    )
     skip_slow = pytest.mark.skip(reason="跳過慢速測試（使用 --slow 運行）")
-    
-    run_integration = config.getoption("--integration", default=False) if hasattr(config, 'getoption') else False
-    run_slow = config.getoption("--slow", default=False) if hasattr(config, 'getoption') else False
-    
+
+    run_integration = (
+        config.getoption("--integration", default=False)
+        if hasattr(config, "getoption")
+        else False
+    )
+    run_slow = (
+        config.getoption("--slow", default=False)
+        if hasattr(config, "getoption")
+        else False
+    )
+
     for item in items:
         if "integration" in item.keywords and not run_integration:
             item.add_marker(skip_integration)
@@ -256,14 +252,6 @@ def pytest_collection_modifyitems(config, items):
 def pytest_addoption(parser):
     """添加命令列選項"""
     parser.addoption(
-        "--integration",
-        action="store_true",
-        default=False,
-        help="運行整合測試"
+        "--integration", action="store_true", default=False, help="運行整合測試"
     )
-    parser.addoption(
-        "--slow",
-        action="store_true", 
-        default=False,
-        help="運行慢速測試"
-    )
+    parser.addoption("--slow", action="store_true", default=False, help="運行慢速測試")
