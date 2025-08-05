@@ -38,7 +38,8 @@
       "Bash(python:*)",
       "Bash(ls:*)",
       "Bash(rg:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(make test:*)"
     ]
   },
   "enabledMcpjsonServers": [
