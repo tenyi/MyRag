@@ -19,7 +19,7 @@ batch_optimization:
 query_optimization:
   cache_enabled: true
   cache_backend: "memory"  # memory, redis, hybrid
-  cache_ttl_seconds: 3600  # 1小時
+  cache_ttl_seconds: 300  # 5分鐘
   cache_max_size: 10000
   enable_preloading: true
   preload_patterns:
@@ -38,7 +38,7 @@ query_optimization:
   # 語義快取設定
   semantic_cache:
     enabled: true
-    similarity_threshold: 0.95
+    similarity_threshold: 0.9
     embedding_model: "text-embedding-ada-002"
     max_semantic_cache_size: 5000
 
@@ -52,7 +52,7 @@ cost_optimization:
   
   # 模型定價 (每1K tokens的價格，USD)
   model_pricing:
-    "gpt-3.5-turbo":
+    "gpt-5-mini":
       input: 0.0015
       output: 0.002
     "gpt-4":

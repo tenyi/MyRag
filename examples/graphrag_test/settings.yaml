@@ -1,0 +1,38 @@
+# GraphRAG 測試配置檔案
+
+models:
+  default_chat_model:
+    type: openai_chat
+    api_key: ${GRAPHRAG_API_KEY}
+    model: "gpt-5-mini"
+    model_supports_json: true
+    max_tokens: 4000
+    temperature: 0.1
+
+  default_embedding_model:
+    type: openai_embedding
+    api_key: ${GRAPHRAG_API_KEY}
+    model: text-embedding-3-small
+
+input:
+  type: file
+  file_type: text
+  base_dir: input
+  file_encoding: utf-8
+
+chunks:
+  size: 1000
+  overlap: 200
+  group_by_columns: [id]
+
+storage:
+  type: file
+  base_dir: output
+
+cache:
+  type: file
+  base_dir: cache
+
+reporting:
+  type: file
+  base_dir: reporting

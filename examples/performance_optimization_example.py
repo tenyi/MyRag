@@ -49,11 +49,11 @@ async def simulate_query_task(query: str) -> Dict[str, Any]:
 
 
 async def simulate_llm_inference(
-    prompt: str, model: str = "gpt-3.5-turbo"
+    prompt: str, model: str = "gpt-5-mini"
 ) -> Dict[str, Any]:
     """模擬 LLM 推理任務"""
     # 模擬不同模型的處理時間
-    processing_times = {"gpt-3.5-turbo": 0.5, "gpt-4.1": 1.0, "claude-3-sonnet": 0.8}
+    processing_times = {"gpt-5-mini": 0.5, "gpt-4.1": 1.0, "claude-3-sonnet": 0.8}
 
     await asyncio.sleep(processing_times.get(model, 0.5))
 
@@ -201,7 +201,7 @@ class PerformanceOptimizationDemo:
             "生成一個創意故事...",
         ]
 
-        models = ["gpt-3.5-turbo", "gpt-4.1", "claude-3.5-sonnet"]
+        models = ["gpt-5-mini", "gpt-4.1", "claude-3.5-sonnet"]
 
         for prompt in test_prompts:
             print(f"\n📝 處理提示: {prompt[:30]}...")
@@ -213,7 +213,7 @@ class PerformanceOptimizationDemo:
                 operation_type="text_generation",
             )
 
-            recommended_model = recommendation.get("recommended_model", "gpt-3.5-turbo")
+            recommended_model = recommendation.get("recommended_model", "gpt-5-mini")
             print(f"   🎯 建議模型: {recommended_model}")
 
             # 執行推理
@@ -255,7 +255,7 @@ class PerformanceOptimizationDemo:
         tasks = []
         for i in range(20):
             task = asyncio.create_task(
-                simulate_llm_inference(f"測試提示 {i}", "gpt-3.5-turbo")
+                simulate_llm_inference(f"測試提示 {i}", "gpt-5-mini")
             )
             tasks.append(task)
 

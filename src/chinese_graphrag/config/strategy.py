@@ -157,7 +157,7 @@ class CostOptimizedSelectionStrategy(ModelSelectionStrategy):
         self.llm_cost_coefficients = {
             "gpt-4": 1.0,
             "gpt-4-turbo": 0.5,
-            "gpt-3.5-turbo": 0.1,
+            "gpt-5-mini": 0.1,
             "claude-3": 0.8,
             "local_model": 0.01,
         }
@@ -289,7 +289,7 @@ class AdaptiveSelectionStrategy(ModelSelectionStrategy):
         self.task_model_preferences = {
             TaskType.ENTITY_EXTRACTION: ["gpt-4", "claude-3"],
             TaskType.RELATIONSHIP_EXTRACTION: ["gpt-4", "gpt-4-turbo"],
-            TaskType.COMMUNITY_DETECTION: ["gpt-4-turbo", "gpt-3.5-turbo"],
+            TaskType.COMMUNITY_DETECTION: ["gpt-4-turbo", "gpt-5-mini"],
             TaskType.COMMUNITY_REPORT: ["gpt-4", "claude-3"],
             TaskType.SUMMARIZATION: ["gpt-4", "claude-3"],
             TaskType.QUESTION_ANSWERING: ["gpt-4", "gpt-4-turbo"],

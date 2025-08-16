@@ -154,8 +154,8 @@ class OpenAIAdapter(LLMAdapter):
 
             response = await self.llm.async_generate(
                 optimized_prompt,
-                max_tokens=max_tokens,
-                temperature=temperature,
+                # max_tokens=max_tokens,
+                # temperature=temperature,
                 **kwargs,
             )
 
@@ -218,8 +218,8 @@ class OllamaAdapter(LLMAdapter):
 
             response = await self.llm.async_generate(
                 optimized_prompt,
-                max_tokens=max_tokens,
-                temperature=temperature,
+                # max_tokens=max_tokens,
+                # temperature=temperature,
                 **kwargs,
             )
 

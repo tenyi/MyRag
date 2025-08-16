@@ -171,7 +171,7 @@ def test_config() -> Dict[str, Any]:
             "path": "./test_data/vector_db",
             "collection_name": "test_collection",
         },
-        "llm": {"provider": "openai", "model": "gpt-3.5-turbo", "temperature": 0.7},
+        "llm": {"provider": "openai", "model": "gpt-5-mini", "temperature": 0.7},
         "indexing": {
             "chunk_size": 512,
             "chunk_overlap": 50,

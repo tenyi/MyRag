@@ -169,6 +169,7 @@ class CommunityBasedStrategy(GlobalSearchStrategy):
         context: GlobalSearchContext,
         llm_manager: LLMManager,
         vector_store: VectorStoreManager,
+        simple: bool = False,  # 新增 simple 參數
     ) -> GlobalSearchResult:
         """基於社群執行全域搜尋"""
         import time
@@ -194,9 +195,9 @@ class CommunityBasedStrategy(GlobalSearchStrategy):
             context.query, context.analysis, selected_communities
         )
 
-        # 3. 生成回答
+        # 3. 生成回答，傳遞 simple 參數
         answer = await self._generate_answer(
-            search_context, context.analysis, llm_manager
+            search_context, context.analysis, llm_manager, simple=simple
         )
 
         # 4. 提取推理路徑和來源
@@ -263,17 +264,19 @@ class CommunityBasedStrategy(GlobalSearchStrategy):
         return "\n".join(context_parts)
 
     async def _generate_answer(
-        self, search_context: str, analysis: QueryAnalysis, llm_manager: LLMManager
+        self, search_context: str, analysis: QueryAnalysis, llm_manager: LLMManager, simple: bool = False
     ) -> str:
         """生成回答"""
 
-        # 構建 prompt
-        prompt = self._build_answer_prompt(search_context, analysis)
+        # 構建 prompt，傳遞 simple 參數
+        prompt = self._build_answer_prompt(search_context, analysis, simple=simple)
 
         try:
+            # 根據 simple 模式調整 token 數量
+            max_tokens = 300 if simple else 2000
             # 使用 LLM 生成回答
             answer = await llm_manager.generate(
-                prompt, TaskType.GLOBAL_SEARCH, max_tokens=2000, temperature=0.7
+                prompt, TaskType.GLOBAL_SEARCH, max_tokens=max_tokens, temperature=0.7
             )
 
             return answer.strip()
@@ -282,10 +285,33 @@ class CommunityBasedStrategy(GlobalSearchStrategy):
             logger.error(f"生成回答時發生錯誤: {e}")
             return f"抱歉，在處理您的查詢時遇到了問題：{str(e)}"
 
-    def _build_answer_prompt(self, search_context: str, analysis: QueryAnalysis) -> str:
+    def _build_answer_prompt(self, search_context: str, analysis: QueryAnalysis, simple: bool = False) -> str:
         """構建回答 prompt"""
 
-        prompt_template = """# 指令：基於知識圖譜的全域問答
+        if simple:
+            # 精簡模式的 prompt
+            prompt_template = """你是一個專業的中文知識問答助手。請基於提供的知識圖譜資訊，用1-2句話簡潔地回答問題。
+
+上下文資訊：
+{search_context}
+
+問題：{query}
+
+要求：
+- 直接回答問題，不需要詳細分析
+- 回答簡潔明確，最多1-2句話
+- 不需要結構化格式或分段
+- 基於提供的社群資訊回答，不要推測
+
+請回答："""
+            
+            return prompt_template.format(
+                search_context=search_context, 
+                query=analysis.entities[0] if analysis.entities else "未知問題"
+            )
+        else:
+            # 原始詳細模式的 prompt
+            prompt_template = """# 指令：基於知識圖譜的全域問答
 
 ## 角色
 您是一個專業的中文知識問答助手，擅長基於知識圖譜資訊進行綜合分析和推理。
@@ -322,11 +348,11 @@ class CommunityBasedStrategy(GlobalSearchStrategy):
 
 請開始回答："""
 
-        return prompt_template.format(
-            search_context=search_context,
-            query_type=analysis.query_type.value,
-            intent=analysis.intent.value,
-        )
+            return prompt_template.format(
+                search_context=search_context, 
+                query_type=analysis.query_type.value, 
+                intent=analysis.intent
+            )
 
     def _extract_reasoning_and_sources(
         self, search_context: str, communities: List[Community]
@@ -585,6 +611,8 @@ class GlobalSearchEngine:
         strategy: Optional[str] = None,
         max_communities: int = 5,
         search_level: int = 1,
+        simple: bool = False,  # 新增 simple 參數
+        **kwargs,  # 接受其他參數
     ) -> GlobalSearchResult:
         """
         執行全域搜尋
@@ -598,6 +626,7 @@ class GlobalSearchEngine:
             strategy: 搜尋策略名稱
             max_communities: 最大使用社群數量
             search_level: 搜尋深度層級
+            simple: 是否為精簡模式
 
         Returns:
             全域搜尋結果
@@ -622,11 +651,18 @@ class GlobalSearchEngine:
             max_communities=max_communities,
         )
 
-        # 執行搜尋
+        # 執行搜尋，傳遞 simple 參數
         try:
-            result = await search_strategy.search(
-                context, self.llm_manager, self.vector_store
-            )
+            # 如果策略支援 simple 參數，則傳遞給策略
+            if hasattr(search_strategy, 'search') and 'simple' in search_strategy.search.__code__.co_varnames:
+                result = await search_strategy.search(
+                    context, self.llm_manager, self.vector_store, simple=simple
+                )
+            else:
+                # 舊版策略不支援 simple 參數，使用傳統方式
+                result = await search_strategy.search(
+                    context, self.llm_manager, self.vector_store
+                )
 
             logger.info(f"全域搜尋成功完成: {result.llm_model_used}")
             return result

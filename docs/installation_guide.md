@@ -162,7 +162,7 @@ models:
   default_chat_model:
     api_key: ${GRAPHRAG_API_KEY}
     type: openai_chat
-    model: gpt-4.1-mini  # 或 gpt-4.1
+    model: gpt-5-mini  # 或 gpt-4.1
     model_supports_json: true
     max_tokens: 2000
     temperature: 0.0

@@ -283,9 +283,9 @@ embedding:
 # LLM 設定
 llm:
   provider: "openai"
-  model: "gpt-3.5-turbo"
-  temperature: 0.7
-  max_tokens: 2000
+  model: "gpt-5-mini"
+  #temperature: 0.7
+  #max_tokens: 2000
 
 # 中文處理設定
 chinese:

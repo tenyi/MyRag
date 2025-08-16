@@ -158,7 +158,7 @@ class TestPerformanceIntegration:
         """測試成本優化"""
         # 測試模型使用優化
         recommendation = await optimizer_manager.optimize_model_usage(
-            model_name="gpt-3.5-turbo", input_tokens=1000, operation_type="embedding"
+            model_name="gpt-5-mini", input_tokens=1000, operation_type="embedding"
         )
 
         # 驗證建議格式

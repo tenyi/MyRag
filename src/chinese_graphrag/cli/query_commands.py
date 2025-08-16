@@ -116,9 +116,9 @@ def _get_default_llm_config(config, logger):
     default_llm_config = LLMConfig(
         provider=LLMProvider.MOCK,
         model="test_model",
-        config={},
-        max_tokens=4000,
-        temperature=0.7,
+        config={}
+        # ,max_tokens=4000,
+        # temperature=0.7,
     )
     llm_configs.append(default_llm_config)
     return llm_configs
@@ -291,6 +291,7 @@ def query(
             output_format,
             ctx.obj["quiet"],
             use_llm_segmentation,
+            simple,
         )
 
     except Exception as e:
@@ -398,32 +399,32 @@ def _execute_single_query(
         console.print(f"\n[bold blue]🤔 問題: {question}[/bold blue]")
 
         with console.status("[bold green]正在思考..."):
-            # 根據參數選擇使用 LLM 分詞或普通分詞
+            # 根據參數選擇使用 LLM 分詞或普通分詞，並傳遞 simple 參數
             if use_llm_segmentation:
                 unified_result = asyncio.run(
                     query_engine.query_with_llm_segmentation(
-                        question, search_type=search_type
+                        question, search_type=search_type, simple=simple
                     )
                 )
             else:
                 unified_result = asyncio.run(
-                    query_engine.query(question, search_type=search_type)
+                    query_engine.query(question, search_type=search_type, simple=simple)
                 )
         result = unified_result.to_dict()
         # 添加 CLI 期望的字段映射
         result["response"] = unified_result.answer
         result["reasoning"] = unified_result.reasoning_path
     else:
-        # 根據參數選擇使用 LLM 分詞或普通分詞
+        # 根據參數選擇使用 LLM 分詞或普通分詞，並傳遞 simple 參數
         if use_llm_segmentation:
             unified_result = asyncio.run(
                 query_engine.query_with_llm_segmentation(
-                    question, search_type=search_type
+                    question, search_type=search_type, simple=simple
                 )
             )
         else:
             unified_result = asyncio.run(
-                query_engine.query(question, search_type=search_type)
+                query_engine.query(question, search_type=search_type, simple=simple)
             )
         result = unified_result.to_dict()
         # 添加 CLI 期望的字段映射
@@ -505,6 +506,7 @@ def _run_interactive_mode(
                 output_format,
                 quiet,
                 use_llm_segmentation,
+                False,  # 互動模式默認不使用精簡模式
             )
 
         except KeyboardInterrupt:
@@ -855,6 +857,52 @@ def _display_batch_summary(results: List[dict]):
         table.add_row(f"{search_type} 查詢", str(count))
 
     console.print(table)
+
+
+def _display_simple_result(
+    result: dict,
+    output_format: str,
+    elapsed_time: float,
+    quiet: bool,
+):
+    """顯示精簡查詢結果（僅輸出答案）。"""
+    response = result.get("response", "未找到回答")
+    
+    if output_format == "json":
+        # 精簡的 JSON 輸出，只包含答案和基本信息
+        simple_result = {
+            "answer": response,
+            "search_type": result.get("search_type", "unknown"),
+            "response_time": elapsed_time
+        }
+        import json
+        console.print(json.dumps(simple_result, indent=2, ensure_ascii=False))
+    elif output_format == "plain":
+        # 純文本模式，只輸出答案
+        console.print(response)
+    elif output_format == "markdown":
+        # Markdown 格式的精簡輸出
+        from rich.syntax import Syntax
+        markdown_output = f"# 答案\n\n{response}"
+        console.print(Syntax(markdown_output, "markdown"))
+    else:
+        # Rich 格式（預設），精簡輸出
+        if not quiet:
+            # 帶格式的答案輸出
+            from rich.panel import Panel
+            console.print(
+                Panel(
+                    response,
+                    title="[bold green]📝 答案",
+                    expand=False,
+                    border_style="green",
+                )
+            )
+            # 只顯示基本統計信息
+            console.print(f"[dim]搜尋類型: {result.get('search_type', 'unknown')} | 回應時間: {elapsed_time:.2f} 秒[/dim]")
+        else:
+            # 靜默模式只輸出答案
+            console.print(response)
 
 
 # 將查詢命令導出到 main.py 使用

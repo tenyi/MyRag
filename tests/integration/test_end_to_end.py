@@ -205,7 +205,7 @@ RNN適合處理序列資料：
 
         config.llm = Mock()
         config.llm.provider = "openai"
-        config.llm.model = "gpt-3.5-turbo"
+        config.llm.model = "gpt-5-mini"
 
         config.indexing = Mock()
         config.indexing.chunk_size = 500
@@ -744,7 +744,7 @@ vector_store:
 
 llm:
   provider: "openai"
-  model: "gpt-3.5-turbo"
+  model: "gpt-5-mini"
   temperature: 0.7
 
 indexing:

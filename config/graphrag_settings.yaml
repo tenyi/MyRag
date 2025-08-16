@@ -7,10 +7,10 @@ models:
   default_chat_model:
     type: openai_chat
     api_key: ${GRAPHRAG_API_KEY}
-    model: gpt-4.1
+    model: gpt-5-mini
     model_supports_json: true
-    max_tokens: 4000
-    temperature: 0.1
+    # max_tokens: 4000
+    # temperature: 0.1
     request_timeout: 180.0
     retry_strategy: "native"
     max_retries: 10
@@ -20,15 +20,15 @@ models:
   secondary_chat_model:
     type: openai_chat
     api_key: ${GRAPHRAG_API_KEY}
-    model: gpt-4.1-mini
+    model: gpt-5-mini
     model_supports_json: true
-    max_tokens: 2000
-    temperature: 0.2
+    # max_tokens: 2000
+    # temperature: 0.2
 
   # Ollama 本地聊天模型
   ollama_chat_model:
     type: ollama
-    model: gemma2
+    model: gemma3n:e4b
     api_base: http://localhost:11434
     request_timeout: 300.0
 
@@ -102,7 +102,7 @@ vector_store:
 # 文本單元生成
 embed_text:
   enabled: true
-  batch_size: 16
+  batch_size: 32
   batch_max_tokens: 8191
 
 # 圖形提取配置
@@ -138,14 +138,14 @@ local_search:
   text_unit_prop: 0.5
   community_prop: 0.1
   conversation_history_max_turns: 5
-  top_k_mapped_entities: 10
-  top_k_relationships: 10
-  max_tokens: 12000
+  top_k_mapped_entities: 5
+  top_k_relationships: 5
+  max_tokens: 4000
 
 # 全域搜尋配置
 global_search:
-  max_tokens: 12000
-  data_max_tokens: 12000
+  max_tokens: 6000
+  data_max_tokens: 6000
   map_max_tokens: 1000
   reduce_max_tokens: 2000
   concurrency: 32

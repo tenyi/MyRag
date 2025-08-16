@@ -147,8 +147,8 @@ class APIDocumentationGenerator:
                             "value": {
                                 "query": "什麼是人工智慧？",
                                 "query_type": "global_search",
-                                "max_tokens": 2000,
-                                "temperature": 0.7,
+                                # "max_tokens": 2000,
+                                # "temperature": 0.7,
                             },
                         }
                     }
@@ -289,15 +289,16 @@ class ChineseGraphRAGClient:
     def query(self, 
               query: str,
               query_type: str = "global_search",
-              max_tokens: int = 2000,
-              temperature: float = 0.7) -> Dict[str, Any]:
+            #   max_tokens: int = 2000,
+            #  temperature: float = 0.7
+            ) -> Dict[str, Any]:
         """執行查詢。
         
         Args:
             query: 查詢文字
             query_type: 查詢類型
-            max_tokens: 最大權杖數
-            temperature: 溫度參數
+            # max_tokens: 最大權杖數
+            # temperature: 溫度參數
             
         Returns:
             查詢結果
@@ -305,8 +306,8 @@ class ChineseGraphRAGClient:
         payload = {
             "query": query,
             "query_type": query_type,
-            "max_tokens": max_tokens,
-            "temperature": temperature
+            # "max_tokens": max_tokens,
+            # "temperature": temperature
         }
         
         response = requests.post(

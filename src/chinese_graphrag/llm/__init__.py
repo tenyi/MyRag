@@ -109,7 +109,7 @@ class OpenAILLM(LLM):
         super().__init__(config)
         self.api_key = config.get("api_key")
         self.base_url = config.get("base_url", "https://api.openai.com/v1")
-        self.model = config.get("model", "gpt-3.5-turbo")
+        self.model = config.get("model", "gpt-5-mini")
 
         if not self.api_key:
             raise ValueError("OpenAI API key 必須提供")
@@ -132,8 +132,8 @@ class OpenAILLM(LLM):
             request_params = {
                 "model": self.model,
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": max_tokens or self.config.get("max_tokens", 4000),
-                "temperature": temperature or self.config.get("temperature", 0.7),
+                # "max_tokens": max_tokens or self.config.get("max_tokens", 4000),
+                # "temperature": temperature or self.config.get("temperature", 0.7),
             }
             request_params.update(kwargs)
 
@@ -177,8 +177,8 @@ class OllamaLLM(LLM):
                 "prompt": prompt,
                 "stream": False,
                 "options": {
-                    "num_predict": max_tokens or self.config.get("max_tokens", 4000),
-                    "temperature": temperature or self.config.get("temperature", 0.7),
+                    # "num_predict": max_tokens or self.config.get("max_tokens", 4000),
+                    # "temperature": temperature or self.config.get("temperature", 0.7),
                 },
             }
 

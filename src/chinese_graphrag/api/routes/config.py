@@ -208,27 +208,27 @@ async def get_config_schema() -> DataResponse:
                     "model_name": {
                         "type": "string",
                         "description": "模型名稱",
-                        "default": "gpt-3.5-turbo",
+                        "default": "gpt-5-mini",
                     },
                     "api_key": {
                         "type": "string",
                         "description": "API 金鑰",
                         "sensitive": True,
                     },
-                    "temperature": {
-                        "type": "number",
-                        "description": "生成溫度",
-                        "default": 0.7,
-                        "minimum": 0.0,
-                        "maximum": 2.0,
-                    },
-                    "max_tokens": {
-                        "type": "integer",
-                        "description": "最大生成 token 數",
-                        "default": 1000,
-                        "minimum": 1,
-                        "maximum": 4096,
-                    },
+                    # "temperature": {
+                    #     "type": "number",
+                    #     "description": "生成溫度",
+                    #     "default": 1,
+                    #     "minimum": 0.0,
+                    #     "maximum": 2.0,
+                    # },
+                    # "max_tokens": {
+                    #     "type": "integer",
+                    #     "description": "最大生成 token 數",
+                    #     "default": 1000,
+                    #     "minimum": 1,
+                    #     "maximum": 4096,
+                    # },
                 },
             },
             "indexing": {
@@ -483,9 +483,9 @@ def _get_default_config() -> Dict[str, Any]:
         "vector_store": {"provider": "lancedb", "table_name": "documents"},
         "llm": {
             "provider": "openai",
-            "model_name": "gpt-3.5-turbo",
-            "temperature": 0.7,
-            "max_tokens": 1000,
+            "model_name": "gpt-5-mini",
+            # "temperature": 0.7,
+            # "max_tokens": 1000,
         },
         "indexing": {
             "batch_size": 100,

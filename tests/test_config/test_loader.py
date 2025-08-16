@@ -24,7 +24,7 @@ class TestConfigLoader:
             "models": {
                 "default_chat_model": {
                     "type": "openai_chat",
-                    "model": "gpt-4",
+                    "model": "gpt-5-mini",
                     "api_key": "test-key",
                 },
                 "ollama_embedding_model": {
@@ -108,7 +108,7 @@ class TestConfigLoader:
             "models": {
                 "test_llm_model": {
                     "type": "openai_chat",
-                    "model": "${NONEXISTENT_VAR:gpt-3.5-turbo}",
+                    "model": "${NONEXISTENT_VAR:gpt-5-mini}",
                     "api_key": "test-key",
                 },
                 "test_embedding_model": {"type": "bge_m3", "model": "BAAI/bge-m3"},
@@ -129,7 +129,7 @@ class TestConfigLoader:
             config = loader.load_config()
 
             llm_config = config.get_llm_config("test_llm_model")
-            assert llm_config.model == "gpt-3.5-turbo"  # 使用預設值
+            assert llm_config.model == "gpt-5-mini"  # 使用預設值
 
         finally:
             config_path.unlink()

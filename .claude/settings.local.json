@@ -39,7 +39,8 @@
       "Bash(ls:*)",
       "Bash(rg:*)",
       "Bash(curl:*)",
-      "Bash(make test:*)"
+      "Bash(make test:*)",
+      "Bash(time uv run:*)"
     ]
   },
   "enabledMcpjsonServers": [
@@ -48,5 +49,6 @@
     "sequential-thinking",
     "serena",
     "time"
-  ]
+  ],
+  "outputStyle": "程式重構專家"
 }

@@ -443,6 +443,7 @@ class EntityFocusedStrategy(LocalSearchStrategy):
         context: LocalSearchContext,
         llm_manager: LLMManager,
         vector_store: VectorStoreManager,
+        simple: bool = False,  # 新增 simple 參數
     ) -> LocalSearchResult:
         """執行以實體為中心的本地搜尋"""
         import time
@@ -478,28 +479,9 @@ class EntityFocusedStrategy(LocalSearchStrategy):
             context.query, context.analysis, entity_knowledge, evidence_texts
         )
 
-        # 調試：打印搜尋上下文，確保張小明資訊被包含
-        # print("=== LLM 搜尋上下文調試 ===")
-        # if '張小明' in search_context:
-        #     print("✅ 搜尋上下文包含「張小明」資訊")
-        #     # 提取張小明相關的行
-        #     lines = search_context.split('\n')
-        #     for i, line in enumerate(lines):
-        #         if '張小明' in line:
-        #             print(f"第 {i+1} 行: {line}")
-        # else:
-        #     print("❌ 搜尋上下文未包含「張小明」資訊")
-        #     print("目標實體:")
-        #     for name in entity_knowledge.get("target_entities", {}):
-        #         print(f"  - {name}")
-        #     print("相關實體:")
-        #     for name in list(entity_knowledge.get("related_entities", {}))[:5]:
-        #         print(f"  - {name}")
-        # print("=" * 30)
-
-        # 5. 生成回答
+        # 5. 生成回答，傳遞 simple 參數
         answer = await self._generate_entity_focused_answer(
-            search_context, context.analysis, llm_manager
+            search_context, context.analysis, llm_manager, simple=simple
         )
 
         # 6. 提取推理路徑和來源
@@ -641,15 +623,17 @@ class EntityFocusedStrategy(LocalSearchStrategy):
         return "\n".join(context_parts)
 
     async def _generate_entity_focused_answer(
-        self, search_context: str, analysis: QueryAnalysis, llm_manager: LLMManager
+        self, search_context: str, analysis: QueryAnalysis, llm_manager: LLMManager, simple: bool = False
     ) -> str:
         """生成以實體為中心的回答"""
 
-        prompt = self._build_entity_answer_prompt(search_context, analysis)
+        prompt = self._build_entity_answer_prompt(search_context, analysis, simple=simple)
 
         try:
+            # 根據 simple 模式調整 token 數量
+            max_tokens = 300 if simple else 1500
             answer = await llm_manager.generate(
-                prompt, TaskType.LOCAL_SEARCH, max_tokens=1500, temperature=0.6
+                prompt, TaskType.LOCAL_SEARCH, max_tokens=max_tokens, temperature=0.6
             )
 
             return answer.strip()
@@ -659,11 +643,34 @@ class EntityFocusedStrategy(LocalSearchStrategy):
             return f"抱歉，在分析相關實體資訊時遇到了問題：{str(e)}"
 
     def _build_entity_answer_prompt(
-        self, search_context: str, analysis: QueryAnalysis
+        self, search_context: str, analysis: QueryAnalysis, simple: bool = False
     ) -> str:
         """構建實體回答 prompt"""
 
-        prompt_template = """# 指令：基於實體的本地知識問答
+        if simple:
+            # 精簡模式的 prompt
+            prompt_template = """你是一個專業的中文知識問答助手。請基於提供的資訊，用1-2句話簡潔地回答問題。
+
+上下文資訊：
+{search_context}
+
+問題：{query}
+
+要求：
+- 直接回答問題，不需要詳細分析
+- 回答簡潔明確，最多1-2句話
+- 不需要結構化格式或分段
+- 基於提供的資訊回答，不要推測
+
+請回答："""
+            
+            return prompt_template.format(
+                search_context=search_context, 
+                query=analysis.entities[0] if analysis.entities else "未知問題"
+            )
+        else:
+            # 原始詳細模式的 prompt
+            prompt_template = """# 指令：基於實體的本地知識問答
 
 ## 角色
 您是一個專業的中文知識分析師，擅長基於具體實體資訊進行深入分析和詳細回答。
@@ -684,25 +691,25 @@ class EntityFocusedStrategy(LocalSearchStrategy):
 ## 回答指導
 根據查詢類型 "{query_type}"，請：
 
-- 如果是實體查詢：詳細介紹實體的特點、屬性和相關資訊
+- 如果是實體查詢：詳細介紹實體的特徵、屬性和相關資訊
 - 如果是關係查詢：分析實體間的具體關係和影響
 - 如果是解釋查詢：提供深入的解釋和分析
-- 如果是比較查詢：比較不同實體的特點和差異
+- 如果是比較查詢：比較不同實體的特徵和差異
 
 ## 回答格式
 請按以下格式組織回答：
 
 1. **核心回答**：直接回答問題的關鍵點
-2. **實體分析**：詳細分析相關實體的特點
+2. **實體分析**：詳細分析相關實體的特徵
 3. **關係分析**：說明實體間的關係和互動
 4. **證據支持**：引用相關文本證據
 5. **總結**：總結要點
 
 請開始回答："""
 
-        return prompt_template.format(
-            search_context=search_context, query_type=analysis.query_type.value
-        )
+            return prompt_template.format(
+                search_context=search_context, query_type=analysis.query_type.value
+            )
 
     def _extract_entity_reasoning_and_sources(
         self,
@@ -1012,6 +1019,8 @@ class LocalSearchEngine:
         search_radius: int = 2,
         max_entities: int = 10,
         max_text_units: int = 20,
+        simple: bool = False,  # 新增 simple 參數
+        **kwargs,  # 接受其他參數
     ) -> LocalSearchResult:
         """
         執行本地搜尋
@@ -1026,6 +1035,7 @@ class LocalSearchEngine:
             search_radius: 搜尋半徑
             max_entities: 最大實體數量
             max_text_units: 最大文本單元數量
+            simple: 是否為精簡模式
 
         Returns:
             本地搜尋結果
@@ -1070,11 +1080,18 @@ class LocalSearchEngine:
             max_text_units=max_text_units,
         )
 
-        # 5. 執行搜尋
+        # 5. 執行搜尋，傳遞 simple 參數
         try:
-            result = await search_strategy.search(
-                context, self.llm_manager, self.vector_store
-            )
+            # 如果策略支援 simple 參數，則傳遞給策略
+            if hasattr(search_strategy, 'search') and 'simple' in search_strategy.search.__code__.co_varnames:
+                result = await search_strategy.search(
+                    context, self.llm_manager, self.vector_store, simple=simple
+                )
+            else:
+                # 舊版策略不支援 simple 參數，使用傳統方式
+                result = await search_strategy.search(
+                    context, self.llm_manager, self.vector_store
+                )
 
             logger.info(f"本地搜尋成功完成: {result.llm_model_used}")
             return result

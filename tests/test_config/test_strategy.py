@@ -137,7 +137,7 @@ class TestCostOptimizedSelectionStrategy:
         return GraphRAGConfig(
             models={
                 "default_chat_model": LLMConfig(
-                    type=LLMType.OPENAI_CHAT, model="gpt-4"
+                    type=LLMType.OPENAI_CHAT, model="gpt-5-mini"
                 ),
                 "ollama_embedding_model": EmbeddingConfig(
                     type=EmbeddingType.BGE_M3, model="BAAI/bge-m3"
@@ -191,7 +191,7 @@ class TestAdaptiveSelectionStrategy:
         return GraphRAGConfig(
             models={
                 "default_chat_model": LLMConfig(
-                    type=LLMType.OPENAI_CHAT, model="gpt-3.5-turbo"
+                    type=LLMType.OPENAI_CHAT, model="gpt-5-mini"
                 ),
                 "gpt4_model": LLMConfig(type=LLMType.OPENAI_CHAT, model="gpt-4"),
                 "ollama_embedding_model": EmbeddingConfig(

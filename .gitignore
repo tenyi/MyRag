@@ -9,8 +9,13 @@ CLAUDE.md
 .kilocode/
 .cursor/
 .serena/
+.bmad-core/
+.clinerules/
+.gemini/
+.claude/
 .windsurf/
 .codeium/
+.trae/
 .mcp.json
 coverage.xml
 .agent.md

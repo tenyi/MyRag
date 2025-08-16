@@ -13,7 +13,6 @@ from typing import Optional
 
 import click
 from rich.console import Console
-from rich.progress import Progress
 
 from ..config import create_default_config, load_config, validate_config
 from ..monitoring import get_logger, setup_logging

@@ -572,9 +572,9 @@ AI技術的發展將持續改變我們的生活和工作方式，創造更多可
             },
             "llm": {
                 "provider": "openai",
-                "model": "gpt-3.5-turbo",
-                "temperature": 0.7,
-                "max_tokens": 1000,
+                "model": "gpt-5-mini",
+                # "temperature": 0.7,
+                # "max_tokens": 1000,
             },
             "indexing": {"chunk_size": 500, "chunk_overlap": 50, "min_chunk_size": 100},
             "query": {

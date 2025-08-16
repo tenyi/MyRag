@@ -57,7 +57,7 @@ class QueryEngineConfig:
     # 效能配置
     query_timeout: float = 60.0
     enable_caching: bool = True
-    cache_ttl: int = 3600  # 快取存活時間（秒）  # 快取存活時間（秒）
+    cache_ttl: int = 300  # 快取存活時間（秒）- 從 3600 調整為 300 以提升效能
 
 
 @dataclass
@@ -1074,6 +1074,16 @@ class QueryEngine:
         entities = list(self.indexer.entities.values())
         relationships = list(self.indexer.relationships.values())
 
+        # Simple mode 動態參數調整
+        simple = kwargs.get("simple", False)
+        if simple:
+            # Simple mode 使用更少的社群以提升效能
+            max_communities = kwargs.get("max_communities", 2)  # 從5降到2
+        else:
+            max_communities = kwargs.get(
+                "max_communities", self.config.max_global_communities
+            )
+
         # 執行全域搜尋
         global_result = await self.global_search_engine.search(
             query=query,
@@ -1081,9 +1091,7 @@ class QueryEngine:
             communities=communities,
             entities=entities,
             relationships=relationships,
-            max_communities=kwargs.get(
-                "max_communities", self.config.max_global_communities
-            ),
+            max_communities=max_communities,
             **kwargs,
         )
 
@@ -1101,6 +1109,16 @@ class QueryEngine:
         relationships = list(self.indexer.relationships.values())
         text_units = list(self.indexer.text_units.values())
 
+        # Simple mode 動態參數調整
+        simple = kwargs.get("simple", False)
+        if simple:
+            # Simple mode 使用更少的實體和文本單元以提升效能
+            max_entities = kwargs.get("max_entities", 3)  # 從10降到3
+            max_text_units = kwargs.get("max_text_units", 10)  # 從20降到10
+        else:
+            max_entities = kwargs.get("max_entities", self.config.max_local_entities)
+            max_text_units = kwargs.get("max_text_units", self.config.max_text_units)
+
         # 執行本地搜尋
         local_result = await self.local_search_engine.search(
             query=query,
@@ -1108,8 +1126,8 @@ class QueryEngine:
             entities=entities,
             relationships=relationships,
             text_units=text_units,
-            max_entities=kwargs.get("max_entities", self.config.max_local_entities),
-            max_text_units=kwargs.get("max_text_units", self.config.max_text_units),
+            max_entities=max_entities,
+            max_text_units=max_text_units,
             **kwargs,
         )
 
