@@ -137,7 +137,7 @@ class GraphRAGIndexer:
 
     async def index_documents(
         self, input_path: Path, output_path: Optional[Path] = None
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         執行完整的文件索引流程
 
@@ -168,7 +168,7 @@ class GraphRAGIndexer:
     async def process_documents(
         self,
         files_to_process: List[Path],
-        progress_callback=None,
+        progress_callback: Optional[Any] = None,
         resume: bool = False,
         incremental: bool = False,
     ) -> Dict[str, Any]:
@@ -254,7 +254,7 @@ class GraphRAGIndexer:
 
     async def _run_graphrag_pipeline(
         self, input_path: Path, output_path: Optional[Path] = None
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         使用 GraphRAG 官方 pipeline 執行索引
 
@@ -293,7 +293,7 @@ class GraphRAGIndexer:
 
     async def _execute_graphrag_workflows(
         self, input_path: Path, output_path: Optional[Path] = None
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         執行 GraphRAG workflows
 
@@ -343,7 +343,7 @@ class GraphRAGIndexer:
 
     async def _process_graphrag_results(
         self, pipeline_result: Any, output_path: Optional[Path] = None
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         處理 GraphRAG pipeline 的結果
 
@@ -437,7 +437,7 @@ class GraphRAGIndexer:
 
     async def _run_custom_pipeline(
         self, input_path: Path, output_path: Optional[Path] = None
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         使用自定義流程執行索引（原有邏輯）
 

@@ -365,7 +365,7 @@ class VectorStoreManager:
         collection_name: str,
         query_text: str,
         k: int = 10,
-        embedding_function: Optional[callable] = None,
+        embedding_function: Optional[Any] = None,
         filter_conditions: Optional[Dict[str, Any]] = None,
         include_embeddings: bool = False,
         store_type: Optional[VectorStoreType] = None,
@@ -589,7 +589,7 @@ class VectorStoreManager:
 
         return self.active_store
 
-    async def store_text_unit(self, text_unit) -> bool:
+    async def store_text_unit(self, text_unit: Any) -> bool:
         """
         儲存文本單元到向量資料庫
 
@@ -649,7 +649,7 @@ class VectorStoreManager:
             logger.error(f"儲存文本單元失敗: {e}")
             return False
 
-    async def store_entity(self, entity) -> bool:
+    async def store_entity(self, entity: Any) -> bool:
         """
         儲存實體到向量資料庫
 
@@ -711,7 +711,7 @@ class VectorStoreManager:
             logger.error(f"儲存實體失敗: {e}")
             return False
 
-    async def store_community(self, community) -> bool:
+    async def store_community(self, community: Any) -> bool:
         """
         儲存社群到向量資料庫
 

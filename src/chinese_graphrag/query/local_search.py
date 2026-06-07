@@ -623,11 +623,17 @@ class EntityFocusedStrategy(LocalSearchStrategy):
         return "\n".join(context_parts)
 
     async def _generate_entity_focused_answer(
-        self, search_context: str, analysis: QueryAnalysis, llm_manager: LLMManager, simple: bool = False
+        self,
+        search_context: str,
+        analysis: QueryAnalysis,
+        llm_manager: LLMManager,
+        simple: bool = False,
     ) -> str:
         """生成以實體為中心的回答"""
 
-        prompt = self._build_entity_answer_prompt(search_context, analysis, simple=simple)
+        prompt = self._build_entity_answer_prompt(
+            search_context, analysis, simple=simple
+        )
 
         try:
             # 根據 simple 模式調整 token 數量
@@ -663,10 +669,10 @@ class EntityFocusedStrategy(LocalSearchStrategy):
 - 基於提供的資訊回答，不要推測
 
 請回答："""
-            
+
             return prompt_template.format(
-                search_context=search_context, 
-                query=analysis.entities[0] if analysis.entities else "未知問題"
+                search_context=search_context,
+                query=analysis.entities[0] if analysis.entities else "未知問題",
             )
         else:
             # 原始詳細模式的 prompt
@@ -1083,7 +1089,10 @@ class LocalSearchEngine:
         # 5. 執行搜尋，傳遞 simple 參數
         try:
             # 如果策略支援 simple 參數，則傳遞給策略
-            if hasattr(search_strategy, 'search') and 'simple' in search_strategy.search.__code__.co_varnames:
+            if (
+                hasattr(search_strategy, "search")
+                and "simple" in search_strategy.search.__code__.co_varnames
+            ):
                 result = await search_strategy.search(
                     context, self.llm_manager, self.vector_store, simple=simple
                 )

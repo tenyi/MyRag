@@ -594,7 +594,7 @@ class QueryEngine:
         except Exception as e:
             logger.warning(f"載入索引資料失敗: {e}，將使用空的資料集")
 
-    def _load_from_json_files(self, base_dir: Path):
+    def _load_from_json_files(self, base_dir: Path) -> None:
         """從 JSON 檔案載入資料"""
         import json
 
@@ -686,7 +686,7 @@ class QueryEngine:
         except Exception as e:
             logger.error(f"從 JSON 檔案載入資料失敗: {e}")
 
-    async def _load_from_vector_db_async(self):
+    async def _load_from_vector_db_async(self) -> None:
         """從向量資料庫異步載入資料"""
         try:
             # 確保向量存儲已初始化
@@ -709,7 +709,7 @@ class QueryEngine:
         except Exception as e:
             logger.error(f"從向量資料庫載入資料失敗: {e}")
 
-    async def _load_entities_from_vector_db(self):
+    async def _load_entities_from_vector_db(self) -> None:
         """從向量資料庫載入實體"""
         try:
             import numpy as np
@@ -763,7 +763,7 @@ class QueryEngine:
         except Exception as e:
             logger.error(f"從向量資料庫載入實體失敗: {e}")
 
-    async def _load_text_units_from_vector_db(self):
+    async def _load_text_units_from_vector_db(self) -> None:
         """從向量資料庫載入文本單元"""
         try:
             import numpy as np
@@ -814,7 +814,7 @@ class QueryEngine:
         except Exception as e:
             logger.error(f"從向量資料庫載入文本單元失敗: {e}")
 
-    async def _load_communities_from_vector_db(self):
+    async def _load_communities_from_vector_db(self) -> None:
         """從向量資料庫載入社群"""
         try:
             import numpy as np
@@ -867,7 +867,7 @@ class QueryEngine:
         except Exception as e:
             logger.error(f"從向量資料庫載入社群失敗: {e}")
 
-    def _generate_text_units_from_entities(self):
+    def _generate_text_units_from_entities(self) -> None:
         """基於實體資訊生成文本單元（當沒有文本單元資料時）"""
         from chinese_graphrag.models import TextUnit
 

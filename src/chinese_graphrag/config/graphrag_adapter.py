@@ -6,12 +6,15 @@ GraphRAG 配置適配器
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import yaml
 from loguru import logger
 
 from chinese_graphrag.config.models import GraphRAGConfig
+
+if TYPE_CHECKING:
+    from .graphrag_validator import ValidationResult
 
 
 class GraphRAGConfigAdapter:

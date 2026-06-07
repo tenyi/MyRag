@@ -132,7 +132,7 @@ class EmbeddingManager:
 
         logger.info(f"初始化 Embedding 管理器，預設模型: {self.default_model}")
 
-    def _setup_services_from_config(self, config_or_model):
+    def _setup_services_from_config(self, config_or_model: Any) -> None:
         """根據配置設置服務"""
         try:
             # 如果是字符串，作為模型名稱處理
@@ -178,7 +178,7 @@ class EmbeddingManager:
             logger.error(f"設置 embedding 服務時發生錯誤: {e}")
             self._create_fallback_service()
 
-    def _register_service_from_config(self, service_name: str, config):
+    def _register_service_from_config(self, service_name: str, config: Any) -> None:
         """根據配置註冊服務"""
         try:
             service_type = config.type
@@ -206,7 +206,7 @@ class EmbeddingManager:
         except Exception as e:
             logger.error(f"註冊服務 {service_name} 失敗: {e}")
 
-    def _create_openai_service(self, config):
+    def _create_openai_service(self, config: Any) -> Any:
         """創建 OpenAI embedding 服務"""
         from .openai_service import create_openai_service
 
@@ -217,7 +217,7 @@ class EmbeddingManager:
             organization=config.organization,
         )
 
-    def _create_bge_m3_service(self, config):
+    def _create_bge_m3_service(self, config: Any) -> Any:
         """創建 BGE-M3 embedding 服務"""
         from .bge_m3 import create_bge_m3_service
 
@@ -230,7 +230,7 @@ class EmbeddingManager:
             ),
         )
 
-    def _create_ollama_service(self, config):
+    def _create_ollama_service(self, config: Any) -> Any:
         """創建 Ollama embedding 服務"""
         from .ollama_service import create_ollama_service
 
@@ -239,7 +239,7 @@ class EmbeddingManager:
             base_url=getattr(config, "api_base", "http://localhost:11434"),
         )
 
-    def _create_fallback_service(self, service_name: str = None):
+    def _create_fallback_service(self, service_name: Optional[str] = None) -> None:
         """創建降級服務"""
         try:
             # 優先嘗試創建 OpenAI 服務（如果有 API key）

@@ -59,7 +59,7 @@ logger = get_logger(__name__)
 )
 @click.option(
     "--format",
-    type=click.Choice(["auto", "txt", "pdf", "docx", "md"]),
+    type=click.Choice(["auto", "txt", "pdf", "docx", "md", "jpg", "png", "tiff"]),
     default="auto",
     help="強制指定輸入檔案格式",
 )
@@ -377,5 +377,284 @@ def show_index(ctx: click.Context, input_path: Path, format: str):
         sys.exit(1)
 
 
+@click.command()
+@click.option(
+    "--file",
+    "-f",
+    "file_path",
+    type=click.Path(exists=True, path_type=Path),
+    required=True,
+    help="要匯入的檔案路徑",
+)
+@click.option(
+    "--format",
+    type=click.Choice(["auto", "txt", "pdf", "docx", "md", "jpg", "png", "tiff"]),
+    default="auto",
+    help="強制指定檔案格式",
+)
+@click.option(
+    "--preview", is_flag=True, help="預覽模式（只顯示前 1000 個字符）"
+)
+@click.option(
+    "--output",
+    "-o",
+    "output_file",
+    type=click.Path(path_type=Path),
+    help="輸出處理後的文字到檔案",
+)
+@click.pass_context
+def import_file(
+    ctx: click.Context,
+    file_path: Path,
+    format: str,
+    preview: bool,
+    output_file: Optional[Path],
+):
+    """匯入並處理 Word、PDF 或圖像檔案。
+
+    使用範例:
+
+    \b
+    # 匯入 Word 檔案
+    chinese-graphrag import-file -f document.docx
+
+    \b
+    # 匯入 PDF 並預覽
+    chinese-graphrag import-file -f document.pdf --preview
+
+    \b
+    # 匯入圖像檔案 (OCR 識別)
+    chinese-graphrag import-file -f image.jpg --preview
+
+    \b
+    # 匯入並輸出到檔案
+    chinese-graphrag import-file -f document.docx -o output.txt
+    """
+    try:
+        from ..processors import create_default_processor_manager
+
+        # 建立處理器管理器
+        processor_manager = create_default_processor_manager()
+
+        # 檢查是否支援此檔案格式
+        if not processor_manager.can_process(str(file_path)):
+            file_ext = file_path.suffix.lower()
+            supported_exts = processor_manager.get_supported_extensions()
+            console.print(f"[red]不支援的檔案格式: {file_ext}[/red]")
+            console.print(f"[yellow]支援的格式: {', '.join(supported_exts)}[/yellow]")
+            sys.exit(1)
+
+        # 顯示處理資訊
+        if not ctx.obj["quiet"]:
+            console.print(f"[cyan]正在處理檔案: {file_path}[/cyan]")
+            console.print(f"[cyan]檔案大小: {file_path.stat().st_size / 1024:.2f} KB[/cyan]")
+
+        # 處理檔案
+        document = processor_manager.process_file(str(file_path))
+
+        # 顯示處理結果
+        content = document.content
+        word_count = len(content)
+        char_count = len(content.replace(" ", ""))
+
+        if not ctx.obj["quiet"]:
+            table = Table(title="檔案處理結果")
+            table.add_column("項目", style="cyan")
+            table.add_column("值", style="green")
+
+            table.add_row("檔案名稱", document.title)
+            table.add_row("檔案類型", document.file_type)
+            table.add_row("檔案大小", f"{document.file_size / 1024:.2f} KB")
+            table.add_row("編碼", document.encoding)
+            table.add_row("文字長度", f"{word_count} 字符")
+            table.add_row("中文字數", f"{char_count} 字")
+
+            console.print(table)
+
+        # 預覽模式
+        if preview:
+            preview_text = content[:1000] + "..." if len(content) > 1000 else content
+            console.print("\n[bold]內容預覽:[/bold]")
+            console.print(f"[dim]{preview_text}[/dim]")
+        elif not output_file and not ctx.obj["quiet"]:
+            # 如果沒有輸出檔案且不是靜默模式，顯示完整內容
+            console.print("\n[bold]提取的內容:[/bold]")
+            console.print(content)
+
+        # 輸出到檔案
+        if output_file:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            output_file.write_text(content, encoding="utf-8")
+            if not ctx.obj["quiet"]:
+                console.print(f"\n[green]✓ 內容已保存到: {output_file}[/green]")
+
+        logger.info(f"成功處理檔案: {file_path}")
+
+    except Exception as e:
+        logger.error(f"處理檔案失敗: {e}")
+        if not ctx.obj["quiet"]:
+            console.print(f"[red]處理檔案失敗: {e}[/red]")
+        sys.exit(1)
+
+
+@click.command()
+@click.option(
+    "--directory",
+    "-d",
+    "dir_path",
+    type=click.Path(exists=True, path_type=Path),
+    required=True,
+    help="要掃描的目錄路徑",
+)
+@click.option(
+    "--recursive", "-r", is_flag=True, help="遞迴掃描子目錄"
+)
+@click.option(
+    "--format",
+    type=click.Choice(["table", "json", "detailed"]),
+    default="table",
+    help="輸出格式",
+)
+@click.pass_context
+def scan_files(
+    ctx: click.Context,
+    dir_path: Path,
+    recursive: bool,
+    format: str,
+):
+    """掃描目錄中的 Word、PDF 和圖像檔案。
+
+    使用範例:
+
+    \b
+    # 掃描目錄
+    chinese-graphrag scan-files -d ./documents
+
+    \b
+    # 遞迴掃描
+    chinese-graphrag scan-files -d ./documents --recursive
+
+    \b
+    # JSON 格式輸出
+    chinese-graphrag scan-files -d ./documents --format json
+    """
+    try:
+        from ..processors import create_default_processor_manager
+
+        # 建立處理器管理器
+        processor_manager = create_default_processor_manager()
+        supported_extensions = processor_manager.get_supported_extensions()
+
+        # 掃描檔案
+        if not ctx.obj["quiet"]:
+            console.print(f"[cyan]正在掃描目錄: {dir_path}[/cyan]")
+
+        files_info = []
+        
+        # 獲取檔案列表
+        if recursive:
+            files = dir_path.rglob("*")
+        else:
+            files = dir_path.glob("*")
+
+        # 過濾支援的檔案
+        for file_path in files:
+            if file_path.is_file():
+                file_ext = file_path.suffix.lower()
+                if file_ext in supported_extensions:
+                    try:
+                        stat = file_path.stat()
+                        files_info.append({
+                            "name": file_path.name,
+                            "path": str(file_path),
+                            "size": stat.st_size,
+                            "type": file_ext,
+                            "modified": stat.st_mtime,
+                            "can_process": processor_manager.can_process(str(file_path))
+                        })
+                    except Exception as e:
+                        logger.warning(f"無法獲取檔案資訊: {file_path}, 錯誤: {e}")
+
+        # 排序
+        files_info.sort(key=lambda x: x["modified"], reverse=True)
+
+        # 顯示結果
+        if format == "table":
+            if files_info:
+                table = Table(title=f"找到 {len(files_info)} 個可處理的檔案")
+                table.add_column("檔案名", style="cyan")
+                table.add_column("類型", style="yellow")
+                table.add_column("大小", style="green")
+                table.add_column("可處理", style="blue")
+
+                for file_info in files_info[:20]:  # 只顯示前20個
+                    size_kb = file_info["size"] / 1024
+                    size_str = f"{size_kb:.2f} KB" if size_kb < 1024 else f"{size_kb / 1024:.2f} MB"
+                    can_process = "✓" if file_info["can_process"] else "×"
+                    
+                    table.add_row(
+                        file_info["name"],
+                        file_info["type"],
+                        size_str,
+                        can_process
+                    )
+
+                console.print(table)
+                
+                if len(files_info) > 20:
+                    console.print(f"[dim]... 還有 {len(files_info) - 20} 個檔案[/dim]")
+            else:
+                console.print("[yellow]未找到可處理的檔案[/yellow]")
+
+        elif format == "json":
+            import json
+            console.print(json.dumps(files_info, indent=2, ensure_ascii=False))
+
+        elif format == "detailed":
+            if files_info:
+                for i, file_info in enumerate(files_info[:10], 1):
+                    console.print(f"\n[bold]{i}. {file_info['name']}[/bold]")
+                    console.print(f"   路徑: {file_info['path']}")
+                    console.print(f"   類型: {file_info['type']}")
+                    console.print(f"   大小: {file_info['size'] / 1024:.2f} KB")
+                    console.print(f"   可處理: {'是' if file_info['can_process'] else '否'}")
+                    
+                    import time
+                    modified_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(file_info['modified']))
+                    console.print(f"   修改時間: {modified_time}")
+
+                if len(files_info) > 10:
+                    console.print(f"\n[dim]... 還有 {len(files_info) - 10} 個檔案[/dim]")
+            else:
+                console.print("[yellow]未找到可處理的檔案[/yellow]")
+
+        # 統計資訊
+        if not ctx.obj["quiet"] and files_info:
+            total_size = sum(f["size"] for f in files_info)
+            console.print(f"\n[bold]統計資訊:[/bold]")
+            console.print(f"  總檔案數: {len(files_info)}")
+            console.print(f"  總大小: {total_size / 1024 / 1024:.2f} MB")
+            
+            # 按類型統計
+            type_stats = {}
+            for file_info in files_info:
+                file_type = file_info["type"]
+                if file_type not in type_stats:
+                    type_stats[file_type] = 0
+                type_stats[file_type] += 1
+            
+            console.print("  檔案類型分布:")
+            for file_type, count in type_stats.items():
+                console.print(f"    {file_type}: {count} 個")
+
+        logger.info(f"掃描完成，找到 {len(files_info)} 個可處理檔案")
+
+    except Exception as e:
+        logger.error(f"掃描檔案失敗: {e}")
+        if not ctx.obj["quiet"]:
+            console.print(f"[red]掃描檔案失敗: {e}[/red]")
+        sys.exit(1)
+
+
 # 將索引命令導出到 main.py 使用
-__all__ = ["index", "show_index"]
+__all__ = ["index", "show_index", "import_file", "scan_files"]

@@ -87,7 +87,7 @@ class PDFProcessor(BaseDocumentProcessor):
             raise ContentExtractionError(file_path, f"PDF 處理失敗: {str(e)}")
 
     def _clean_text(self, text: str) -> str:
-        """清理從 PDF 提取的文字
+        """清理從 PDF 提取的文字（加強中文處理）
 
         Args:
             text: 原始文字
@@ -98,19 +98,110 @@ class PDFProcessor(BaseDocumentProcessor):
         # 移除多餘的空白字符
         text = re.sub(r"\s+", " ", text)
 
-        # 移除多餘的換行符
+        # 修復 PDF 提取時常見的中文字符問題
+        text = self._fix_chinese_character_issues(text)
+
+        # 移除多餘的換行符和空格
         text = re.sub(r"\n\s*\n", "\n\n", text)
+        text = re.sub(r" +", " ", text)  # 多個空格合併為一個
 
-        # 移除頁首頁尾常見的模式（可根據需要調整）
-        text = re.sub(r"第\s*\d+\s*頁", "", text)
-        text = re.sub(r"Page\s*\d+", "", text, flags=re.IGNORECASE)
+        # 移除頁首頁尾模式
+        text = self._remove_header_footer_patterns(text)
 
-        # 移除多餘的標點符號
+        # 修復中文段落斷行
+        text = self._fix_chinese_line_breaks(text)
+
+        # 移除無關的特殊字符（保留中文標點符號）
         text = re.sub(
-            r"[^\w\s\u4e00-\u9fff，。！？；：「」『』（）【】《》〈〉]", "", text
+            r"[^\w\s\u4e00-\u9fff\u3400-\u4dbf\u20000-\u2a6df\u2a700-\u2b73f\u2b740-\u2b81f\u2b820-\u2ceaf\uff0c\u3002\uff01\uff1f\uff1b\uff1a\u300c\u300d\u300e\u300f\uff08\uff09\u3010\u3011\u300a\u300b\u3008\u3009\u2014\u2013\u2026\uff0d\u0028\u0029\u002c\u002e\u0021\u003f\u003b\u003a\u0022\u0027]",
+            "", text
         )
 
         return text.strip()
+
+    def _fix_chinese_character_issues(self, text: str) -> str:
+        """修復 PDF 提取時的中文字符問題
+        
+        Args:
+            text: 原始文字
+        
+        Returns:
+            str: 修復後的文字
+        """
+        # 移除異常的空格插入（PDF 常見問題）
+        text = re.sub(r'([\u4e00-\u9fff])\s+([\u4e00-\u9fff])', r'\1\2', text)
+        
+        # 修復中文標點符號前後的空格
+        text = re.sub(r'\s+([\uff0c\u3002\uff01\uff1f\uff1b\uff1a])', r'\1', text)
+        text = re.sub(r'([\u300c\u300e\uff08\u3010\u300a\u3008])\s+', r'\1', text)
+        
+        # 修復數字和中文之間的異常空格
+        text = re.sub(r'(\d)\s+([\u4e00-\u9fff])', r'\1\2', text)
+        text = re.sub(r'([\u4e00-\u9fff])\s+(\d)', r'\1\2', text)
+        
+        # 修復英文和中文之間的空格（保留必要的空格）
+        text = re.sub(r'([a-zA-Z])\s{2,}([\u4e00-\u9fff])', r'\1 \2', text)
+        text = re.sub(r'([\u4e00-\u9fff])\s{2,}([a-zA-Z])', r'\1 \2', text)
+        
+        return text
+
+    def _remove_header_footer_patterns(self, text: str) -> str:
+        """移除頁首頁尾模式
+        
+        Args:
+            text: 原始文字
+        
+        Returns:
+            str: 清理後的文字
+        """
+        # 移除各種頁碼模式
+        patterns = [
+            r'第\s*\d+\s*頁',  # 中文頁碼
+            r'Page\s*\d+',  # 英文頁碼
+            r'\d+\s*/\s*\d+',  # 數字頁碼
+            r'-\s*\d+\s*-',  # 帶橫線的頁碼
+            r'\[\s*\d+\s*\]',  # 方括號頁碼
+        ]
+        
+        for pattern in patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        
+        # 移除日期時間模式
+        text = re.sub(r'\d{4}[-/年]\d{1,2}[-/月]\d{1,2}[日]?', '', text)
+        text = re.sub(r'\d{1,2}[-/]\d{1,2}[-/]\d{4}', '', text)
+        
+        # 移除常見的版權資訊
+        copyright_patterns = [
+            r'[Cc]opyright\s*\u00a9?\s*\d{4}.*',
+            r'©\s*\d{4}.*',
+            r'版權所有.*',
+            r'著作權.*',
+            r'[Cc]onfidential.*',
+            r'機密.*'
+        ]
+        
+        for pattern in copyright_patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        
+        return text
+
+    def _fix_chinese_line_breaks(self, text: str) -> str:
+        """修復中文段落的強行斷行
+        
+        Args:
+            text: 原始文字
+        
+        Returns:
+            str: 修復後的文字
+        """
+        # 修復中文字符之間的異常換行
+        # 如果一行末尾是中文字符，且下一行開頭也是中文字符，則合併
+        text = re.sub(r'([\u4e00-\u9fff])\n([\u4e00-\u9fff])', r'\1\2', text)
+        
+        # 修復段落結尾標點符號後的換行
+        text = re.sub(r'([\uff0c\u3002\uff01\uff1f\uff1b\uff1a])\n([\u4e00-\u9fff])', r'\1\2', text)
+        
+        return text
 
     def get_pdf_metadata(self, file_path: str) -> dict:
         """取得 PDF 檔案的元資料

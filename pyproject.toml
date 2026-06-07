@@ -42,6 +42,11 @@ dependencies = [
     "mypy>=1.17.0",
     "isort>=6.0.1",
     "progress>=1.6.1",
+    "paddleocr>=3.2.0",
+    "paddlepaddle>=3.0.0",
+    "opencv-python>=4.8.0",
+    "pillow>=10.0.0",
+    "scikit-image>=0.21.0",
 ]
 
 [project.optional-dependencies]
@@ -115,6 +120,7 @@ markers = [
 
 [tool.mypy]
 python_version = "3.11"
+plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -133,4 +139,7 @@ dev = [
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
+    "types-markdown>=3.9.0.20250906",
+    "types-pyyaml>=6.0.12.20250915",
+    "types-requests>=2.32.4.20250913",
 ]

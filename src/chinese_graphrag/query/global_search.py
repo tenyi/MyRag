@@ -264,7 +264,11 @@ class CommunityBasedStrategy(GlobalSearchStrategy):
         return "\n".join(context_parts)
 
     async def _generate_answer(
-        self, search_context: str, analysis: QueryAnalysis, llm_manager: LLMManager, simple: bool = False
+        self,
+        search_context: str,
+        analysis: QueryAnalysis,
+        llm_manager: LLMManager,
+        simple: bool = False,
     ) -> str:
         """生成回答"""
 
@@ -285,7 +289,9 @@ class CommunityBasedStrategy(GlobalSearchStrategy):
             logger.error(f"生成回答時發生錯誤: {e}")
             return f"抱歉，在處理您的查詢時遇到了問題：{str(e)}"
 
-    def _build_answer_prompt(self, search_context: str, analysis: QueryAnalysis, simple: bool = False) -> str:
+    def _build_answer_prompt(
+        self, search_context: str, analysis: QueryAnalysis, simple: bool = False
+    ) -> str:
         """構建回答 prompt"""
 
         if simple:
@@ -304,10 +310,10 @@ class CommunityBasedStrategy(GlobalSearchStrategy):
 - 基於提供的社群資訊回答，不要推測
 
 請回答："""
-            
+
             return prompt_template.format(
-                search_context=search_context, 
-                query=analysis.entities[0] if analysis.entities else "未知問題"
+                search_context=search_context,
+                query=analysis.entities[0] if analysis.entities else "未知問題",
             )
         else:
             # 原始詳細模式的 prompt
@@ -349,9 +355,9 @@ class CommunityBasedStrategy(GlobalSearchStrategy):
 請開始回答："""
 
             return prompt_template.format(
-                search_context=search_context, 
-                query_type=analysis.query_type.value, 
-                intent=analysis.intent
+                search_context=search_context,
+                query_type=analysis.query_type.value,
+                intent=analysis.intent,
             )
 
     def _extract_reasoning_and_sources(
@@ -654,7 +660,10 @@ class GlobalSearchEngine:
         # 執行搜尋，傳遞 simple 參數
         try:
             # 如果策略支援 simple 參數，則傳遞給策略
-            if hasattr(search_strategy, 'search') and 'simple' in search_strategy.search.__code__.co_varnames:
+            if (
+                hasattr(search_strategy, "search")
+                and "simple" in search_strategy.search.__code__.co_varnames
+            ):
                 result = await search_strategy.search(
                     context, self.llm_manager, self.vector_store, simple=simple
                 )

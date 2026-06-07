@@ -14,8 +14,9 @@ from typing import Optional
 import click
 from rich.console import Console
 
-from ..config import create_default_config, load_config, validate_config
+from ..config import create_default_config, load_config, validate_config as config_validator
 from ..monitoring import get_logger, setup_logging
+from ..monitoring.logger import LogConfig
 
 # 建立控制台輸出物件
 console = Console()
@@ -64,7 +65,8 @@ def cli(ctx: click.Context, config: Optional[Path], verbose: bool, quiet: bool):
         log_level = "INFO"
 
     # 初始化日誌系統
-    setup_logging()
+    log_config = LogConfig(level=log_level)
+    setup_logging(log_config)
 
     # 載入配置
     try:
@@ -194,7 +196,7 @@ def validate_config(ctx: click.Context, config_path: Optional[Path]):
             sys.exit(1)
 
         # 執行驗證
-        validate_config(config)
+        config_validator(config)
 
         if not ctx.obj["quiet"]:
             console.print(f"[green]✓ 配置檔案驗證通過: {path_to_show}[/green]")
@@ -332,10 +334,12 @@ def main():
 
     try:
         # 註冊索引命令
-        from .index_commands import index, show_index
+        from .index_commands import index, show_index, import_file, scan_files
 
         cli.add_command(index)
         cli.add_command(show_index)
+        cli.add_command(import_file, name="import-file")
+        cli.add_command(scan_files, name="scan-files")
 
         # 註冊查詢命令
         from .query_commands import batch_query, query, test_llm_segmentation

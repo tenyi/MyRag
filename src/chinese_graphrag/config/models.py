@@ -357,9 +357,7 @@ class GraphRAGConfig(BaseModel):
     )
 
     # 除錯配置
-    debug: DebugConfig = Field(
-        default_factory=DebugConfig, description="除錯配置"
-    )  # 跳過的工作流程
+    debug: DebugConfig = Field(default_factory=DebugConfig, description="除錯配置")
     skip_workflows: List[str] = Field(
         default_factory=list, description="跳過的工作流程"
     )

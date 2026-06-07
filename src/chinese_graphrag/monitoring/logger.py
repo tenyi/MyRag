@@ -10,7 +10,10 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from loguru import Logger
 
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -218,7 +221,7 @@ class LoggerManager:
         # 合併使用者設定
         self.config.modules_filter.update(default_filters)
 
-    def get_logger(self, name: str) -> "logger":
+    def get_logger(self, name: str) -> "Logger":
         """取得指定名稱的日誌器"""
         if not self._setup_complete:
             self.setup_logging()
@@ -237,7 +240,7 @@ class LoggerManager:
         self._setup_complete = False
         self.setup_logging()
 
-    def add_context(self, **kwargs) -> "logger":
+    def add_context(self, **kwargs) -> "Logger":
         """添加上下文資訊"""
         return logger.bind(**kwargs)
 
@@ -260,7 +263,7 @@ def setup_logging(config: Optional[LogConfig] = None) -> None:
     _logger_manager.setup_logging()
 
 
-def get_logger(name: str = None) -> "logger":
+def get_logger(name: str = None) -> "Logger":
     """取得日誌器實例"""
     global _logger_manager
     if _logger_manager is None:
@@ -279,7 +282,7 @@ def update_log_level(level: str) -> None:
         _logger_manager.update_level(level)
 
 
-def add_log_context(**kwargs) -> "logger":
+def add_log_context(**kwargs) -> "Logger":
     """添加日誌上下文"""
     global _logger_manager
     if _logger_manager:

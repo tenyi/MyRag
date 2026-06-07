@@ -116,7 +116,7 @@ def _get_default_llm_config(config, logger):
     default_llm_config = LLMConfig(
         provider=LLMProvider.MOCK,
         model="test_model",
-        config={}
+        config={},
         # ,max_tokens=4000,
         # temperature=0.7,
     )
@@ -867,15 +867,16 @@ def _display_simple_result(
 ):
     """顯示精簡查詢結果（僅輸出答案）。"""
     response = result.get("response", "未找到回答")
-    
+
     if output_format == "json":
         # 精簡的 JSON 輸出，只包含答案和基本信息
         simple_result = {
             "answer": response,
             "search_type": result.get("search_type", "unknown"),
-            "response_time": elapsed_time
+            "response_time": elapsed_time,
         }
         import json
+
         console.print(json.dumps(simple_result, indent=2, ensure_ascii=False))
     elif output_format == "plain":
         # 純文本模式，只輸出答案
@@ -883,6 +884,7 @@ def _display_simple_result(
     elif output_format == "markdown":
         # Markdown 格式的精簡輸出
         from rich.syntax import Syntax
+
         markdown_output = f"# 答案\n\n{response}"
         console.print(Syntax(markdown_output, "markdown"))
     else:
@@ -890,6 +892,7 @@ def _display_simple_result(
         if not quiet:
             # 帶格式的答案輸出
             from rich.panel import Panel
+
             console.print(
                 Panel(
                     response,
@@ -899,7 +902,9 @@ def _display_simple_result(
                 )
             )
             # 只顯示基本統計信息
-            console.print(f"[dim]搜尋類型: {result.get('search_type', 'unknown')} | 回應時間: {elapsed_time:.2f} 秒[/dim]")
+            console.print(
+                f"[dim]搜尋類型: {result.get('search_type', 'unknown')} | 回應時間: {elapsed_time:.2f} 秒[/dim]"
+            )
         else:
             # 靜默模式只輸出答案
             console.print(response)

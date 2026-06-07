@@ -7,7 +7,7 @@
 提供系統配置查看和更新功能。
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -18,6 +18,7 @@ from ..models import (
     ConfigResponse,
     ConfigUpdateRequest,
     DataResponse,
+    ErrorResponse,
     create_error_response,
     create_success_response,
 )
@@ -300,7 +301,7 @@ async def get_config_schema() -> DataResponse:
 
 
 @router.post("/config/validate", response_model=DataResponse, summary="驗證配置")
-async def validate_config(request: ConfigUpdateRequest) -> DataResponse:
+async def validate_config(request: ConfigUpdateRequest) -> Union[DataResponse, ErrorResponse]:
     """驗證配置資料的有效性。
 
     Args:

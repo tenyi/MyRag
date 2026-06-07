@@ -44,15 +44,16 @@ class DocumentProcessor:
 
             # 創建文件對象
             document = Document(
-                id=str(file_path),
                 title=file_path.stem,
                 content=content,
-                file_path=file_path,
-                created_at=datetime.now(),
+                file_path=str(file_path),
+                language="zh",
+                file_type=file_path.suffix.lstrip(".") if file_path.suffix else None,
+                file_size=file_path.stat().st_size,
+                encoding="utf-8",
                 metadata={
-                    "file_size": file_path.stat().st_size,
                     "file_extension": file_path.suffix,
-                    "language": "zh",
+                    "processed_at": datetime.now().isoformat(),
                 },
             )
 

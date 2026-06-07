@@ -291,7 +291,7 @@ def custom_openapi(app: FastAPI):
 app = create_app()
 
 # 設定自訂 OpenAPI
-app.openapi = lambda: custom_openapi(app)
+app.openapi = lambda: custom_openapi(app)  # type: ignore[method-assign]
 
 
 if __name__ == "__main__":

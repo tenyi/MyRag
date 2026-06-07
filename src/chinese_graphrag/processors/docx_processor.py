@@ -27,7 +27,7 @@ class DocxProcessor(BaseDocumentProcessor):
         self.supported_extensions = {".docx"}
 
     def extract_content(self, file_path: str) -> str:
-        """從 Word 檔案中提取文字內容
+        """從 Word 檔案中提取文字內容（跳過頁首頁尾）
 
         Args:
             file_path: 檔案路徑
@@ -43,25 +43,26 @@ class DocxProcessor(BaseDocumentProcessor):
             # 開啟 Word 文件
             doc = DocxDocument(file_path)
 
-            # 提取段落文字
-            paragraphs = []
-            for paragraph in doc.paragraphs:
-                text = paragraph.text.strip()
-                if text:  # 只保留非空段落
-                    paragraphs.append(text)
-
+            # 提取主要內容（跳過頁首頁尾）
+            main_content = self._extract_main_content(doc)
+            
             # 提取表格內容
             table_content = self._extract_table_content(doc)
+            
+            # 合併所有內容
+            all_content = []
+            if main_content:
+                all_content.extend(main_content)
             if table_content:
-                paragraphs.extend(table_content)
+                all_content.extend(table_content)
 
-            if not paragraphs:
+            if not all_content:
                 raise ContentExtractionError(
                     file_path, "無法從 Word 文件中提取任何內容"
                 )
 
             # 合併所有內容
-            full_content = "\n\n".join(paragraphs)
+            full_content = "\n\n".join(all_content)
 
             # 清理文字內容
             cleaned_content = self._clean_text(full_content)
@@ -80,6 +81,89 @@ class DocxProcessor(BaseDocumentProcessor):
                 raise FileCorruptionError(file_path, f"Word 檔案可能損壞: {str(e)}")
 
             raise ContentExtractionError(file_path, f"Word 文件處理失敗: {str(e)}")
+
+    def _extract_main_content(self, doc: DocxDocument) -> List[str]:
+        """提取文件主要內容（跳過頁首頁尾）
+
+        Args:
+            doc: Word 文件物件
+
+        Returns:
+            List[str]: 主要段落內容列表
+        """
+        paragraphs = []
+        
+        try:
+            # 獲取所有段落
+            for paragraph in doc.paragraphs:
+                # 跳過空白段落
+                text = paragraph.text.strip()
+                if not text:
+                    continue
+                
+                # 檢查是否為頁首頁尾內容
+                if self._is_header_footer_content(paragraph, text):
+                    logger.debug(f"跳過頁首頁尾內容: {text[:50]}...")
+                    continue
+                
+                # 保留主要內容
+                paragraphs.append(text)
+                logger.debug(f"提取段落內容: {text[:100]}...")
+                
+        except Exception as e:
+            logger.warning(f"提取主要內容時發生錯誤: {str(e)}")
+        
+        return paragraphs
+    
+    def _is_header_footer_content(self, paragraph, text: str) -> bool:
+        """判斷段落是否為頁首頁尾內容
+        
+        Args:
+            paragraph: Word 段落物件
+            text: 段落文字
+        
+        Returns:
+            bool: 是否為頁首頁尾內容
+        """
+        # 檢查段落的位置和樣式
+        try:
+            # 檢查是否在頁首頁尾區域
+            if hasattr(paragraph, '_element') and hasattr(paragraph._element, 'getparent'):
+                parent = paragraph._element.getparent()
+                if parent is not None:
+                    # 檢查父元素是否為 header 或 footer
+                    parent_tag = parent.tag if hasattr(parent, 'tag') else ''
+                    if 'hdr' in parent_tag or 'ftr' in parent_tag:
+                        return True
+            
+            # 檢查文字內容模式（常見的頁首頁尾標識）
+            text_lower = text.lower()
+            
+            # 頁碼模式
+            if re.match(r'^(第\s*\d+\s*頁|page\s*\d+|\d+\s*/\s*\d+)$', text_lower):
+                return True
+                
+            # 日期模式
+            if re.search(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}', text):
+                return True
+                
+            # 版權資訊
+            copyright_keywords = ['copyright', '©', '版權', '著作權', 'confidential', '機密']
+            if any(keyword in text_lower for keyword in copyright_keywords):
+                return True
+                
+            # 公司名稱或標題（通常很短且重複出現）
+            if len(text) < 50 and any(char in text for char in ['公司', 'Co.', 'Ltd', 'Inc']):
+                return True
+                
+            # 很短的重複性內容（可能是頁首標題）
+            if len(text) < 30 and len(text.split()) <= 5:
+                return True
+                
+        except Exception as e:
+            logger.debug(f"檢查頁首頁尾時發生錯誤: {str(e)}")
+            
+        return False
 
     def _extract_table_content(self, doc: DocxDocument) -> List[str]:
         """提取表格內容

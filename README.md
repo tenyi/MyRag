@@ -4,7 +4,9 @@
 
 ## 特色功能
 
-- 🇨🇳 **中文優化**：專門針對中文文件處理設計
+- 🇺🇳 **中文優化**：專門針對中文文件處理設計
+- 📄 **多格式支援**：支援 Word (.docx)、PDF、圖像、文字和 Markdown 檔案
+- 🎯 **智能過濾**：自動跑過頁首頁尾，只保留主要內容
 - 🔄 **多模型支援**：支援多種 LLM 和 Embedding 模型
 - 💾 **向量資料庫**：持久化儲存和高效檢索
 - 📊 **知識圖譜**：自動建構實體關係和社群結構
@@ -41,14 +43,26 @@ cp config/settings.yaml.example config/settings.yaml
 uv run python -m chinese_graphrag.cli init
 ```
 
-### 4. 索引文件
+### 4. 匯入文件
 
 ```bash
-# 索引中文文件
+# 匯入 Word、PDF 或圖像檔案
+uv run chinese-graphrag import-file -f document.docx --preview
+uv run chinese-graphrag import-file -f document.pdf -o extracted.txt
+uv run chinese-graphrag import-file -f image.jpg --preview  # OCR 識別
+
+# 掃描目錄中的檔案
+uv run chinese-graphrag scan-files -d ./documents --recursive
+```
+
+### 5. 索引文件
+
+```bash
+# 索引中文文件（支援 Word、PDF、圖像、文字檔）
 uv run chinese-graphrag index --input ./documents --output ./data
 ```
 
-### 5. 查詢系統
+### 6. 查詢系統
 
 ```bash
 # 執行查詢
@@ -80,10 +94,11 @@ chinese-graphrag/
 
 - **[📖 文件首頁](docs/README.md)** - 文件導航和概覽
 - **[🚀 安裝指南](docs/installation_guide.md)** - 詳細的安裝和配置說明
+- **[📄 文件匯入指南](docs/file_import_guide.md)** - Word 和 PDF 檔案匯入功能
 - **[🔧 API 文件](docs/api_usage_guide.md)** - REST API 完整參考
 - **[💡 範例教學](docs/examples_and_tutorials.md)** - 程式碼範例和教學
 - **[🐛 故障排除](docs/troubleshooting_guide.md)** - 常見問題和解決方案
-- **[🏗️ 架構設計](docs/architecture_design.md)** - 系統架構和設計文件
+- **[🏢 架構設計](docs/architecture_design.md)** - 系統架構和設計文件
 - **[👥 貢獻指南](docs/contributing_guide.md)** - 開發者貢獻指南
 
 ## 開發

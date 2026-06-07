@@ -14,6 +14,7 @@ from .exceptions import (
     FileNotFoundError,
     UnsupportedFileFormatError,
 )
+from .image_processor import ImageProcessor
 from .pdf_processor import PDFProcessor
 from .text_processor import MarkdownProcessor, TextProcessor
 
@@ -26,6 +27,7 @@ __all__ = [
     "MarkdownProcessor",
     "PDFProcessor",
     "DocxProcessor",
+    "ImageProcessor",
     "ChineseTextProcessor",
     # 例外類別
     "DocumentProcessingError",
@@ -52,5 +54,6 @@ def create_default_processor_manager() -> DocumentProcessorManager:
     manager.register_processor("markdown", MarkdownProcessor())
     manager.register_processor("pdf", PDFProcessor())
     manager.register_processor("docx", DocxProcessor())
+    manager.register_processor("image", ImageProcessor())
 
     return manager

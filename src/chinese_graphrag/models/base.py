@@ -25,8 +25,6 @@ class BaseModel(PydanticBaseModel):
         validate_assignment=True,
         # 使用 enum 值而不是名稱
         use_enum_values=True,
-        # 序列化時排除 None 值
-        exclude_none=True,
     )
 
     id: str = Field(default_factory=lambda: str(uuid4()), description="唯一識別碼")

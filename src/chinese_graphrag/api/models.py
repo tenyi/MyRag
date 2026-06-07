@@ -234,7 +234,10 @@ class MonitoringResponse(DataResponse):
 
 # 通用工具函數
 def create_success_response(
-    data: Any = None, message: str = "操作成功", meta: Dict[str, Any] = None
+    data: Any = None,
+    message: str = "操作成功",
+    meta: Dict[str, Any] = None,
+    request_id: Optional[str] = None,
 ) -> DataResponse:
     """創建成功回應。
 
@@ -242,15 +245,21 @@ def create_success_response(
         data: 回應資料
         message: 回應訊息
         meta: 元資料
+        request_id: 請求 ID
 
     Returns:
         成功的資料回應
     """
-    return DataResponse(success=True, message=message, data=data, meta=meta)
+    return DataResponse(
+        success=True, message=message, data=data, meta=meta, request_id=request_id
+    )
 
 
 def create_error_response(
-    message: str, error_code: str = None, error_details: Dict[str, Any] = None
+    message: str,
+    error_code: str = None,
+    error_details: Dict[str, Any] = None,
+    request_id: Optional[str] = None,
 ) -> ErrorResponse:
     """創建錯誤回應。
 
@@ -258,6 +267,7 @@ def create_error_response(
         message: 錯誤訊息
         error_code: 錯誤代碼
         error_details: 錯誤詳情
+        request_id: 請求 ID
 
     Returns:
         錯誤回應
@@ -267,6 +277,7 @@ def create_error_response(
         message=message,
         error_code=error_code,
         error_details=error_details,
+        request_id=request_id,
     )
 
 
@@ -276,6 +287,7 @@ def create_task_response(
     message: str = "",
     progress: float = None,
     result: Any = None,
+    request_id: Optional[str] = None,
 ) -> TaskResponse:
     """創建任務回應。
 
@@ -285,6 +297,7 @@ def create_task_response(
         message: 回應訊息
         progress: 進度百分比
         result: 任務結果
+        request_id: 請求 ID
 
     Returns:
         任務回應
@@ -296,4 +309,5 @@ def create_task_response(
         status=status,
         progress=progress,
         result=result,
+        request_id=request_id,
     )
